@@ -17,7 +17,7 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="w-[260px] h-full bg-nav-bg">
+        <nav className="w-[260px] h-full bg-nav-bg py-[40px]">
             <ul>
                 {fakeItems.map((item, index) => (
                     <li key={index}>
