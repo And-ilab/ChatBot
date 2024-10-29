@@ -1,0 +1,5 @@
+.idea
+venv
+.env
+src/__pycache__
+src/chat/__pycache__
