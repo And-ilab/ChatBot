@@ -9,7 +9,6 @@ def authenticate(username: str, password: str) -> bool:
     user_dn = USER_DN.format(username=username)
 
     try:
-        # Попробуйте базовую аутентификацию
         conn = Connection(server, user=user_dn, password=password, authentication='SIMPLE')
         if conn.bind():
             conn.unbind()
