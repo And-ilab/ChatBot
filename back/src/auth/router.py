@@ -8,9 +8,9 @@ router = APIRouter(
 )
 
 
-@app.post('/login')
+@router.post('/login')
 async def login(user: UserLogin):
     if authenticate(user.username, user.password):
-        return HTTPException(status_code=200)
+        return {"status": 200, "message": "Successfully logged in."}
     else:
-        return HTTPException(status_code=401)
+        return {"status": 401, "message": "Something went wrong."}

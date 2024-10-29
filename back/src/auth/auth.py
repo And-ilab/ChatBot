@@ -1,7 +1,7 @@
 from ldap3 import Server, Connection, ALL, NTLM
 
-LDAP_SERVER = 'ldap://company.local'  # Замените на адрес вашего AD сервера
-DOMAIN = 'COMPANY'  # Замените на ваш домен
+LDAP_SERVER = 'ldap://company.local'
+DOMAIN = 'COMPANY'
 USER_DN = f'{DOMAIN}\\{{username}}'
 
 def authenticate(username: str, password: str) -> bool:
