@@ -1,8 +1,8 @@
 """Database creation
 
-Revision ID: c6072a553570
+Revision ID: 80a5832f6b0e
 Revises: 
-Create Date: 2024-10-29 16:49:53.451714
+Create Date: 2024-10-29 22:22:41.652518
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'c6072a553570'
+revision: str = '80a5832f6b0e'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -30,7 +30,6 @@ def upgrade() -> None:
     op.create_table('dialogs',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('started_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -39,7 +38,6 @@ def upgrade() -> None:
     sa.Column('dialog_id', sa.Integer(), nullable=True),
     sa.Column('sender', sa.String(), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
-    sa.Column('timestamp', sa.DateTime(), nullable=True),
     sa.CheckConstraint("sender IN ('user', 'bot')", name='check_sender'),
     sa.ForeignKeyConstraint(['dialog_id'], ['dialogs.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')

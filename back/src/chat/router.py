@@ -20,8 +20,7 @@ async def get_dialogs(user_id: int, session: AsyncSession = Depends(get_session)
         select(
             dialog.c.id,
             message.c.sender,
-            message.c.content,
-            message.c.timestamp
+            message.c.content
         )
         .join(message, message.c.dialog_id == dialog.c.id)
         .where(dialog.c.user_id == user_id)
@@ -36,8 +35,7 @@ async def get_dialogs(user_id: int, session: AsyncSession = Depends(get_session)
             dialog_id = row[0]
             msg = {
                 "sender": row[1],
-                "content": row[2],
-                "timestamp": row[3]
+                "content": row[2]
             }
 
             if dialog_id not in dialogs_dict:
@@ -50,11 +48,10 @@ async def get_dialogs(user_id: int, session: AsyncSession = Depends(get_session)
 
 
 @router.post("/{user_id}/all")
-async def new_dialog(user_id: int, started_at: datetime, session: AsyncSession = Depends(get_session)):
-    stmt = insert(dialog).values(user_id=user_id, started_at=started_at)
+async def new_dialog(user_id: int, session: AsyncSession = Depends(get_session)):
+    stmt = insert(dialog).values(user_id=user_id)
     try:
-        result = await session.execute(stmt)
-
+        await session.execute(stmt)
         await session.commit()
         return {"status": 200}
     except SQLAlchemyError as e:
