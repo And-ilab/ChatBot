@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 
-import { RequestMethod, UseHttpReturn } from "../interfaces";
-
+import { RequestMethod, UseHttpReturn } from "../interfaces/interfaces";
 
 
 export const useHttp = (): UseHttpReturn => {
