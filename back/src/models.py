@@ -10,18 +10,12 @@ user = Table(
     Column("password_hash", String, nullable=False)
 )
 
-dialog = Table(
-    'dialogs',
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE")),
-)
-
 message = Table(
     'messages',
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("dialog_id", Integer, ForeignKey("dialogs.id", ondelete="CASCADE")),
+    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE")),
+    Column("dialog_id", Integer),
     Column("sender", String, nullable=False),
     Column("content", Text, nullable=False),
     CheckConstraint("sender IN ('user', 'bot')", name="check_sender")

@@ -1,10 +1,10 @@
-from datetime import datetime
+from src.chat.schemas import MessageInput
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import insert
-from src.models import dialog, message
+from src.models import dialog as dialog_table, message as message_table
 from src.database import get_session
 
 
@@ -14,16 +14,16 @@ router = APIRouter(
 )
 
 
-@router.get("/{user_id}/all")
+@router.get("/{user_id}/dialogs/all")
 async def get_dialogs(user_id: int, session: AsyncSession = Depends(get_session)):
     stmt = (
         select(
-            dialog.c.id,
-            message.c.sender,
-            message.c.content
+            dialog_table.c.id,
+            message_table.c.sender,
+            message_table.c.content
         )
-        .join(message, message.c.dialog_id == dialog.c.id)
-        .where(dialog.c.user_id == user_id)
+        .join(message_table, message_table.c.dialog_id == dialog_table.c.id)
+        .where(dialog_table.c.user_id == user_id)
     )
 
     result = await session.execute(stmt)
@@ -47,9 +47,9 @@ async def get_dialogs(user_id: int, session: AsyncSession = Depends(get_session)
         return {}
 
 
-@router.post("/{user_id}/all")
+@router.post("/{user_id}/dialogs/all")
 async def new_dialog(user_id: int, session: AsyncSession = Depends(get_session)):
-    stmt = insert(dialog).values(user_id=user_id)
+    stmt = insert(dialog_table).values(user_id=user_id)
     try:
         await session.execute(stmt)
         await session.commit()
@@ -59,6 +59,23 @@ async def new_dialog(user_id: int, session: AsyncSession = Depends(get_session))
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{user_id}/{dialog_id}/messages")
-async def new_message_to_dialog(user_id: int, dialog_id: int):
-    return {"message": f"Добавить новое сообщение в диалог {dialog_id} для пользователя {user_id}"}
+@router.post("/{user_id}/dialogs/{dialog_id}")
+async def new_message_to_dialog(
+    user_id: int,
+    dialog_id: int,
+    message: MessageInput,
+    session: AsyncSession = Depends(get_session)
+):
+    stmt = insert(message_table).values(
+        user_id=user_id,
+        dialog_id=dialog_id,
+        content=message.content,
+        sender=message.sender
+    )
+    try:
+        await session.execute(stmt)
+        await session.commit()
+        return {"status": 200, "detail": "Message added successfully"}
+    except SQLAlchemyError as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
