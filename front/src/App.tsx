@@ -1,23 +1,38 @@
-import './App.css'
-// import LoginForm from './components/LoginForm/LoginForm'
-import ChatArea from './components/ChatArea'
-import ChatInput from './components/ChatInput'
-import Navbar from './components/Navbar'
+import { useEffect, useState } from "react";
+import ChatArea from "./components/ChatArea";
+import ChatInput from "./components/ChatInput";
+import useChatService from "./services/ChatService";
+import { MessageInput } from "./interfaces/interfaces";
+
 
 function App() {
+  const [messages, setMessages] = useState<MessageInput[]>([]);
+  const { getDialogMessages } = useChatService();
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const response = await getDialogMessages(1);
+        const data = response["messages"]
+        setMessages(data);
+      } catch (e) {
+        console.error("Ошибка загрузки сообщений:", e);
+      }
+    };
+
+    fetchMessages();
+  }, []);
+
+  const handleNewMessage = (newMessage: MessageInput) => {
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+  };
 
   return (
-    <div className='flex h-full w-full'>
-      <Navbar />
-      <div className="flex-1 flex flex-row px-[70px] justify-center items-start">
-        <ChatArea/>
-        <ChatInput />
-      </div>
-      {/* <div className='h-full w-full flex justify-center items-center'>
-        <LoginForm />
-      </div> */}
+    <div className='flex h-full w-full justify-center items-center'>
+      <ChatArea messages={messages} />
+      <ChatInput onNewMessage={handleNewMessage} />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

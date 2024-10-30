@@ -12,3 +12,20 @@ export interface UseHttpReturn {
     process: string;
     setProcess: React.Dispatch<React.SetStateAction<string>>;
 }
+
+export interface UserMessageProps {
+    content: string;
+}
+
+export interface BotMessageProps {
+    content: string;
+}
+
+export interface MessageInput {
+    sender: 'user' | 'bot';
+    content: string;
+}
+
+export interface ChatAreaProps {
+    messages: MessageInput[];
+}

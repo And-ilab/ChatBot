@@ -7,4 +7,4 @@ class MessageInput(BaseModel):
 
 
 class DialogResponse(BaseModel):
-    dialogs: Dict[int, List[MessageInput]]
+    messages: List[MessageInput]
