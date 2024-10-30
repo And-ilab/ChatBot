@@ -1,10 +1,10 @@
-from src.chat.schemas import MessageInput
+from src.chat.schemas import MessageInput, DialogResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import insert
-from src.models import dialog as dialog_table, message as message_table
+from src.models import message as message_table
 from src.database import get_session
 
 
@@ -14,49 +14,31 @@ router = APIRouter(
 )
 
 
-@router.get("/{user_id}/dialogs/all")
+@router.get("/{user_id}/dialogs", response_model=DialogResponse)
 async def get_dialogs(user_id: int, session: AsyncSession = Depends(get_session)):
-    stmt = (
-        select(
-            dialog_table.c.id,
-            message_table.c.sender,
-            message_table.c.content
-        )
-        .join(message_table, message_table.c.dialog_id == dialog_table.c.id)
-        .where(dialog_table.c.user_id == user_id)
+    query = (
+        select(message_table.c.dialog_id, message_table.c.content, message_table.c.sender)
+        .where(message_table.c.user_id == user_id)
     )
+    result = await session.execute(query)
+    dialogs = result.fetchall()
 
-    result = await session.execute(stmt)
-    dialogs_with_messages = result.all()
-
-    if dialogs_with_messages:
+    if dialogs:
         dialogs_dict = {}
-        for row in dialogs_with_messages:
+        for row in dialogs:
             dialog_id = row[0]
             msg = {
-                "sender": row[1],
-                "content": row[2]
+                "sender": row[2],
+                "content": row[1]
             }
 
             if dialog_id not in dialogs_dict:
                 dialogs_dict[dialog_id] = [msg]
             else:
                 dialogs_dict[dialog_id].append(msg)
-        return dialogs_dict
+        return DialogResponse(dialogs=dialogs_dict)
     else:
         return {}
-
-
-@router.post("/{user_id}/dialogs/all")
-async def new_dialog(user_id: int, session: AsyncSession = Depends(get_session)):
-    stmt = insert(dialog_table).values(user_id=user_id)
-    try:
-        await session.execute(stmt)
-        await session.commit()
-        return {"status": 200}
-    except SQLAlchemyError as e:
-        await session.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/{user_id}/dialogs/{dialog_id}")
