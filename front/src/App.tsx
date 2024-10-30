@@ -3,6 +3,8 @@ import ChatArea from "./components/ChatArea";
 import ChatInput from "./components/ChatInput";
 import useChatService from "./services/ChatService";
 import { MessageInput } from "./interfaces/interfaces";
+import LoginForm from "./components/LoginForm/LoginForm";
+import './App.css'
 
 
 function App() {
@@ -28,9 +30,12 @@ function App() {
   };
 
   return (
-    <div className='flex h-full w-full justify-center items-center'>
-      <ChatArea messages={messages} />
-      <ChatInput onNewMessage={handleNewMessage} />
+    <div className='flex h-full justify-center items-center'>
+      <div className="flex h-full w-full justify-center">
+        <ChatArea messages={messages} />
+        <ChatInput onNewMessage={handleNewMessage} />
+      </div>
+      {/* <LoginForm /> */}
     </div>
   );
 }
