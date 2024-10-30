@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from src.chat.router import router as router_messages
-# from src.auth.router import router as router_auth
+from src.auth.router import router as router_auth
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Chat-bot")
 
