@@ -1,8 +1,8 @@
-"""database creation
+"""Database creation
 
-Revision ID: 4f4ae1b8d362
+Revision ID: b6d0060fbbc2
 Revises: 
-Create Date: 2024-10-29 06:49:32.719109
+Create Date: 2024-10-30 14:02:51.906698
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '4f4ae1b8d362'
+revision: str = 'b6d0060fbbc2'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -23,14 +23,13 @@ def upgrade() -> None:
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('password_hash', sa.String(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('username')
     )
     op.create_table('dialogs',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('started_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -39,7 +38,6 @@ def upgrade() -> None:
     sa.Column('dialog_id', sa.Integer(), nullable=True),
     sa.Column('sender', sa.String(), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
-    sa.Column('timestamp', sa.DateTime(), nullable=True),
     sa.CheckConstraint("sender IN ('user', 'bot')", name='check_sender'),
     sa.ForeignKeyConstraint(['dialog_id'], ['dialogs.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')

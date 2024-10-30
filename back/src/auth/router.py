@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from src.auth.schemas import UserLogin
 from src.auth.auth import authenticate
-
 from src.auth.auth import get_current_user
 from src.auth.auth import create_access_token
 
