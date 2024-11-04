@@ -12,8 +12,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import io
 
-load_dotenv()
+# Используйте io.open для открытия файла с указанием кодировки
+with io.open('.env', 'r', encoding='utf-8') as f:
+    load_dotenv(stream=f)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET', 'your-default-secret-key')
+SECRET_KEY = os.getenv('DJANGO_SECRET')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -85,10 +88,7 @@ DATABASES = {
         'USER': os.getenv('USER'),
         'PASSWORD': os.getenv('PASSWORD'),
         'HOST': os.getenv('HOST', 'localhost'),
-        'PORT': os.getenv('PORT', '5432'),
-        'OPTIONS': {
-            'driver': 'asyncpg',
-        },
+        'PORT': os.getenv('PORT', '5432')
     }
 }
 
