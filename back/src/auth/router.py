@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from src.auth.schemas import UserLogin
-from src.auth.auth import authenticate
-from src.auth.auth import get_current_user
-from src.auth.auth import create_access_token
+from src.auth.ldap import authenticate
+from src.auth.ldap import get_current_user
+from src.auth.jwt import create_access_token
 
 router = APIRouter(
     prefix="/auth",
@@ -22,7 +22,6 @@ async def login(user: UserLogin):
 async def login(user: UserLogin):
     user_info = authenticate(user.username, user.password)
     if user_info:
-        # Создание токена
         access_token = create_access_token(data={"sub": user_info["username"], "roles": user_info["roles"]})
         return {"access_token": access_token, "token_type": "bearer"}
     else:
