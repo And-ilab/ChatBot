@@ -18,10 +18,8 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    # url админ-панели django
     path('admin/', admin.site.urls),
-    # url чата для обычного пользователя
     path('chat_user/', include('chat_user.urls', namespace='chat_user')),
-    # url администрироания чата для админа/оператора
     path('chat_dashboard/', include('chat_dashboard.urls', namespace='chat_dashboard')),
+    path('authentication/', include('authentication.urls', namespace='authentication')),  # Подключение приложения
 ]

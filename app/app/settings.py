@@ -14,29 +14,24 @@ from pathlib import Path
 from dotenv import load_dotenv
 import io
 
-# Используйте io.open для открытия файла с указанием кодировки
-with io.open('.env', 'r', encoding='utf-8') as f:
-    load_dotenv(stream=f)
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET')
+SECRET_KEY = 'django-insecure-pmw+k!&zc@eltyf!*5r!3p^v0@%pd37d_bc6xe##e-xe1m#=)'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
+    'authentication',
     'chat_user',
     'chat_dashboard',
     'django.contrib.admin',
@@ -77,21 +72,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'app.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('NAME'),
-        'USER': os.getenv('USER'),
-        'PASSWORD': os.getenv('PASSWORD'),
-        'HOST': os.getenv('HOST', 'localhost'),
-        'PORT': os.getenv('PORT', '5432')
+        'NAME': 'postgres',
+        'USER': 'django',
+        'PASSWORD': 'django',
+        'HOST': 'localhost',
+        'PORT': 5432
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -111,7 +104,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -123,7 +115,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
@@ -133,3 +124,35 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTH_USER_MODEL = 'chat_dashboard.User'
+
+
+import ldap3
+# настройки LDAP
+LDAP_SERVER = 'ldap://company.local'
+DOMAIN = 'COMPANY'
+BASE_DN = 'DC=company,DC=local'
+
+# Настройки аутентификации
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',  # Стандартная аутентификация Django
+)
+
+# Определите, как будет происходить аутентификация
+def authenticate(username, password):
+    from ldap3 import Server, Connection, ALL
+
+    user_dn = f"{username}@{DOMAIN.lower()}"
+    server = Server(LDAP_SERVER, get_info=ALL)
+
+    try:
+        # Попытка подключиться к LDAP с использованием учетных данных
+        conn = Connection(server, user=user_dn, password=password)
+        if conn.bind():
+            return True  # Успешная аутентификация
+        else:
+            return False  # Успешная аутентификация не прошла
+    except Exception as e:
+        print(f"Ошибка аутентификации: {e}")
+        return False

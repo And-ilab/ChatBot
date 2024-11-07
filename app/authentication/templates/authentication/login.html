@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход</title>
+    <!-- Подключение Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #343a40, #495057); /* Градиент для фона */
+            color: white; /* Цвет текста */
+            height: 100vh; /* Высота вьюпорта */
+            display: flex; /* Используем flexbox для центрирования */
+            justify-content: center; /* Центрируем по горизонтали */
+            align-items: center; /* Центрируем по вертикали */
+        }
+        .form-container {
+            max-width: 400px; /* Максимальная ширина формы */
+            margin: auto; /* Центрирование формы */
+            padding: 30px; /* Отступы внутри формы */
+            background-color: rgba(73, 78, 87, 0.9); /* Полупрозрачный цвет фона */
+            border-radius: 12px; /* Закругленные углы */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); /* Мягкая тень */
+        }
+        h2 {
+            margin-bottom: 20px; /* Отступ снизу заголовка */
+        }
+        button {
+            margin-top: 10px; /* Отступ сверху для кнопки */
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2 class="text-center">Вход</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary btn-block">Войти</button>
+        </form>
+    </div>
+
+    <!-- Подключение Bootstrap JS и jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.0.7/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
