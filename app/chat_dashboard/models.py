@@ -1,5 +1,5 @@
-from email.policy import default
-
+from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.conf import settings
 
@@ -53,8 +53,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Разрешения, которые назначены пользователю."
     )
 
-    USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = ['email', 'role']
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'role']
 
     objects = UserManager()
 
