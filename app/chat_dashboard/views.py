@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import User
-from .forms import UserForm
+from .forms import UserForm, UserFormUpdate
+from .send_mail import send
 
 
 def user_list(request):
@@ -14,6 +15,8 @@ def user_create(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
+            email = user.email
+            # send(email)
             user.save()
             return redirect('chat_dashboard:user_list')
     else:
@@ -24,13 +27,13 @@ def user_create(request):
 def user_update(request, pk):
     user = get_object_or_404(User, pk=pk)
     if request.method == 'POST':
-        form = UserForm(request.POST, instance=user)
+        form = UserFormUpdate(request.POST, instance=user)
         if form.is_valid():
             form.save()
             return redirect('chat_dashboard:user_list')
     else:
-        form = UserForm(instance=user)
-    return render(request, 'chat_dashboard/user_form.html', {'form': form})
+        form = UserFormUpdate(instance=user)
+    return render(request, 'chat_dashboard/user_form_update.html', {'form': form})
 
 
 def user_delete(request, pk):
@@ -39,7 +42,3 @@ def user_delete(request, pk):
         user.delete()
         return redirect('chat_dashboard:user_list')
     return render(request, 'chat_dashboard/user_confirm_delete.html', {'user': user})
-
-
-def home(request):
-    return render(request, 'home.html')

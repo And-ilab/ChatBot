@@ -1,26 +1,8 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Удаление пользователя</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        body {
-            background-color: #f8f9fa; /* Светлый фон */
-        }
-        .confirm-container {
-            max-width: 500px; /* Максимальная ширина формы */
-            margin: auto; /* Центрирование формы */
-            padding: 20px; /* Отступы внутри формы */
-            background-color: white; /* Белый фон для формы */
-            border-radius: 10px; /* Скругленные углы */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Тень для объема */
-        }
-    </style>
-</head>
-<body>
+{% extends "authentication/base.html" %}
+
+{% block title %}Удаление пользователя{% endblock %}
+
+{% block content %}
     <div class="confirm-container mt-5">
         <h2 class="text-center">Подтверждение удаления</h2>
         <p class="text-center">Вы уверены, что хотите удалить пользователя {{ user.first_name }} {{ user.second_name }}?</p>
@@ -32,8 +14,4 @@
             </div>
         </form>
     </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
-</html>
+{% endblock %}

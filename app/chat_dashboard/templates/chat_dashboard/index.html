@@ -1,50 +1,19 @@
-{% load static %}
+{% extends "authentication/base.html" %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Пользователи</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        body {
-            background-color: #f8f9fa; /* Светлый фон */
-        }
-        .container {
-            max-width: 1200px; /* Максимальная ширина контейнера */
-        }
-        .header {
-            background-color: #007bff; /* Цвет фона заголовка */
-            color: white; /* Цвет текста */
-            padding: 20px; /* Отступы */
-            border-radius: 5px; /* Скругление углов */
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Тень */
-        }
-        .btn-primary {
-            background-color: #0056b3; /* Темно-синий цвет для кнопки "Добавить пользователя" */
-            border: none; /* Убираем границу */
-        }
-        .table-container {
-            background-color: white; /* Белый фон для таблицы */
-            border-radius: 5px; /* Скругление углов */
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Тень */
-            padding: 20px; /* Отступы */
-        }
-    </style>
-</head>
-<body>
+{% block title %}Пользователи{% endblock %}
+
+{% block content %}
     <div class="container my-5">
         <div class="header mb-4">
             <div class="d-flex justify-content-between align-items-center">
-                <h1>Пользователи</h1>
-                <a href="{% url 'chat_dashboard:user_create' %}" class="btn btn-primary">Добавить пользователя</a>
+                <h1 class="text-dark">Пользователи</h1>
+                <a href="{% url 'chat_dashboard:user_create' %}" class="btn btn-success">Добавить пользователя</a>
             </div>
         </div>
         <div class="table-container">
             <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
+                <table class="table table-striped table-bordered">
+                    <thead class="table-light">
                         <tr>
                             <th>Username</th>
                             <th>Email</th>
@@ -53,15 +22,15 @@
                             <th>Действия</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="table-secondary">
                         {% for user in users %}
                         <tr>
-                            <td>{{ user.username }}</td>
-                            <td>{{ user.email }}</td>
-                            <td>{{ user.id }}</td>
-                            <td>{{ user.role }}</td>
+                            <td class="text-dark">{{ user.username }}</td>
+                            <td class="text-dark">{{ user.email }}</td>
+                            <td class="text-dark">{{ user.id }}</td>
+                            <td class="text-dark">{{ user.role }}</td>
                             <td>
-                                <a href="{% url 'chat_dashboard:user_update' user.id %}" class="btn btn-sm btn-primary">Изменить</a>
+                                <a href="{% url 'chat_dashboard:user_update' user.id %}" class="btn btn-sm btn-info">Изменить</a>
                                 <a href="{% url 'chat_dashboard:user_delete' user.id %}" class="btn btn-sm btn-danger">Удалить</a>
                             </td>
                         </tr>
@@ -71,8 +40,4 @@
             </div>
         </div>
     </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
-</html>
+{% endblock %}

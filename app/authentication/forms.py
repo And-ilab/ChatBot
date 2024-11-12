@@ -26,6 +26,19 @@ class UserRegistrationForm(forms.ModelForm):
             user.save()
         return user
 
+class CustomUserLoginForm(forms.Form):
+    username = forms.CharField(label='Username or Email', max_length=254)
+    password = forms.CharField(label='Password', widget=forms.PasswordInput)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        username = cleaned_data.get("username")
+        password = cleaned_data.get("password")
+
+        if not username or not password:
+            raise forms.ValidationError("Пожалуйста, введите и логин, и пароль.")
+
+        return cleaned_data
 
 class UserLoginForm(AuthenticationForm):
     username = forms.CharField(label='username')
