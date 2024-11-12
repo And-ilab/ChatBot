@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+    <style>
+        body {
+            position: relative;
+        }
+        .chat-window {
+            display: none;
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            width: 400px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            z-index: 1000;
+        }
+        .chat-header {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+        .chat-messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;  /* Отступ между сообщениями */
+        }
+        .bot-message {
+            background-color: #f1f1f1;  /* Цвет фона для сообщений бота */
+            padding: 8px;
+            border-radius: 5px;
+            align-self: flex-start;  /* Выравнивание сообщений бота влево */
+        }
+        .user-message {
+            background-color: #007bff;  /* Цвет фона для сообщений пользователя */
+            color: white;
+            padding: 8px;
+            border-radius: 5px;
+            align-self: flex-end;  /* Выравнивание сообщений пользователя вправо */
+        }
+        .chat-footer {
+            display: flex;
+            padding: 10px;
+        }
+        .chat-input {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .chat-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+<button id="user-chat-toggle" class="btn btn-primary" style="position: fixed; bottom: 20px; right: 20px;">
+    Chat
+</button>
+
+<div class="chat-window" id="user-chat-window">
+    <div class="chat-header d-flex justify-content-between align-items-center">
+        <h5>Чат</h5>
+        <button id="user-close-chat" class="btn-close btn-close-white" aria-label="Close"></button>
+    </div>
+    <div class="chat-messages" id="user-chat-messages">
+
+    </div>
+    <div class="chat-footer">
+        <input type="text" class="form-control chat-input" placeholder="Ваше сообщение..." id="user-chat-input">
+        <button class="btn chat-button" id="user-send-message">Отправить</button>
+    </div>
+</div>
+
+<script>
+    const chatToggle = document.getElementById('user-chat-toggle');
+    const chatWindow = document.getElementById('user-chat-window');
+    const closeChat = document.getElementById('user-close-chat');
+    const sendMessage = document.getElementById('user-send-message');
+    const chatMessages = document.getElementById('user-chat-messages');
+    const chatInput = document.getElementById('user-chat-input');
+
+    chatToggle.addEventListener('click', () => {
+        chatWindow.style.display = 'block';
+        fetch(`/api/messages/9/`)
+            .then(response => response.json())
+            .then(data => {
+                const messagesContainer = document.getElementById('user-chat-messages');
+                messagesContainer.innerHTML = ''; // Очистка контейнера перед добавлением новых сообщений
+
+                data.messages.forEach(message => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = message.sender === 'Bot' ? 'bot-message' : 'user-message';
+                    messageDiv.innerHTML = `<strong>${message.sender === 'Bot' ? 'Бот' : 'Вы'}:</strong> ${message.content}`;
+                    messagesContainer.appendChild(messageDiv);
+                });
+            });
+    });
+
+    closeChat.addEventListener('click', () => {
+        chatWindow.style.display = 'none';
+    });
+
+    function getCSRFToken() {
+        const csrfTokenMeta = document.querySelector("meta[name='csrf-token']");
+        return csrfTokenMeta ? csrfTokenMeta.getAttribute("content") : "";
+    }
+
+    sendMessage.addEventListener('click', () => {
+        const message = chatInput.value.trim();
+        if (message) {
+            const userMessage = document.createElement('div');
+            userMessage.className = 'user-message';
+            userMessage.innerHTML = `<strong>Вы:</strong> ${message}`;
+            chatMessages.appendChild(userMessage);
+            chatInput.value = '';
+
+            const dialog_id = 9;
+            const user_id = 4;
+            if (dialog_id) {
+                fetch(`/api/send-message/${dialog_id}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({
+                        sender_type: 'user',
+                        sender_id: user_id,
+                        content: message
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    chatInput.value = '';
+                })
+                .catch(error => {
+                    console.error('Ошибка при отправке сообщения:', error);
+                });
+            }
+        }
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+<!--            const botMessage = document.createElement('div');-->
+<!--            botMessage.className = 'bot-message';-->
+<!--            botMessage.innerHTML = `<strong>Бот:</strong> Спасибо за ваше сообщение!`;-->
+<!--            chatMessages.appendChild(botMessage);-->
+
+</script>
+
+</body>
+</html>

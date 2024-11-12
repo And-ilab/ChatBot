@@ -1,0 +1,41 @@
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #343a40;
+    color: #fff;
+    height: 100vh;
+    width: 52px;
+    padding: 20px 0;
+}
+
+.nav-item {
+    width: 100%;
+}
+
+.sidebar .nav-link {
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    transition: background-color 0.3s;
+}
+
+.sidebar .nav-link:hover {
+    background-color: #495057;
+}
+
+.sidebar .nav-link.active {
+    background-color: #007bff;
+}
+
+.sidebar .nav {
+    height: 50%
+}
+
+.sidebar .account_wrapper {
+    display: flex;
+    width: 100%
+}

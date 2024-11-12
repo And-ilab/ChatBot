@@ -16,10 +16,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+import chat_dashboard.views as dashboard_views
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('chat_user/', include('chat_user.urls', namespace='chat_user')),
     path('chat_dashboard/', include('chat_dashboard.urls', namespace='chat_dashboard')),
     path('authentication/', include('authentication.urls', namespace='authentication')),  # Подключение приложения
-]
+    path('api/messages/<int:dialog_id>/', dashboard_views.get_messages, name='get_messages'),
+    path('api/send-message/<int:dialog_id>/', dashboard_views.send_message, name='send_message'),
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
