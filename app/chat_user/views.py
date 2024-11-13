@@ -1,12 +1,14 @@
 from django.shortcuts import render
 from chat_dashboard.models import Dialog, Message
-from chat_dashboard.views import get_messages
 import jwt
 from django.conf import settings
+from neomodel import db
+from django.http import JsonResponse
+from .utils import extract_keywords
 
 
 def user_chat(request):
-    token = request.session.get('token')  # Получение токена из сессии
+    token = request.session.get('token')
     if token:
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
@@ -28,3 +30,35 @@ def user_chat(request):
             return render(request, 'authentication/login.html', {'error': 'Недействительный токен.'})
 
     return render(request, 'authentication/login.html', {'error': 'Необходимо войти в систему.'})
+
+
+def process_keywords(request):
+    question = request.GET.get('question')
+
+    if not question:
+        return JsonResponse({'error': 'No keywords provided'}, status=400)
+
+    print(f"Received question: {question}")  # Логирование полученного вопроса
+
+    keywords = extract_keywords(question)
+    print(f"Extracted keywords: {keywords}")  # Логирование извлеченных ключевых слов
+
+    query = """
+        WITH $keywords AS keywords
+        MATCH (p:Paragraph)-[:HAS_TERM]->(t:Term)
+        WHERE t.name IN keywords
+        WITH p, COUNT(t) AS relevance
+        ORDER BY relevance DESC
+        RETURN p.content, relevance
+        LIMIT 1
+    """
+
+    try:
+        result, _ = db.cypher_query(query, {'keywords': keywords})
+        if result:
+            return JsonResponse({'content': result[0][0]})
+        else:
+            return JsonResponse({'error': 'No relevant paragraph found'}, status=404)
+    except Exception as e:
+        print(f"Error during query execution: {e}")  # Логирование ошибки выполнения запроса
+        return JsonResponse({'error': 'Internal Server Error'}, status=500)

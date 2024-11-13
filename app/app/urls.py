@@ -19,6 +19,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 import chat_dashboard.views as dashboard_views
+import chat_user.views as chat_views
 
 
 urlpatterns = [
@@ -28,4 +29,5 @@ urlpatterns = [
     path('authentication/', include('authentication.urls', namespace='authentication')),  # Подключение приложения
     path('api/messages/<int:dialog_id>/', dashboard_views.get_messages, name='get_messages'),
     path('api/send-message/<int:dialog_id>/', dashboard_views.send_message, name='send_message'),
+    path('api/process-keywords/', chat_views.process_keywords, name='process_keywords'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

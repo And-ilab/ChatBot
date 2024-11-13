@@ -39,3 +39,43 @@
     display: flex;
     width: 100%
 }
+
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.user-info {
+    flex-shrink: 0;
+}
+
+.dropdown-menu {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.chat-item.active {
+    background-color: #e0e0e0 !important;
+}
+
+.chat-user {
+    font-size: 0.9rem;
+}
+
+.chat-time {
+    font-size: 0.8rem;
+}
+
+.message-time {
+    font-size: 0.8rem;
+}
+
+.message-sender {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.message-content {
+    font-size: 0.9rem;
+}

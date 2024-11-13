@@ -1,15 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import User
 from .forms import UserForm, UserFormUpdate
-from .send_mail import send
 from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, CharField, F
-from django.db.models.functions import Coalesce, Concat, Substr, Length
 from .models import Dialog, Message
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-from django.contrib.auth.decorators import login_required
 from authentication.decorators import role_required
 
 

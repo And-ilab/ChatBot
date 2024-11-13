@@ -14,6 +14,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import io
 from config import settings
+from neomodel import config as neo_cfg
+
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -89,6 +91,8 @@ DATABASES = {
     }
 }
 
+neo_cfg.DATABASE_URL = f"bolt://{settings.DB_NEO_USER}:{settings.DB_NEO_PASS}@{settings.DB_NEO_HOST}:{settings.DB_NEO_PORT}"
+
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -125,6 +129,7 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
     BASE_DIR / "chat_dashboard" / "static",
+    BASE_DIR / "chat_user" / "static",
 ]
 
 # Default primary key field type
