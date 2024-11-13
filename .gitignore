@@ -5,6 +5,5 @@ __pycache__/
 *.pyc
 migrations/
 .venv
-
-
 pycache/
+*/__pycache__/
