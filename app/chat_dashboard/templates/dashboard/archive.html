@@ -3,25 +3,6 @@
 {% block title %}Архив{% endblock %}
 
 {% block content %}
-<style>
-
-    .chat-container {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-
-    .user-info {
-        flex-shrink: 0;
-    }
-    .dropdown-menu {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    .chat-item.active {
-        background-color: #e0e0e0 !important; /* Цвет активного элемента */
-    }
-</style>
 <div class="d-flex h-100" style="height: 100%;">
     <div class="chat-sidebar d-flex flex-column h-100">
         <div class="py-2 sidebar-header d-flex align-items-center justify-content-center border-bottom p-0">
@@ -60,7 +41,14 @@
                         </div>
                     </div>
                     <div class="d-flex w-100">
-                        <span style="font-weight: bold;">{{ dialog.last_message_username|slice:":1" }}:</span><p class="dialog-content mb-0">{{ dialog.last_message }}</p>
+                        <span style="font-weight: bold;">{{ dialog.last_message_username|slice:":1" }}:</span>
+                            <p class="dialog-content mb-0">
+                                {% if dialog.last_message|length > 25 %}
+                                    {{ dialog.last_message|slice:":25" }}...
+                                {% else %}
+                                    {{ dialog.last_message }}
+                                {% endif %}
+                            </p>
                     </div>
                 </div>
             </li>

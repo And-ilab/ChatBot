@@ -60,9 +60,13 @@
             </ul>
             <div class="account-wrapper">
                 {% if user.is_authenticated %}
-                    <a href="{% url 'authentication:logout' %}" class="nav-link">Логаут</a>
+                    <a href="{% url 'authentication:logout' %}" class="nav-link" onclick="setActive(this)">
+                        <i class="fa fa-sign-out-alt"></i>
+                    </a>
                 {% else %}
-                    <a href="{% url 'authentication:login' %}" class="nav-link">Логин</a>
+                    <a href="{% url 'authentication:login' %}" class="nav-link" onclick="setActive(this)">
+                        <i class="fa fa-sign-in-alt"></i>
+                    </a>
                 {% endif %}
             </div>
         </div>
@@ -72,6 +76,6 @@
         </div>
     </div>
 
-    <script src="{% static 'dashboard/js/index.js' %}"></script>
+    <script src="{% static 'chat_dashboard/js/index.js' %}"></script>
 </body>
 </html>
