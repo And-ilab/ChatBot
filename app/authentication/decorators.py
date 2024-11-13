@@ -3,7 +3,7 @@ from django.http import HttpResponseForbidden
 import jwt
 from django.conf import settings
 
-def role_required(required_role):
+def role_required(required_roles):
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(request, *args, **kwargs):
@@ -15,7 +15,7 @@ def role_required(required_role):
                     user_role = payload.get('role')
 
                     # Проверка роли
-                    if user_role == required_role:
+                    if user_role in required_roles:  # Проверяем, находится ли роль в списке разрешенных
                         return view_func(request, *args, **kwargs)
 
                 except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):

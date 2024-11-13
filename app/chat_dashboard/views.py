@@ -57,7 +57,8 @@ def user_delete(request, pk):
 def get_last_message_subquery(field):
     return Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values(field)[:1]
 
-@role_required('admin' or 'operator')
+
+@role_required(['admin','operator'])
 def admin_dashboard(request):
     has_messages = Message.objects.filter(dialog=OuterRef('pk'))
     user = request.user
@@ -84,7 +85,7 @@ def admin_dashboard(request):
             )
         )
     ).order_by('-last_message_timestamp')
-    return render(request, 'dashboard/archive.html', {'dialogs': dialogs, 'user':user})
+    return render(request, 'dashboard/archive.html', {'dialogs': dialogs, 'user': user})
 
 
 def get_messages(request, dialog_id):
