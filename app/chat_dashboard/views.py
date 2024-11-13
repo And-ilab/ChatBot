@@ -9,13 +9,17 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+from django.contrib.auth.decorators import login_required
+from authentication.decorators import role_required
 
 
+@role_required('admin')
 def user_list(request):
     users = User.objects.all()
     return render(request, 'chat_dashboard/index.html', {'users': users})
 
 
+@role_required('admin')
 def user_create(request):
     if request.method == 'POST':
         form = UserForm(request.POST)
@@ -31,6 +35,7 @@ def user_create(request):
     return render(request, 'chat_dashboard/user_form.html', {'form': form})
 
 
+@role_required('admin')
 def user_update(request, pk):
     user = get_object_or_404(User, pk=pk)
     if request.method == 'POST':
@@ -43,6 +48,7 @@ def user_update(request, pk):
     return render(request, 'chat_dashboard/user_form_update.html', {'form': form})
 
 
+@role_required('admin')
 def user_delete(request, pk):
     user = get_object_or_404(User, pk=pk)
     if request.method == 'POST':
@@ -50,8 +56,10 @@ def user_delete(request, pk):
         return redirect('chat_dashboard:user_list')
     return render(request, 'chat_dashboard/user_confirm_delete.html', {'user': user})
 
+
 def get_last_message_subquery(field):
     return Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values(field)[:1]
+
 
 def admin_dashboard(request):
     has_messages = Message.objects.filter(dialog=OuterRef('pk'))

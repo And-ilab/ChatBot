@@ -66,7 +66,8 @@
 </head>
 <body>
 
-<button id="user-chat-toggle" class="btn btn-primary" style="position: fixed; bottom: 20px; right: 20px;">
+<button id="user-chat-toggle" data-dialog-id="{{dialog_id}}" data-user-id="{{user_id}}" class="btn btn-primary"
+        style="position: fixed; bottom: 20px; right: 20px;">
     Chat
 </button>
 
@@ -91,10 +92,13 @@
     const sendMessage = document.getElementById('user-send-message');
     const chatMessages = document.getElementById('user-chat-messages');
     const chatInput = document.getElementById('user-chat-input');
+    const dialogId = String(chatToggle.getAttribute('data-dialog-id'));
+    const userId = chatToggle.getAttribute('data-user-id')
+
 
     chatToggle.addEventListener('click', () => {
         chatWindow.style.display = 'block';
-        fetch(`/api/messages/9/`)
+        fetch(`/api/messages/${dialogId}/`)
             .then(response => response.json())
             .then(data => {
                 const messagesContainer = document.getElementById('user-chat-messages');
@@ -127,8 +131,8 @@
             chatMessages.appendChild(userMessage);
             chatInput.value = '';
 
-            const dialog_id = 9;
-            const user_id = 4;
+            const dialog_id = dialogId;
+            const user_id = userId;
             if (dialog_id) {
                 fetch(`/api/send-message/${dialog_id}/`, {
                     method: 'POST',

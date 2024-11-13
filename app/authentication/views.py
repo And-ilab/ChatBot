@@ -3,6 +3,13 @@ from django.contrib.auth import login, authenticate, logout
 from .forms import UserRegistrationForm, CustomUserLoginForm
 from django.contrib import messages
 from .auth_with_AD import validate_user_credentials
+from .decorators import role_required
+import jwt
+from django.http import JsonResponse
+from django.conf import settings
+from .utils import generate_jwt, get_role_by_token
+from django.contrib.auth.decorators import login_required
+from .decorators import role_required
 
 
 def register_view(request):
@@ -25,12 +32,29 @@ def login_view(request):
         if form.is_valid():
             username = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password')
+            print(username, password)
 
             if '@' in username:
                 user = authenticate(request, username=username, password=password)
                 if user is not None:
+                    token = generate_jwt(user)
+                    request.session['token'] = token
                     login(request, user)
-                    return redirect('chat_dashboard:user_list')
+                    # return redirect('chat_dashboard:user_list')
+                    try:
+                        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+                        role = payload.get('role')
+
+                        if role == 'admin' or role == 'operator':
+                            login(request, user)
+                            return redirect('chat_dashboard:dashboard')
+                        else:
+                            login(request, user)
+                            return redirect('chat_user:chat')
+                    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+                        messages.error(request, 'Ошибка при обработке токена.')
+                        return redirect('login')  # Перенаправление на страницу входа
+
                 else:
                     messages.error(request, 'Неправильный логин или пароль.')
             else:
@@ -47,6 +71,7 @@ def login_view(request):
     return render(request, 'authentication/login.html', {'form': form})
 
 
+@login_required
 def logout_view(request):
     logout(request)
     return redirect('authentication:login')
