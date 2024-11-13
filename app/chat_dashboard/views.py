@@ -63,7 +63,7 @@ def get_last_message_subquery(field):
 
 def admin_dashboard(request):
     has_messages = Message.objects.filter(dialog=OuterRef('pk'))
-
+    user = request.user
     dialogs = Dialog.objects.annotate(
         has_messages=Exists(has_messages)
     ).filter(has_messages=True).annotate(
@@ -87,7 +87,7 @@ def admin_dashboard(request):
             )
         )
     ).order_by('-last_message_timestamp')
-    return render(request, 'dashboard/archive.html', {'dialogs': dialogs})
+    return render(request, 'dashboard/archive.html', {'dialogs': dialogs, 'user':user})
 
 
 def get_messages(request, dialog_id):

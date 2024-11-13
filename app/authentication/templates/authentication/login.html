@@ -1,5 +1,7 @@
-{% extends "authentication/base.html" %}
+{% extends "dashboard/layout.html" %}
+{% load static %}
 {% load custom_tags %}
+
 {% block title %}Вход{% endblock %}
 
 {% block content %}
@@ -29,7 +31,7 @@
         }
     </style>
 
-    <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 2rem);"> <!-- Центрируем форму по вертикали -->
+    <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 2rem);">
         <div class="form-container">
             <h2>Вход</h2>
             <form method="post">
@@ -46,5 +48,4 @@
             </form>
         </div>
     </div>
-
 {% endblock %}
