@@ -12,7 +12,7 @@ from authentication.decorators import role_required
 @role_required('admin')
 def user_list(request):
     users = User.objects.all()
-    return render(request, 'chat_dashboard/training.html', {'users': users})
+    return render(request, 'chat_dashboard/index.html', {'users': users})
 
 
 @role_required('admin')

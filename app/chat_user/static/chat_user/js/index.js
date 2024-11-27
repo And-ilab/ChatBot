@@ -1,14 +1,6 @@
-const chatToggle = document.getElementById('user-chat-toggle');
-const chatWindow = document.getElementById('user-chat-window');
-const closeChat = document.getElementById('user-close-chat');
-const sendMessage = document.getElementById('user-send-message');
-const chatMessages = document.getElementById('user-chat-messages');
-const chatInput = document.getElementById('user-chat-input');
-const dialogId = String(chatToggle.getAttribute('data-dialog-id'));
-const userId = chatToggle.getAttribute('data-user-id');
-
-
 const loadMessages = () => {
+  console.log('ID диалога:', dialogId);
+  console.log('ID пользователя:', userId);
   chatWindow.style.display = 'block';
   fetch(`/api/messages/${dialogId}/`)
     .then(response => response.json())
@@ -25,21 +17,14 @@ const loadMessages = () => {
     .catch(error => console.error('Ошибка загрузки сообщений:', error));
 };
 
-
-closeChat.addEventListener('click', () => {
-  chatWindow.style.display = 'none';
-});
-
-
-const getCSRFToken = () => {
-  const csrfTokenMeta = document.querySelector("meta[name='csrf-token']");
-  return csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
-};
-
-
 const sendUserMessage = () => {
   const message = chatInput.value.trim();
   if (!message) return;
+
+  console.log('Отправляемое сообщение:', message);
+  console.log('ID диалога:', dialogId);
+  console.log('ID пользователя:', userId);
+
   const userMessage = document.createElement('div');
   userMessage.className = 'user-message';
   userMessage.innerHTML = `<strong>Вы:</strong> ${message}`;
