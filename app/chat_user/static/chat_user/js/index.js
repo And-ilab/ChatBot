@@ -62,6 +62,14 @@ const sendUserMessage = () => {
     .then(data => {
       if (message.endsWith('?')) {
         handleQuestion(message);
+      } else {
+          const botMsg = document.createElement('div');
+          const botMsgContent = 'Простите, я не знаю как ответить на Ваше сообщение.'
+          botMsg.className = 'bot-message';
+          botMsg.innerHTML = `<strong>Бот:</strong> ${botMsgContent}`;
+          chatMessages.appendChild(botMsg);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          saveBotMessage(botMsgContent);
       }
       chatMessages.scrollTop = chatMessages.scrollHeight;
     })
@@ -74,17 +82,57 @@ const sendUserMessage = () => {
 const handleQuestion = message => {
   const encodedQuestion = encodeURIComponent(message);
   fetch(`/api/process-keywords/?question=${encodedQuestion}`)
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            // Если статус не успешный (например, 404), выбрасываем ошибку
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || `Ошибка: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
-      const botMessage = document.createElement('div');
-      botMessage.className = 'bot-message';
-      botMessage.innerHTML = `<strong>Бот:</strong> ${data.content}`;
-      chatMessages.appendChild(botMessage);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-      saveBotMessage(data.content);
+        // Если нет ошибок, обрабатываем успешный ответ
+        const botMessage = document.createElement('div');
+        botMessage.className = 'bot-message';
+        botMessage.innerHTML = `<strong>Бот:</strong> ${data.content}`;
+        chatMessages.appendChild(botMessage);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        saveBotMessage(data.content);
     })
     .catch(error => {
-      console.error('Ошибка запроса:', error);
+        const botMessage = document.createElement('div');
+        const botMessageContent = "Не удалось обработать Ваше сообщение. Отправляю его на обучение.";
+        botMessage.className = 'bot-message';
+        botMessage.innerHTML = `<strong>Бот:</strong> ${botMessageContent}`;
+        chatMessages.appendChild(botMessage);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        saveBotMessage(botMessageContent);
+        fetch('/api/create-training-message/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: JSON.stringify({
+                sender_id: userId,
+                content: message, // Исходное сообщение пользователя
+            }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.error || `Ошибка: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Сообщение успешно отправлено на обучение:', data);
+        })
+        .catch(trainError => {
+            console.error('Ошибка при отправке сообщения на обучение:', trainError);
+        });
     });
 };
 

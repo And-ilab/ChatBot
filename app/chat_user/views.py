@@ -38,10 +38,7 @@ def process_keywords(request):
     if not question:
         return JsonResponse({'error': 'No keywords provided'}, status=400)
 
-    print(f"Received question: {question}")  # Логирование полученного вопроса
-
     keywords = extract_keywords(question)
-    print(f"Extracted keywords: {keywords}")  # Логирование извлеченных ключевых слов
 
     query = """
         WITH $keywords AS keywords

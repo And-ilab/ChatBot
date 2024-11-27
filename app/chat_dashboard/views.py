@@ -1,8 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import User
 from .forms import UserForm, UserFormUpdate
 from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, CharField, F
-from .models import Dialog, Message
+from .models import Dialog, Message, User
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -13,7 +12,7 @@ from authentication.decorators import role_required
 @role_required('admin')
 def user_list(request):
     users = User.objects.all()
-    return render(request, 'chat_dashboard/index.html', {'users': users})
+    return render(request, 'chat_dashboard/training.html', {'users': users})
 
 
 @role_required('admin')

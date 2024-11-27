@@ -34,10 +34,12 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'analytics',
     'authentication',
     'app',
     'chat_user',
     'chat_dashboard',
+    'chat_training',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
