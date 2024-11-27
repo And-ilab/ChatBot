@@ -29,11 +29,16 @@ SECRET_KEY = settings.SECRET_KEY_django
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = [
+		'134.17.17.131',
+		'localhost',
+		'chatbot.digitranslab.com',
+		'www.chatbot.digitranslab.com'
+]
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',
     'analytics',
     'authentication',
     'app',
@@ -51,6 +56,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -58,6 +64,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True 
+ 
 ROOT_URLCONF = 'app.urls'
 
 TEMPLATES = [
@@ -84,7 +92,7 @@ WSGI_APPLICATION = 'app.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': settings.DB_NAME,
         'USER': settings.DB_USER,
         'PASSWORD': settings.DB_PASS,
@@ -128,7 +136,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 STATICFILES_DIRS = [
     BASE_DIR / "chat_dashboard" / "static",
     BASE_DIR / "chat_user" / "static",
@@ -178,3 +188,38 @@ EMAIL_HOST_PASSWORD = settings.EMAIL_HOST_PASSWORD
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = settings.DEFAULT_FROM_EMAIL
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django_debug.log'),
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'chat_user': {  # Замените на имя вашего приложения
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+
+    },
+}

@@ -5,7 +5,9 @@ from django.conf import settings
 from neomodel import db
 from django.http import JsonResponse
 from .utils import extract_keywords
+import logging
 
+logger = logging.getLogger(__name__)
 
 def user_chat(request):
     token = request.session.get('token')
@@ -31,6 +33,7 @@ def user_chat(request):
 
     return render(request, 'authentication/login.html', {'error': 'Необходимо войти в систему.'})
 
+Internal Server Errorr'}, status=500)
 
 def process_keywords(request):
     question = request.GET.get('question')
@@ -49,13 +52,17 @@ def process_keywords(request):
         RETURN p.content, relevance
         LIMIT 1
     """
-
+    logger.info("PRE-ENDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
     try:
         result, _ = db.cypher_query(query, {'keywords': keywords})
+
         if result:
+
             return JsonResponse({'content': result[0][0]})
         else:
+
             return JsonResponse({'error': 'No relevant paragraph found'}, status=404)
     except Exception as e:
-        print(f"Error during query execution: {e}")  # Логирование ошибки выполнения запроса
+
+        logger.error(f"Error during query execution: {e}", exc_info=True)
         return JsonResponse({'error': 'Internal Server Error'}, status=500)
