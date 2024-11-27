@@ -1,0 +1,268 @@
+{% extends 'dashboard/layout.html' %}
+
+{% block title %}Обучение{% endblock %}
+
+{% block content %}
+<style>
+    .custom-btn {
+        background-color: white;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .custom-btn:hover {
+        background-color: #f0f0f0;
+    }
+
+    .indicator {
+        background-color: blue;
+        color: white;
+        font-size: 0.8rem;
+        font-weight: bold;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .message-item {
+        transition: border-color 0.3s ease;
+    }
+
+    .message-item:hover {
+        border: 2px solid #007bff;
+    }
+
+    .hidden {
+        display: none;
+    }
+</style>
+
+<div class="d-flex h-100" style="height: 100%;">
+    <div class="chat-sidebar d-flex flex-column h-100 align-items-center" style="border-right: 1px solid #ccc;">
+        <div class="py-2 sidebar-header d-flex align-items-center justify-content-center border-bottom p-0"
+             style="width: 350px;">
+            <h3 class="mb-0">Обучение</h3>
+        </div>
+        <div class="input-group border rounded w-75 mt-3">
+            <input type="text" class="form-control border-0" placeholder="Поиск..." aria-label="Поиск">
+            <button class="btn btn-light border-0" type="button">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="d-flex flex-column gap-2 mt-4">
+            <button id="btn-unread" class="btn custom-btn d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-envelope"></i>
+                    Неотвеченные сообщения
+                </span>
+                <span id="unread-indicator" class="indicator {% if unread_messages|length == 0 %}hidden{% endif %}">{{ unread_messages|length }}</span>
+            </button>
+            <button id="btn-ignored" class="btn custom-btn d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-slash-circle"></i>
+                    Игнорируемые сообщения
+                </span>
+                <span id="ignored-indicator" class="indicator {% if ignored_messages|length == 0 %}hidden{% endif %}">{{ ignored_messages|length }}</span>
+            </button>
+        </div>
+    </div>
+    <div class="chat-container d-flex flex-column flex-grow-1">
+        <div class="chat-header d-flex align-items-center justify-content-center border-bottom border-start border-end py-2">
+            <h3 class="mb-0">Сообщения</h3>
+        </div>
+        <div id="unread-messages" class="chat-messages flex-grow-1 p-3 border-start border-end">
+            {% for message in unread_messages %}
+                <div class="message-item d-flex align-items-center border p-2 mb-2 rounded">
+                    <div class="flex-grow-1">
+                        <p class="mb-0">{{ message.content }}</p>
+                        <div>
+                            <a href="#" class="text-decoration-none">Подробнее</a>
+                        </div>
+                    </div>
+                    <div class="text-center me-5">
+                        <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
+                    </div>
+                    <div class="message-actions d-flex gap-2">
+                        <button class="btn btn-outline-success btn-sm" title="Обучить">
+                            <a href="{% url 'chat_training:train' message.id %}" class="text-decoration-none">
+                                <i class="bi bi-check"></i>
+                            </a>
+                        </button>
+                        <button
+                            class="btn btn-outline-warning btn-sm"
+                            title="Игнорировать"
+                            data-message-id="{{ message.id }}">
+                            <i class="bi bi-slash-circle"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" data-message-id="{{ message.id }}" title="Удалить">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="d-flex justify-content-center">Нет непрочитанных сообщений</p>
+            {% endfor %}
+        </div>
+        <div id="ignored-messages" class="chat-messages flex-grow-1 p-3 border-start border-end hidden">
+            {% for message in ignored_messages %}
+                <div class="message-item d-flex align-items-center border p-2 mb-2 rounded">
+                    <div class="flex-grow-1">
+                        <p class="mb-0">{{ message.content }}</p>
+                        <div>
+                            <a href="#" class="text-decoration-none">Подробнее</a>
+                        </div>
+                    </div>
+                    <div class="text-center me-5">
+                        <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
+                    </div>
+                    <div class="message-actions d-flex gap-2">
+                        <button
+                            class="btn btn-outline-info btn-sm"
+                            title="Вернуть"
+                            data-message-id="{{ message.id }}">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" data-message-id="{{ message.id }}" title="Удалить">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="d-flex justify-content-center">Нет игнорируемых сообщений</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const unreadMessagesContainer = document.getElementById("unread-messages");
+    const ignoredMessagesContainer = document.getElementById("ignored-messages");
+    const unreadButton = document.getElementById("btn-unread");
+    const ignoredButton = document.getElementById("btn-ignored");
+
+    unreadMessagesContainer.classList.add("hidden");
+    ignoredMessagesContainer.classList.add("hidden");
+
+    function showContainer(containerToShow) {
+        unreadMessagesContainer.classList.add("hidden");
+        ignoredMessagesContainer.classList.add("hidden");
+        containerToShow.classList.remove("hidden");
+    }
+
+    unreadButton.addEventListener("click", () => showContainer(unreadMessagesContainer));
+    ignoredButton.addEventListener("click", () => showContainer(ignoredMessagesContainer));
+
+    function updateMessageActionButtons(messageItem, isIgnored) {
+        const messageActions = messageItem.querySelector('.message-actions');
+        const ignoreButton = messageActions.querySelector('[title="Игнорировать"], [title="Вернуть"]');
+        const trainButton = messageActions.querySelector('[title="Обучить"]');
+        const deleteButton = messageActions.querySelector('[title="Удалить"]');
+
+        if (isIgnored) {
+            ignoreButton.title = "Вернуть";
+            ignoreButton.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i>';
+            ignoreButton.setAttribute('onclick', `toggleIgnoreBack(${messageItem.dataset.id}, this)`);
+            trainButton.style.display = 'none';
+        } else {
+            ignoreButton.title = "Игнорировать";
+            ignoreButton.innerHTML = '<i class="bi bi-slash-circle"></i>';
+            ignoreButton.setAttribute('onclick', `toggleIgnore(${messageItem.dataset.id}, this)`);
+            trainButton.style.display = 'inline-block';
+        }
+
+        // Показываем кнопку удалить
+        deleteButton.style.display = 'inline-block';
+    }
+
+    function toggleIgnore(messageId, element) {
+        fetch(`/api/toggle_ignore/${messageId}/`, {
+            method: 'GET',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            document.getElementById("unread-indicator").textContent = data.unread_count;
+            document.getElementById("ignored-indicator").textContent = data.ignored_count;
+
+            // Перезагружаем страницу для обновления всех данных
+            location.reload();
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    }
+
+    function toggleIgnoreBack(messageId, element) {
+        fetch(`/api/toggle_ignore_back/${messageId}/`, {
+            method: 'GET',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            document.getElementById("unread-indicator").textContent = data.unread_count;
+            document.getElementById("ignored-indicator").textContent = data.ignored_count;
+
+            location.reload();
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    }
+
+    function deleteMessage(messageId, element) {
+        fetch(`/api/delete_message/${messageId}/`, {
+            method: 'GET',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            // Убираем сообщение из DOM
+            const messageItem = element.closest('.message-item');
+            messageItem.remove();
+
+            // Обновляем индикаторы
+            document.getElementById("unread-indicator").textContent = data.unread_count;
+            document.getElementById("ignored-indicator").textContent = data.ignored_count;
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    }
+
+    const ignoreButtons = document.querySelectorAll('button[data-message-id]');
+    ignoreButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const messageId = button.getAttribute('data-message-id');
+            toggleIgnore(messageId, button);
+        });
+    });
+
+    const deleteButtons = document.querySelectorAll('button[data-message-id][title="Удалить"]');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const messageId = button.getAttribute('data-message-id');
+            deleteMessage(messageId, button);
+        });
+    });
+});
+
+
+</script>
+{% endblock %}

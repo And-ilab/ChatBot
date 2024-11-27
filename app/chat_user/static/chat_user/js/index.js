@@ -1,14 +1,6 @@
-const chatToggle = document.getElementById('user-chat-toggle');
-const chatWindow = document.getElementById('user-chat-window');
-const closeChat = document.getElementById('user-close-chat');
-const sendMessage = document.getElementById('user-send-message');
-const chatMessages = document.getElementById('user-chat-messages');
-const chatInput = document.getElementById('user-chat-input');
-const dialogId = String(chatToggle.getAttribute('data-dialog-id'));
-const userId = chatToggle.getAttribute('data-user-id');
-
-
 const loadMessages = () => {
+  console.log('ID диалога:', dialogId);
+  console.log('ID пользователя:', userId);
   chatWindow.style.display = 'block';
   fetch(`/api/messages/${dialogId}/`)
     .then(response => response.json())
@@ -25,21 +17,14 @@ const loadMessages = () => {
     .catch(error => console.error('Ошибка загрузки сообщений:', error));
 };
 
-
-closeChat.addEventListener('click', () => {
-  chatWindow.style.display = 'none';
-});
-
-
-const getCSRFToken = () => {
-  const csrfTokenMeta = document.querySelector("meta[name='csrf-token']");
-  return csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
-};
-
-
 const sendUserMessage = () => {
   const message = chatInput.value.trim();
   if (!message) return;
+
+  console.log('Отправляемое сообщение:', message);
+  console.log('ID диалога:', dialogId);
+  console.log('ID пользователя:', userId);
+
   const userMessage = document.createElement('div');
   userMessage.className = 'user-message';
   userMessage.innerHTML = `<strong>Вы:</strong> ${message}`;
@@ -62,6 +47,14 @@ const sendUserMessage = () => {
     .then(data => {
       if (message.endsWith('?')) {
         handleQuestion(message);
+      } else {
+          const botMsg = document.createElement('div');
+          const botMsgContent = 'Простите, я не знаю как ответить на Ваше сообщение.'
+          botMsg.className = 'bot-message';
+          botMsg.innerHTML = `<strong>Бот:</strong> ${botMsgContent}`;
+          chatMessages.appendChild(botMsg);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          saveBotMessage(botMsgContent);
       }
       chatMessages.scrollTop = chatMessages.scrollHeight;
     })
@@ -74,17 +67,57 @@ const sendUserMessage = () => {
 const handleQuestion = message => {
   const encodedQuestion = encodeURIComponent(message);
   fetch(`/api/process-keywords/?question=${encodedQuestion}`)
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            // Если статус не успешный (например, 404), выбрасываем ошибку
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || `Ошибка: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
-      const botMessage = document.createElement('div');
-      botMessage.className = 'bot-message';
-      botMessage.innerHTML = `<strong>Бот:</strong> ${data.content}`;
-      chatMessages.appendChild(botMessage);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-      saveBotMessage(data.content);
+        // Если нет ошибок, обрабатываем успешный ответ
+        const botMessage = document.createElement('div');
+        botMessage.className = 'bot-message';
+        botMessage.innerHTML = `<strong>Бот:</strong> ${data.content}`;
+        chatMessages.appendChild(botMessage);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        saveBotMessage(data.content);
     })
     .catch(error => {
-      console.error('Ошибка запроса:', error);
+        const botMessage = document.createElement('div');
+        const botMessageContent = "Не удалось обработать Ваше сообщение. Отправляю его на обучение.";
+        botMessage.className = 'bot-message';
+        botMessage.innerHTML = `<strong>Бот:</strong> ${botMessageContent}`;
+        chatMessages.appendChild(botMessage);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        saveBotMessage(botMessageContent);
+        fetch('/api/create-training-message/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: JSON.stringify({
+                sender_id: userId,
+                content: message, // Исходное сообщение пользователя
+            }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.error || `Ошибка: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Сообщение успешно отправлено на обучение:', data);
+        })
+        .catch(trainError => {
+            console.error('Ошибка при отправке сообщения на обучение:', trainError);
+        });
     });
 };
 
