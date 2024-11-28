@@ -33,7 +33,7 @@ def user_chat(request):
 
     return render(request, 'authentication/login.html', {'error': 'Необходимо войти в систему.'})
 
-Internal Server Errorr'}, status=500)
+
 
 def process_keywords(request):
     question = request.GET.get('question')

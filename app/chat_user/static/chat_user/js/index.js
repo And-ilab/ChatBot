@@ -1,3 +1,22 @@
+const chatToggle = document.getElementById('user-chat-toggle');
+const chatWindow = document.getElementById('user-chat-window');
+const closeChat = document.getElementById('user-close-chat');
+const sendMessage = document.getElementById('user-send-message');
+const chatMessages = document.getElementById('user-chat-messages');
+const chatInput = document.getElementById('user-chat-input');
+const dialogId = String(chatToggle.getAttribute('data-dialog-id'));
+const userId = chatToggle.getAttribute('data-user-id');
+
+
+closeChat.addEventListener('click', () => {
+  chatWindow.style.display = 'none';
+});
+
+const getCSRFToken = () => {
+  const csrfTokenMeta = document.querySelector("meta[name='csrf-token']");
+  return csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+};
+
 const loadMessages = () => {
   console.log('ID диалога:', dialogId);
   console.log('ID пользователя:', userId);
@@ -64,6 +83,7 @@ const sendUserMessage = () => {
 };
 
 
+
 const handleQuestion = message => {
   const encodedQuestion = encodeURIComponent(message);
   fetch(`/api/process-keywords/?question=${encodedQuestion}`)
@@ -101,7 +121,7 @@ const handleQuestion = message => {
             },
             body: JSON.stringify({
                 sender_id: userId,
-                content: message, // Исходное сообщение пользователя
+                content: message,
             }),
         })
         .then(response => {
