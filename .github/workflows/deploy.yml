@@ -30,8 +30,14 @@ jobs:
 
     - name: Run deployment commands
       run: |
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no user@${{ secrets.SERVER_IP }} << 'EOF'
-          # Ваши команды развертывания здесь
-          cd /path/to/your/project
-          git pull origin main  # Или другие команды
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no daniil@${{ secrets.SERVER_IP }} << 'EOF'
+          source /project/ChatBot/myprojectenv/bin/activate
+          cd /project/ChatBot
+          git pull origin main
+          cd /app
+          python manage.py collectstatic --noinput
+          python manage.py migrate --noinput
+          sudo systemctl restart gunicorn
+          sudo systemctl restart nginx
+          sudo systemctl restart gunicorn-daemon
         EOF
