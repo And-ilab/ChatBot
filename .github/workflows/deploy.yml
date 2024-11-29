@@ -26,7 +26,7 @@ jobs:
 
     - name: Sync files to server
       run: |
-        ssh -vvv username@${{ secrets.SERVER_IP }}
+        ssh -i ~/.ssh/id_rsa_github_actions -vvv username@${{ secrets.SERVER_IP }}
 
 
 
