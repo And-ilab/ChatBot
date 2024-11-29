@@ -39,5 +39,5 @@ jobs:
           python manage.py migrate --noinput
           echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart gunicorn
           echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart nginx
-          echo "${{ secrets.PASSWORD }}" | sudo -S systemctl daemon-gunicorn
+          echo "${{ secrets.PASSWORD }}" | sudo -S systemctl daemon-reload
         EOF
