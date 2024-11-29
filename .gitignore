@@ -8,3 +8,4 @@ migrations/
 pycache/
 */__pycache__/
 logs
+app/logs/django_debug.log
