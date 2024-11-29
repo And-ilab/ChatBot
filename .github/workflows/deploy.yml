@@ -25,7 +25,9 @@ jobs:
 
     - name: Sync files to server
       run: |
-        rsync -avz --delete ./ username@${{ secrets.SERVER_IP }}:${{ secrets.PROJECT_DIR }}
+        ssh -vvv username@${{ secrets.SERVER_IP }}
+
+
 
     - name: Run deployment commands
       run: |
