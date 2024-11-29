@@ -47,7 +47,7 @@ def login_view(request):
 
                         if role == 'admin' or role == 'operator':
                             login(request, user)
-                            return redirect('chat_dashboard:chat_dashboard')
+                            return redirect('chat_dashboard:admin_dashboard')
                         else:
                             login(request, user)
                             return redirect('chat_user:chat')

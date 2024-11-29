@@ -32,6 +32,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
 		'134.17.17.131',
 		'localhost',
+        '127.0.0.1',
 		'chatbot.digitranslab.com',
 		'www.chatbot.digitranslab.com'
 ]
@@ -39,12 +40,10 @@ ALLOWED_HOSTS = [
 
 INSTALLED_APPS = [
     'corsheaders',
-    'analytics',
     'authentication',
     'app',
     'chat_user',
     'chat_dashboard',
-    'chat_training',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -71,7 +70,7 @@ ROOT_URLCONF = 'app.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -142,6 +141,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     BASE_DIR / "chat_dashboard" / "static",
     BASE_DIR / "chat_user" / "static",
+    BASE_DIR / "chat_training" / "static",
+    BASE_DIR / "static"
 ]
 
 # Default primary key field type
@@ -215,7 +216,7 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
-        'chat_user': {  # Замените на имя вашего приложения
+        'chat_user': {
             'handlers': ['file'],
             'level': 'INFO',
             'propagate': True,

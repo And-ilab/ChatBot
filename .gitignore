@@ -7,3 +7,4 @@ migrations/
 .venv
 pycache/
 */__pycache__/
+logs

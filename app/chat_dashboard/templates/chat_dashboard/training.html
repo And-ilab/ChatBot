@@ -1,0 +1,102 @@
+{% extends 'base/layout.html' %}
+
+{% block title %}Обучение{% endblock %}
+
+{% block content %}
+<div class="d-flex h-100" style="height: 100%;">
+    <div class="chat-sidebar d-flex flex-column h-100 align-items-center" style="border-right: 1px solid #ccc;">
+        <div class="py-2 sidebar-header d-flex align-items-center justify-content-center border-bottom p-0"
+             style="width: 350px;">
+            <h3 class="mb-0">Обучение</h3>
+        </div>
+        <div class="input-group border rounded w-75 mt-3">
+            <input type="text" class="form-control border-0" placeholder="Поиск..." aria-label="Поиск">
+            <button class="btn btn-light border-0" type="button">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+        <div class="d-flex flex-column gap-2 mt-4">
+            <button id="btn-unread" class="btn custom-btn d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-envelope"></i>
+                    Неотвеченные сообщения
+                </span>
+                <span id="unread-indicator" class="indicator {% if unread_messages|length == 0 %}hidden{% endif %}">{{ unread_messages|length }}</span>
+            </button>
+            <button id="btn-ignored" class="btn custom-btn d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-slash-circle"></i>
+                    Игнорируемые сообщения
+                </span>
+                <span id="ignored-indicator" class="indicator {% if ignored_messages|length == 0 %}hidden{% endif %}">{{ ignored_messages|length }}</span>
+            </button>
+        </div>
+    </div>
+    <div class="chat-container d-flex flex-column flex-grow-1">
+        <div class="chat-header d-flex align-items-center justify-content-center border-bottom border-start border-end py-2">
+            <h3 class="mb-0">Сообщения</h3>
+        </div>
+        <div id="unread-messages" class="chat-messages flex-grow-1 p-3 border-start border-end">
+            {% for message in unread_messages %}
+                <div class="message-item d-flex align-items-center border p-2 mb-2 rounded">
+                    <div class="flex-grow-1">
+                        <p class="mb-0">{{ message.content }}</p>
+                        <div>
+                            <a href="#" class="text-decoration-none">Подробнее</a>
+                        </div>
+                    </div>
+                    <div class="text-center me-5">
+                        <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
+                    </div>
+                    <div class="message-actions d-flex gap-2">
+                        <button class="btn btn-outline-success btn-sm" title="Обучить">
+                            <a href="{% url 'chat_dashboard:train' message.id %}" class="text-decoration-none">
+                                <i class="bi bi-check"></i>
+                            </a>
+                        </button>
+                        <button
+                            class="btn btn-outline-warning btn-sm"
+                            title="Игнорировать"
+                            data-message-id="{{ message.id }}">
+                            <i class="bi bi-slash-circle"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" data-message-id="{{ message.id }}" title="Удалить">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="d-flex justify-content-center">Нет непрочитанных сообщений</p>
+            {% endfor %}
+        </div>
+        <div id="ignored-messages" class="chat-messages flex-grow-1 p-3 border-start border-end hidden">
+            {% for message in ignored_messages %}
+                <div class="message-item d-flex align-items-center border p-2 mb-2 rounded">
+                    <div class="flex-grow-1">
+                        <p class="mb-0">{{ message.content }}</p>
+                        <div>
+                            <a href="#" class="text-decoration-none">Подробнее</a>
+                        </div>
+                    </div>
+                    <div class="text-center me-5">
+                        <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
+                    </div>
+                    <div class="message-actions d-flex gap-2">
+                        <button
+                            class="btn btn-outline-info btn-sm"
+                            title="Вернуть"
+                            data-message-id="{{ message.id }}">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" data-message-id="{{ message.id }}" title="Удалить">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="d-flex justify-content-center">Нет игнорируемых сообщений</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

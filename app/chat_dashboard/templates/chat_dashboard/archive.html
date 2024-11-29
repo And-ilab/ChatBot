@@ -1,0 +1,74 @@
+{% extends 'base/layout.html' %}
+
+{% block title %}Архив{% endblock %}
+
+{% block content %}
+<div class="d-flex h-100" style="height: 100%;">
+    <div class="chat-sidebar d-flex flex-column h-100">
+        <div class="py-2 sidebar-header d-flex align-items-center justify-content-center border-bottom p-0">
+            <h3 class="mb-0">Архив</h3>
+        </div>
+        <div class="dropdown d-flex align-items-center justify-content-start py-3 px-4">
+            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Фильтр
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#">Yesterday</a></li>
+                <li><a class="dropdown-item" href="#">Last 7 Days</a></li>
+                <li><a class="dropdown-item" href="#">Last 30 Days</a></li>
+                <li><a class="dropdown-item" href="#">Last Month</a></li>
+                <li><a class="dropdown-item" href="#">Last 3 months</a></li>
+                <li><a class="dropdown-item" href="#">Current month</a></li>
+                <li><a class="dropdown-item" href="#">Current year</a></li>
+                <li><a class="dropdown-item" href="#">Last year</a></li>
+              </ul>
+        </div>
+        <ul class="chat-list" style="flex-grow: 1; overflow-y: auto; box-sizing: border-box; list-style-type: none; padding-left: 0;">
+            {% for dialog in dialogs %}
+            <li class="chat-item border-top border-bottom py-3 px-2"
+                id="dialog-{{ dialog.id }}"
+                key="{{ dialog.id }}"
+                data-username="{{ dialog.username }}"
+                style="transition: background-color 0.3s ease; cursor: pointer"
+                onclick="loadMessages({{ dialog.id }}); setActiveDialog(this); updateUserInfo('{{ dialog.username }}');"
+                onmouseover="if (!this.classList.contains('active')) this.style.backgroundColor='#e0e0e0'"
+                onmouseout="if (!this.classList.contains('active')) this.style.backgroundColor='transparent'">
+                <div class="chat-item-wrapper d-flex flex-column justify-content-between" style="width: 250px;">
+                    <div class="d-flex w-100 flex-row justify-content-between">
+                        <div class="chat_user w-50" style="overflow-x: hidden; font-weight: bold;">{{ dialog.username }}</div>
+                        <div class="chat-time d-flex w-50 justify-content-end text-muted" style="overflow-x: hidden;">
+                            <span class="timestamp">{{ dialog.last_message_timestamp|date:'Y-m-d H:i:s' }}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex w-100">
+                        <span style="font-weight: bold;">{{ dialog.last_message_username|slice:":1" }}:</span>
+                            <p class="dialog-content mb-0">
+                                {% if dialog.last_message|length > 25 %}
+                                    {{ dialog.last_message|slice:":25" }}...
+                                {% else %}
+                                    {{ dialog.last_message }}
+                                {% endif %}
+                            </p>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="chat-container d-flex flex-column flex-grow-1">
+        <div class="chat-header d-flex align-items-center justify-content-center border-bottom border-start border-end py-2">
+            <h3 class="mb-0">История чата</h3>
+        </div>
+        <div id="chat-messages" class="chat-messages flex-grow-1 p-3 border-start border-end" style="overflow-y: auto;"></div>
+    </div>
+    <div class="user-info d-flex flex-column align-items-center"
+         style="width: 300px;">
+        <div class="user-info-header w-100 d-flex align-items-center justify-content-center border-bottom py-2 mb-4">
+            <h3 class="mb-0">Подробности</h3>
+        </div>
+        <h4 class="mb-2"></h4>
+        <p class="mb-2" style="color:green;">Активен</p>
+        <p class="mb-4" style="font-size: 0.8rem;">Последнее посещение: 2 часа назад</p>
+    </div>
+</div>
+{% endblock %}
