@@ -5,21 +5,26 @@
 {% block title %}Вход{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 2rem);">
-        <div class="form-container">
-            <h2>Вход</h2>
+    <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+        <div class="form-container" style="max-width: 600px; padding: 30px; background-color: rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+            <h2 class="text-center mb-4">Вход</h2>
             <form method="post">
                 {% csrf_token %}
-                <div class="form-group">
+                <div class="form-group mb-3">
                     <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label }}</label>
                     {{ form.username|add_class:"form-control" }}
                 </div>
-                <div class="form-group">
+                <div class="form-group mb-3">
                     <label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label }}</label>
                     {{ form.password|add_class:"form-control" }}
                 </div>
-                <button type="submit" class="btn btn-primary">Войти</button>
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary mt-3" style="width: 100%;">Войти</button>
+                </div>
             </form>
+            <div class="text-center mt-4">
+                <p>Нет аккаунта? <a href="{% url 'authentication:register' %}" class="text-decoration-none">Зарегистрироваться</a></p>
+            </div>
         </div>
     </div>
 {% endblock %}
