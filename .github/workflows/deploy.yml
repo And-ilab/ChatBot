@@ -1,0 +1,46 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main  # Замените на вашу ветку, если необходимо
+  pull_request:
+    branches:
+      - main  # Замените на вашу ветку, если необходимо
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+
+    - name: Add VPS to known_hosts
+      run: |
+        ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+    - name: Debug SSH Connection
+      run: |
+        echo "Attempting to connect to daniil@${{ secrets.SERVER_IP }}"
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -vvv daniil@${{ secrets.SERVER_IP }} "echo 'Connected successfully!'"
+
+    - name: Run deployment commands
+      run: |
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no daniil@${{ secrets.SERVER_IP }} << 'EOF'
+          source project/ChatBot/myprojectenv/bin/activate
+          cd project/ChatBot
+          git pull origin main
+          cd app
+          python manage.py collectstatic --noinput
+          python manage.py migrate --noinput
+          echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart gunicorn
+          echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart nginx
+          echo "${{ secrets.PASSWORD }}" | sudo -S systemctl daemon-reload
+        EOF
