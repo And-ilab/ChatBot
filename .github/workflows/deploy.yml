@@ -38,7 +38,7 @@ jobs:
           cd project/ChatBot
           git pull origin main
           cd app
-          python manage.py collectstatic --noinput
+          echo "yes" python manage.py collectstatic --noinput
           python manage.py migrate --noinput
           echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart gunicorn
           echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart nginx
