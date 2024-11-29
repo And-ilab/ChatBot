@@ -37,7 +37,7 @@ jobs:
           cd app
           python manage.py collectstatic --noinput
           python manage.py migrate --noinput
-          sudo systemctl restart gunicorn
-          sudo systemctl restart nginx
-          sudo systemctl restart gunicorn-daemon
+          echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart gunicorn
+          echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart nginx
+          echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart gunicorn-daemon
         EOF
