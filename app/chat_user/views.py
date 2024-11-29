@@ -17,7 +17,6 @@ def user_chat(request):
             user_id = payload.get('user_id')
 
             dialog, created = Dialog.objects.get_or_create(user_id=user_id)
-            print(dialog.id, user_id)
 
             context = {
                 'dialog_id': dialog.id,

@@ -5,32 +5,6 @@
 {% block title %}Вход{% endblock %}
 
 {% block content %}
-    <style>
-        body {
-            background: linear-gradient(135deg, #343a40, #495057); /* Фон страницы */
-            color: white; /* Цвет текста по умолчанию */
-        }
-        .form-container {
-            max-width: 400px; /* Максимальная ширина формы */
-            width: 100%; /* Полная ширина для мобильных устройств */
-            padding: 30px; /* Отступы внутри формы */
-            background-color: #495057; /* Цвет фона формы */
-            border-radius: 12px; /* Закругленные углы */
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); /* Мягкая тень */
-            margin: auto; /* Центрируем форму по горизонтали */
-        }
-        h2 {
-            margin-bottom: 20px; /* Отступ снизу заголовка */
-            text-align: center; /* Центрируем заголовок */
-        }
-        .form-group {
-            margin-bottom: 15px; /* Устанавливаем отступы между полями формы */
-        }
-        button {
-            width: 100%; /* Кнопка на всю ширину */
-        }
-    </style>
-
     <div class="d-flex justify-content-center align-items-center" style="height: calc(100vh - 2rem);">
         <div class="form-container">
             <h2>Вход</h2>
@@ -38,11 +12,11 @@
                 {% csrf_token %}
                 <div class="form-group">
                     <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label }}</label>
-                    {{ form.username|add_class:"form-control" }}  <!-- Используем фильтр для добавления классов -->
+                    {{ form.username|add_class:"form-control" }}
                 </div>
                 <div class="form-group">
                     <label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label }}</label>
-                    {{ form.password|add_class:"form-control" }}  <!-- Используем фильтр для добавления классов -->
+                    {{ form.password|add_class:"form-control" }}
                 </div>
                 <button type="submit" class="btn btn-primary">Войти</button>
             </form>
