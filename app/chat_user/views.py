@@ -17,7 +17,6 @@ def user_chat(request):
             user_id = payload.get('user_id')
 
             dialog, created = Dialog.objects.get_or_create(user_id=user_id)
-            print(dialog.id, user_id)
 
             context = {
                 'dialog_id': dialog.id,
@@ -32,7 +31,6 @@ def user_chat(request):
             return render(request, 'authentication/login.html', {'error': 'Недействительный токен.'})
 
     return render(request, 'authentication/login.html', {'error': 'Необходимо войти в систему.'})
-
 
 
 def process_keywords(request):

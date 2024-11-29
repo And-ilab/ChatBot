@@ -32,6 +32,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
 		'134.17.17.131',
 		'localhost',
+        '127.0.0.1',
 		'chatbot.digitranslab.com',
 		'www.chatbot.digitranslab.com'
 ]
@@ -39,12 +40,10 @@ ALLOWED_HOSTS = [
 
 INSTALLED_APPS = [
     'corsheaders',
-    'analytics',
     'authentication',
     'app',
     'chat_user',
     'chat_dashboard',
-    'chat_training',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -71,7 +70,7 @@ ROOT_URLCONF = 'app.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -142,6 +141,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     BASE_DIR / "chat_dashboard" / "static",
     BASE_DIR / "chat_user" / "static",
+    BASE_DIR / "chat_training" / "static",
+    BASE_DIR / "authentication" / "static",
 ]
 
 # Default primary key field type
@@ -189,6 +190,8 @@ EMAIL_USE_TLS = False
 EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = settings.DEFAULT_FROM_EMAIL
 
+import os
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -203,23 +206,60 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
+        # Обработчик для логов Django
+        'django_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'django_debug.log'),
+            'formatter': 'verbose',
+        },
+        # Обработчик для логов приложений
+        'app_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'app_logs.log'),
+            'formatter': 'verbose',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
+            'handlers': ['django_file'],
             'level': 'DEBUG',
             'propagate': True,
         },
-        'chat_user': {  # Замените на имя вашего приложения
-            'handlers': ['file'],
+        'chat_user': {
+            'handlers': ['app_file'],
             'level': 'INFO',
             'propagate': True,
         },
-
+        'chat_dashboard': {
+            'handlers': ['app_file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'authentication': {
+            'handlers': ['app_file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        # Логгер для запросов к базе данных
+        'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['django_file'],
+            'propagate': False,
+        },
+        # Логгер для запросов и ответов
+        'django.request': {
+            'level': 'DEBUG',
+            'handlers': ['django_file'],
+            'propagate': False,
+        },
+        # Логгер для работы сервера Django
+        'django.server': {
+            'level': 'DEBUG',
+            'handlers': ['django_file'],
+            'propagate': False,
+        },
     },
 }
+
