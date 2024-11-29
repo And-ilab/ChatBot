@@ -1,0 +1,33 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main  # Замените на вашу ветку, если необходимо
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Sync files to server
+      run: |
+        rsync -avz --delete ./ username@${{ secrets.SERVER_IP }}:${{ secrets.PROJECT_DIR }}
+
+    - name: Run deployment commands
+      run: |
+        ssh username@${{ secrets.SERVER_IP }} << 'EOF'
+          source /project/ChatBot/myprojectenv/bin/activate
+          cd $PROJECT_DIR
+          python manage.py collectstatic --noinput
+          sudo systemctl daemon-reload
+          sudo systemctl restart gunicorn
+        EOF
