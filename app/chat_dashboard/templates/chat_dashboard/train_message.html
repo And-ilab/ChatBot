@@ -1,0 +1,56 @@
+{% extends 'base/layout.html' %}
+
+{% block title %}Обучение{% endblock %}
+
+{% block content %}
+<div class="container d-flex flex-column align-items-center">
+    <h3 class="my-2">Обучение</h3>
+    <div class="divider w-100"></div>
+
+    <div class="input-container d-flex w-75 mt-4">
+        <input type="text" id="train-input" value="{{ message.content }}" readonly />
+    </div>
+
+    <div class="mt-4 w-75">
+        <h5>Ключевые слова:</h5>
+        <div id="keywords-list"></div>
+    </div>
+
+    <div class="training-forms w-50 mt-5">
+        <div class="form-container">
+            <h5>Создать сущность</h5>
+            <form id="create-node-form" class="d-flex flex-column">
+                <label for="node-type">Тип сущности:</label>
+                <input type="text" id="node-type" class="form-control ml-2" placeholder="Введите тип сущности">
+
+                <label for="node-content" class="mt-2">Содержимое:</label>
+                <input type="text" id="node-content" class="form-control" placeholder="Введите содержимое">
+
+                <button type="button" id="create-node-btn" class="btn btn-outline-success mt-3">Создать сущность</button>
+            </form>
+            <div id="node-id"></div>
+        </div>
+
+        <!-- Форма для создания связи -->
+        <div class="form-container">
+            <h5>Создать связь</h5>
+            <form id="create-relation-form" class="d-flex flex-column">
+                <label for="relation-type">Тип связи:</label>
+                <input type="text" id="relation-type" class="form-control ml-2" placeholder="Введите тип">
+
+                <label for="start-node" class="mt-2">Начальная сущность:</label>
+                <select id="start-node" class="form-select">
+
+                </select>
+
+                <label for="end-node" class="mt-2">Конечная сущность:</label>
+                <select id="end-node" class="form-select">
+
+                </select>
+
+                <button type="button" id="create-relation-btn" class="btn btn-outline-primary mt-3">Создать связь</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

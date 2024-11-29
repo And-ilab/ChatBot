@@ -1,43 +1,6 @@
-{% extends "dashboard/layout.html" %}
+{% extends "base/layout.html" %}
 
-{% block title %}Пользователи{% endblock %}
+{% block title %}Админ-панель{% endblock %}
 
 {% block content %}
-    <div class="container my-5">
-        <div class="header mb-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1 class="text-dark">Пользователи</h1>
-                <a href="{% url 'chat_dashboard:user_create' %}" class="btn btn-success">Добавить пользователя</a>
-            </div>
-        </div>
-        <div class="table-container">
-            <div class="table-responsive">
-                <table class="table table-striped table-bordered">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Username</th>
-                            <th>Email</th>
-                            <th>ID пользователя</th>
-                            <th>Роль</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody class="table-secondary">
-                        {% for user in users %}
-                        <tr>
-                            <td class="text-dark">{{ user.username }}</td>
-                            <td class="text-dark">{{ user.email }}</td>
-                            <td class="text-dark">{{ user.id }}</td>
-                            <td class="text-dark">{{ user.role }}</td>
-                            <td>
-                                <a href="{% url 'chat_dashboard:user_update' user.id %}" class="btn btn-sm btn-info">Изменить</a>
-                                <a href="{% url 'chat_dashboard:user_delete' user.id %}" class="btn btn-sm btn-danger">Удалить</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 {% endblock %}
