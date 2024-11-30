@@ -141,7 +141,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     BASE_DIR / "chat_dashboard" / "static",
     BASE_DIR / "chat_user" / "static",
-    BASE_DIR / "chat_training" / "static",
+#    BASE_DIR / "chat_training" / "static",
     BASE_DIR / "authentication" / "static",
 ]
 
