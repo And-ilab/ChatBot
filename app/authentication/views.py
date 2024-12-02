@@ -56,7 +56,7 @@ def login_view(request):
 
                         if role in ['admin', 'operator']:
                             logger.info(f"User {username} with role {role} redirected to admin dashboard.")
-                            return redirect('chat_dashboard:admin_dashboard')
+                            return redirect('chat_dashboard:archive')
                         else:
                             logger.info(f"User {username} redirected to chat.")
                             return redirect('chat_user:chat')
