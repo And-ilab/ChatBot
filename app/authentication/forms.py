@@ -4,12 +4,16 @@ from django.contrib.auth.forms import AuthenticationForm
 
 
 class UserRegistrationForm(forms.ModelForm):
-    password = forms.CharField(label='Password', widget=forms.PasswordInput())
-    password_confirm = forms.CharField(label='Confirm Password', widget=forms.PasswordInput())
+    password = forms.CharField(label='Пароль', widget=forms.PasswordInput())
+    password_confirm = forms.CharField(label='Подтверждение пароля', widget=forms.PasswordInput())
 
     class Meta:
         model = User
         fields = ['username', 'email', 'password', 'password_confirm']
+        labels = {
+            'username': 'Имя пользователя',
+            'email': 'Электронная почта',
+        }
 
     def clean(self):
         cleaned_data = super().clean()
@@ -27,8 +31,8 @@ class UserRegistrationForm(forms.ModelForm):
         return user
 
 class CustomUserLoginForm(forms.Form):
-    username = forms.CharField(label='Username or Email', max_length=254)
-    password = forms.CharField(label='Password', widget=forms.PasswordInput)
+    username = forms.CharField(label='Имя пользователя или email', max_length=254)
+    password = forms.CharField(label='Пароль', widget=forms.PasswordInput)
 
     def clean(self):
         cleaned_data = super().clean()
@@ -41,5 +45,5 @@ class CustomUserLoginForm(forms.Form):
         return cleaned_data
 
 class UserLoginForm(AuthenticationForm):
-    username = forms.CharField(label='username')
-    password = forms.CharField(label='password', widget=forms.PasswordInput)
+    username = forms.CharField(label='Имя пользователя')
+    password = forms.CharField(label='Пароль', widget=forms.PasswordInput)

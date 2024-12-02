@@ -18,11 +18,21 @@
                 </div>
                 <div class="form-group mb-3">
                     <label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label }}</label>
-                    {{ form.password|add_class:"form-control" }}
+                    <div class="input-group">
+                        {{ form.password|add_class:"form-control" }}
+                        <span class="input-group-text" id="togglePassword" style="cursor: pointer;">
+                            <i class="fa fa-eye" id="eyeIcon"></i>
+                        </span>
+                    </div>
                 </div>
                 <div class="form-group mb-3">
                     <label for="{{ form.password_confirm.id_for_label }}" class="form-label">{{ form.password_confirm.label }}</label>
-                    {{ form.password_confirm|add_class:"form-control" }}
+                    <div class="input-group">
+                        {{ form.password_confirm|add_class:"form-control" }}
+                        <span class="input-group-text" id="togglePasswordConfirm" style="cursor: pointer;">
+                            <i class="fa fa-eye" id="eyeIconConfirm"></i>
+                        </span>
+                    </div>
                 </div>
                 <div class="text-center">
                     <button type="submit" class="btn btn-primary mt-3" style="width: 100%;">Зарегистрироваться</button>
@@ -33,4 +43,26 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('{{ form.password.id_for_label }}');
+
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.querySelector('i').classList.toggle('fa-eye-slash');
+            });
+
+            const togglePasswordConfirm = document.getElementById('togglePasswordConfirm');
+            const passwordConfirmInput = document.getElementById('{{ form.password_confirm.id_for_label }}');
+
+            togglePasswordConfirm.addEventListener('click', function() {
+                const type = passwordConfirmInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordConfirmInput.setAttribute('type', type);
+                this.querySelector('i').classList.toggle('fa-eye-slash');
+            });
+        });
+    </script>
 {% endblock %}
