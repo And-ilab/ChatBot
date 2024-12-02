@@ -24,9 +24,9 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
-        ('user', 'User'),
-        ('admin', 'Admin'),
-        ('operator', 'Operator'),
+        ('user', 'Пользователь'),
+        ('admin', 'Администратор'),
+        ('operator', 'Оператор'),
     ]
 
     id = models.AutoField(primary_key=True)

@@ -385,7 +385,6 @@ def user_delete(request, pk):
         return redirect('chat_dashboard:user_list')
     return render(request, 'chat_dashboard/user_delete_form.html', {'user': user})
 
-
 def get_last_message_subquery(field):
     """Creates a subquery to get the last message by a specified field."""
     logger.debug("Creating a subquery for the last message.")

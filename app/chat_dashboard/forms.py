@@ -10,8 +10,14 @@ class UserForm(forms.ModelForm):
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'И.Иванов'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
-            'password': forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'password'}),
+            'password': forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Пароль'}),
             'role': forms.Select(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'username': 'Имя пользователя',
+            'email': 'Email',
+            'password': 'Пароль',
+            'role': 'Роль',
         }
 
 class UserFormUpdate(UserForm):
@@ -22,4 +28,9 @@ class UserFormUpdate(UserForm):
             'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'И.Иванов'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
             'role': forms.Select(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'username': 'Имя пользователя',
+            'email': 'Email',
+            'role': 'Роль',
         }

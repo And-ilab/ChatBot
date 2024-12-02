@@ -1,5 +1,7 @@
 from functools import wraps
 from django.http import HttpResponseForbidden
+from django.shortcuts import redirect
+from django.contrib import messages
 import jwt
 from django.conf import settings
 
@@ -17,10 +19,13 @@ def role_required(required_roles):
                     # Проверка роли
                     if user_role in required_roles:  # Проверяем, находится ли роль в списке разрешенных
                         return view_func(request, *args, **kwargs)
+                    else:
+                        messages.error(request, "Недостаточно прав для доступа к данной странице.")  # Сообщение о недостаточности прав
+                        return HttpResponseForbidden("Недостаточно прав.")  # Или можно вернуть 403
 
                 except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-                    return HttpResponseForbidden("Недействительный токен.")
+                    return redirect('authentication:login')  # Перенаправление на страницу логина
 
-            return HttpResponseForbidden("Доступ запрещен.")  # Если токен отсутствует или роль не соответствует
+            return redirect('authentication:login')  # Перенаправление на страницу логина, если токен отсутствует
         return _wrapped_view
     return decorator
