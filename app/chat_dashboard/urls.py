@@ -4,7 +4,6 @@ from . import views
 app_name = 'chat_dashboard'
 
 urlpatterns = [
-    path('', views.empty_page, name='admin_dashboard'),
     path('archive/', views.archive, name='archive'),
     path('analytics/', views.analytics, name='analytics'),
     path('users/', views.user_list, name='user_list'),

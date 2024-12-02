@@ -15,13 +15,7 @@ import pymorphy3
 
 logger = logging.getLogger(__name__)
 
-
-def empty_page(request):
-    """Displays an empty page."""
-    logger.info("Accessing empty page.")
-    return render(request, 'chat_dashboard/index.html')
-
-
+@role_required(['admin', 'operator'])
 def analytics(request):
     """Displays the analytics page."""
     logger.info("Accessing analytics page.")
@@ -88,7 +82,7 @@ morph = pymorphy3.MorphAnalyzer()
 custom_stop_words = {"может", "могут", "какой", "какая", "какое", "какие", "что", "кто", "где", "когда", "зачем",
                      "почему"}
 
-
+@role_required(['admin', 'operator'])
 def training_dashboard(request):
     """Displays the training dashboard."""
     logger.info("Accessing training dashboard.")
@@ -351,6 +345,7 @@ def user_create(request):
     else:
         form = UserForm()
     return render(request, 'chat_dashboard/user_create_form.html', {'form': form})
+
 
 @role_required('admin')
 def user_update(request, pk):
