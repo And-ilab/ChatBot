@@ -7,6 +7,7 @@ from django.db.models.functions import TruncDate
 from authentication.decorators import role_required
 from .models import Dialog, Message, User, TrainingMessage
 from chat_user.neo_models import Node
+from neomodel import db
 from .forms import UserForm, UserFormUpdate
 import json
 import re
@@ -212,18 +213,19 @@ def create_node(request):
         try:
             data = json.loads(request.body)
 
-            node_type = data.get('type')
+            node_type = data.get('type').lower()
+            node_name = data.get('name').lower()
             node_content = data.get('content')
 
-            if not node_type or not node_content:
-                logger.warning("Missing mandatory fields: type or content.")
-                return JsonResponse({'error': 'Missing mandatory fields: type or content'}, status=400)
+            if not node_type or not node_name:
+                logger.warning("Missing required fields: type or name.")
+                return JsonResponse({'error': 'Missing required fields: type or name'}, status=400)
 
-            node = Node(type=node_type, content=node_content).save()
+            node = Node(type=node_type, name=node_name, content=node_content if node_content else '').save()
             logger.info(f"Node created with ID: {node.element_id}")
-            return JsonResponse({'id': node.element_id, 'type': node_type, 'content': node_content}, status=201)
+            return JsonResponse({'id': node.element_id, 'type': node_type, 'name': node_name, 'content': node_content}, status=201)
         except Exception as e:
-            logger.exception("An error occurred while creating a node.")
+            logger.exception("An error occurred while creating an entity.")
             return JsonResponse({'error': str(e)}, status=400)
 
 
@@ -235,13 +237,13 @@ def create_relation(request):
         try:
             data = json.loads(request.body)
 
-            relation_type = data.get('type')
+            relation_type = data.get('type').lower()
             start_node_id = data.get('start_node_id')
             end_node_id = data.get('end_node_id')
 
             if not relation_type or not start_node_id or not end_node_id:
-                logger.warning("Missing mandatory fields for relation creation.")
-                return JsonResponse({'error': 'Missing mandatory fields'}, status=400)
+                logger.warning("Missing required fields for relation creation.")
+                return JsonResponse({'error': 'Missing required fields'}, status=400)
 
             query = f"""
             MATCH (startNode), (endNode)
@@ -265,7 +267,7 @@ def get_nodes(request):
         logger.info("Fetching all nodes.")
         try:
             nodes = Node.nodes.all()
-            nodes_data = [{'id': node.element_id, 'type': node.type, 'content': node.content[:20]} for node in nodes]
+            nodes_data = [{'id': node.element_id, 'type': node.type, 'name': node.name[:15]} for node in nodes]
             logger.debug(f"Nodes retrieved: {nodes_data}")
             return JsonResponse(nodes_data, safe=False, status=200)
         except Exception as e:

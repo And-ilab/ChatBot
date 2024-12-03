@@ -3,6 +3,110 @@
 {% block title %}Обучение{% endblock %}
 
 {% block content %}
+<style>
+#entity-modal, #relation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    position: relative;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 400px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-close-button {
+    width: 36px;
+    height: 36px;
+    font-size: 24px;
+    cursor: pointer;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+#node-content {
+    resize: none;
+    height: 150px;
+    overflow-y: auto;
+}
+
+.emoji-picker-container {
+    position: relative;
+    display: inline-block;
+}
+
+#emoji-container {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 1000;
+    max-width: 200px;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.emoji {
+    font-size: 24px;
+    cursor: pointer;
+    margin: 5px;
+    padding: 5px;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+}
+
+.emoji:hover {
+    background-color: #f0f0f0;
+}
+
+.spinner {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border: 0.4rem solid #f3f3f3;
+    border-top: 0.4rem solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#create-relation-form {
+    display: none;
+    flex-direction: column;
+    margin-top: 16px;
+}
+</style>
 <div class="container d-flex flex-column align-items-center">
     <h3 class="my-2">Обучение</h3>
     <div class="divider w-100"></div>
@@ -17,40 +121,63 @@
     </div>
 
     <div class="training-forms w-50 mt-5">
-        <div class="form-container">
-            <h5>Создать сущность</h5>
-            <form id="create-node-form" class="d-flex flex-column">
+        <button id="create-entity-button" class="btn btn-outline-success">Создать сущность</button>
+        <button id="create-relation-button" class="btn btn-outline-warning">Создать связь</button>
+    </div>
+
+    <div id="entity-modal">
+        <div class="modal-content">
+            <span class="modal-close-button">&times;</span>
+            <h5 style="text-align: center;">Создать сущность</h5>
+            <form id="create-node-form" class="d-flex flex-column mt-2">
                 <label for="node-type">Тип сущности:</label>
-                <input type="text" id="node-type" class="form-control ml-2" placeholder="Введите тип сущности">
+                <input type="text" id="node-type" class="form-control ml-2 mt-2" placeholder="Введите тип сущности">
+
+                <label for="node-type" class="mt-2">Название сущности:</label>
+                <input type="text" id="node-name" class="form-control ml-2 mt-2" placeholder="Введите название сущности">
 
                 <label for="node-content" class="mt-2">Содержимое:</label>
-                <input type="text" id="node-content" class="form-control" placeholder="Введите содержимое">
+                <textarea id="node-content" class="form-control mt-2" placeholder="Введите содержимое"></textarea>
 
+                <div class="emoji-picker-container">
+                    <button type="button" id="insert-emoji" class="btn btn-outline-secondary mt-2">😊</button>
+                    <div id="emoji-container" class="emoji-container">
+                        <span class="emoji" data-emoji="😊">😊</span>
+                        <span class="emoji" data-emoji="😂">😂</span>
+                        <span class="emoji" data-emoji="❤️">❤️</span>
+                        <span class="emoji" data-emoji="👍">👍</span>
+                        <span class="emoji" data-emoji="🎉">🎉</span>
+                        <span class="emoji" data-emoji="🔥">🔥</span>
+                    </div>
+                </div>
                 <button type="button" id="create-node-btn" class="btn btn-outline-success mt-3">Создать сущность</button>
             </form>
             <div id="node-id"></div>
         </div>
+    </div>
 
-        <!-- Форма для создания связи -->
-        <div class="form-container">
-            <h5>Создать связь</h5>
-            <form id="create-relation-form" class="d-flex flex-column">
-                <label for="relation-type">Тип связи:</label>
-                <input type="text" id="relation-type" class="form-control ml-2" placeholder="Введите тип">
-
-                <label for="start-node" class="mt-2">Начальная сущность:</label>
-                <select id="start-node" class="form-select">
-
-                </select>
-
-                <label for="end-node" class="mt-2">Конечная сущность:</label>
-                <select id="end-node" class="form-select">
-
-                </select>
-
+    <div id="relation-modal">
+        <div class="modal-content">
+            <span class="modal-close-button">&times;</span>
+            <h5 style="text-align: center;" class="mt-2">Создать связь между сущностями</h5>
+            <!-- Спиннер -->
+            <div id="loading-spinner" class="spinner mt-2">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+            </div>
+            <!-- Форма -->
+            <form id="create-relation-form">
+                <label for="relation-type">Название связи:</label>
+                <input type="text" id="relation-type" class="form-control ml-2 mt-2" placeholder="Введите название связи">
+                <label for="start-node" class="mt-2">От сущности:</label>
+                <select id="start-node" class="form-select"></select>
+                <label for="end-node" class="mt-2">К сущности:</label>
+                <select id="end-node" class="form-select"></select>
                 <button type="button" id="create-relation-btn" class="btn btn-outline-primary mt-3">Создать связь</button>
             </form>
         </div>
     </div>
+
 </div>
 {% endblock %}

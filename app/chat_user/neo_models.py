@@ -13,4 +13,5 @@ from neomodel import StructuredNode, StringProperty, RelationshipTo, JSONPropert
 
 class Node(StructuredNode):
     type = StringProperty()
+    name = StringProperty()
     content = StringProperty()
