@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
-
+from django.utils import timezone
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -33,6 +33,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50, unique=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
     is_staff = models.BooleanField(default=False)
+    last_active = models.DateTimeField(null=True, blank=True)
+    is_online = models.BooleanField(default=False)
+
+    def update_last_active(self):
+        self.last_active = timezone.now()
+        self.is_online = True
+        self.save()
 
     groups = models.ManyToManyField(
         Group,

@@ -16,6 +16,7 @@ import pymorphy3
 
 logger = logging.getLogger(__name__)
 
+
 @role_required(['admin', 'operator'])
 def analytics(request):
     """Displays the analytics page."""
@@ -82,6 +83,7 @@ nlp = spacy.load("ru_core_news_sm")
 morph = pymorphy3.MorphAnalyzer()
 custom_stop_words = {"может", "могут", "какой", "какая", "какое", "какие", "что", "кто", "где", "когда", "зачем",
                      "почему"}
+
 
 @role_required(['admin', 'operator'])
 def training_dashboard(request):
@@ -223,7 +225,8 @@ def create_node(request):
 
             node = Node(type=node_type, name=node_name, content=node_content if node_content else '').save()
             logger.info(f"Node created with ID: {node.element_id}")
-            return JsonResponse({'id': node.element_id, 'type': node_type, 'name': node_name, 'content': node_content}, status=201)
+            return JsonResponse({'id': node.element_id, 'type': node_type, 'name': node_name, 'content': node_content},
+                                status=201)
         except Exception as e:
             logger.exception("An error occurred while creating an entity.")
             return JsonResponse({'error': str(e)}, status=400)
@@ -387,6 +390,7 @@ def user_delete(request, pk):
         return redirect('chat_dashboard:user_list')
     return render(request, 'chat_dashboard/user_delete_form.html', {'user': user})
 
+
 def get_last_message_subquery(field):
     """Creates a subquery to get the last message by a specified field."""
     logger.debug("Creating a subquery for the last message.")
@@ -414,8 +418,17 @@ def archive(request):
         )
     ).filter(has_messages=True).order_by('-last_message_timestamp')
 
+    user_statuses = {
+        dialog.user.id: {
+            'last_active': dialog.user.last_active,
+            'is_online': dialog.user.is_online
+        } for dialog in dialogs
+    }
+
     logger.debug(f"Dialogs retrieved: {list(dialogs)}")
-    return render(request, 'chat_dashboard/archive.html', {'dialogs': dialogs, 'user': user})
+    return render(request, 'chat_dashboard/archive.html',
+                  {'dialogs': dialogs, 'user': user, 'user_statuses': user_statuses, 'last_active': user.last_active,
+                   'is_online': user.is_online, })
 
 
 def get_messages(request, dialog_id):
@@ -432,6 +445,22 @@ def get_messages(request, dialog_id):
     ]
     logger.debug(f"Messages retrieved: {messages_data}")
     return JsonResponse({'messages': messages_data})
+
+
+def get_info(request, user_id):
+    """Retrieves user status information."""
+    logger.info(f"Fetching status for user ID: {user_id}")
+    try:
+        user = User.objects.get(id=user_id)  # Use 'id' to match the primary key
+        user_data = {
+            'is_online': user.is_online,
+            'last_active': user.last_active,
+        }
+        logger.debug(f"User status retrieved: {user_data}")
+        return JsonResponse({'messages': [user_data]})
+    except User.DoesNotExist:
+        logger.error(f"User with ID {user_id} not found.")
+        return JsonResponse({'error': 'User not found'}, status=404)
 
 
 @csrf_exempt
