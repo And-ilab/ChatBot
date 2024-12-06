@@ -102,3 +102,10 @@ class TrainingMessage(models.Model):
 
     def __str__(self):
         return f"{self.sender} - {self.content[:20]}"
+
+
+class Settings(models.Model):
+    ad_enabled = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Настройки: AD Enabled = {self.ad_enabled}"

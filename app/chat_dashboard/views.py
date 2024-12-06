@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, F, Count
 from django.db.models.functions import TruncDate
 from authentication.decorators import role_required
-from .models import Dialog, Message, User, TrainingMessage
+from .models import Dialog, Message, User, TrainingMessage, Settings
 from chat_user.neo_models import Node
 from neomodel import db
 from .forms import UserForm, UserFormUpdate
@@ -13,6 +13,7 @@ import json
 import re
 import spacy
 import pymorphy3
+from django.contrib import messages
 
 logger = logging.getLogger(__name__)
 
@@ -492,3 +493,18 @@ def send_message(request, dialog_id):
 
     logger.warning("Invalid method: only POST is supported.")
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
+
+def settings_view(request):
+    # Получаем или создаем объект настроек
+    settings, created = Settings.objects.get_or_create(id=1)  # Используем фиксированный id для одной записи
+
+    if request.method == 'POST':
+        # Получаем состояние из запроса
+        enable_ad = request.POST.get('enable_ad') == 'on'  # Проверяем, включен ли AD
+        settings.ad_enabled = enable_ad  # Обновляем значение
+        settings.save()  # Сохраняем изменения
+
+        return JsonResponse({'status': 'success', 'ad_enabled': settings.ad_enabled})
+
+    return render(request, 'chat_dashboard/settings.html', {'settings': settings})

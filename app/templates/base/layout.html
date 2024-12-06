@@ -46,6 +46,10 @@
         </ul>
         <div class="account-wrapper">
             {% if user.is_authenticated %}
+            <!-- Settings Button -->
+            <a href="{% url 'chat_dashboard:settings' %}" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right" title="Настройки">
+                <i class="fa fa-cog"></i>
+            </a>
             <a href="{% url 'authentication:logout' %}" class="nav-link" data-bs-toggle="tooltip"
                data-bs-placement="right" title="Выход">
                 <i class="fa fa-sign-out-alt"></i>
