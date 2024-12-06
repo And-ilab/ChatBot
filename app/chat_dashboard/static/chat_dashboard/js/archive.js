@@ -28,12 +28,12 @@ async function loadMessages(dialogId) {
             );
             messageElement.innerHTML = `
                 <div class="message-wrapper"
-                     style="${message.sender === 'Bot' ? 'background-color: #8cc3f4;' : 'background-color: #f1f1f1;'} 
-                            border-radius: 10px; padding: 5px 10px 20px 10px; position: relative; 
+                     style="${message.sender === 'Bot' ? 'background-color: #8cc3f4;' : 'background-color: #f1f1f1;'}
+                            border-radius: 10px; padding: 5px 10px 20px 10px; position: relative;
                             min-width: 180px; max-width: 70%; overflow-wrap: break-word;">
                     <div class="d-flex message-sender">${message.sender}</div>
                     <div class="d-flex message-content">${message.content}</div>
-                    <div class="d-flex message-time text-muted" 
+                    <div class="d-flex message-time text-muted"
                          style="position: absolute; right: 10px; bottom: 2px;">
                         ${message.timestamp}
                     </div>
@@ -47,50 +47,6 @@ async function loadMessages(dialogId) {
     } catch (error) {
         console.error('Ошибка при загрузке сообщений:', error);
     }
-}
-
-// Отправка сообщения
-async function sendMessage() {
-    const input = document.querySelector('.form-control');
-    const messageContent = input.value.trim();
-
-    if (messageContent) {
-        const activeDialog = document.querySelector('.chat-item.active');
-        const dialogId = activeDialog ? activeDialog.id.split('-')[1] : null;
-
-        if (dialogId) {
-            try {
-                // Отправляем сообщение на сервер
-                const response = await fetch(`/api/send-message/${dialogId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken(),
-                    },
-                    body: JSON.stringify({
-                        sender_type: 'bot',
-                        content: messageContent,
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                // Очищаем инпут и обновляем список сообщений
-                input.value = '';
-                await loadMessages(dialogId);
-            } catch (error) {
-                console.error('Ошибка при отправке сообщения:', error);
-            }
-        }
-    }
-}
-
-// Получение CSRF-токена из мета-тега
-function getCSRFToken() {
-    const csrfTokenMeta = document.querySelector("meta[name='csrf-token']");
-    return csrfTokenMeta ? csrfTokenMeta.getAttribute("content") : "";
 }
 
 // Установка активного диалога
@@ -114,5 +70,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (sendButton) {
         sendButton.addEventListener('click', sendMessage);
+    }
+
+    // Автоматическая загрузка первого диалога
+    const firstDialog = document.querySelector('.chat-item');
+    if (firstDialog) {
+        const dialogId = firstDialog.id.split('-')[1];
+        loadMessages(dialogId); // Загружаем сообщения для первого диалога
+        setActiveDialog(firstDialog); // Устанавливаем его как активный диалог
+        updateUserInfo(firstDialog.dataset.username); // Обновляем информацию о пользователе
     }
 });
