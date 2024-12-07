@@ -182,15 +182,24 @@ def authenticate(username, password):
         return False
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = settings.EMAIL_HOST
-EMAIL_PORT = settings.EMAIL_PORT
-EMAIL_HOST_USER = settings.EMAIL_HOST_USER
-EMAIL_HOST_PASSWORD = settings.EMAIL_HOST_PASSWORD
-EMAIL_USE_TLS = False
-EMAIL_USE_SSL = False
-DEFAULT_FROM_EMAIL = settings.DEFAULT_FROM_EMAIL
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = settings.EMAIL_HOST
+# EMAIL_PORT = settings.EMAIL_PORT
+# EMAIL_HOST_USER = settings.EMAIL_HOST_USER
+# EMAIL_HOST_PASSWORD = settings.EMAIL_HOST_PASSWORD
+# EMAIL_USE_TLS = False
+# EMAIL_USE_SSL = False
+# DEFAULT_FROM_EMAIL = settings.DEFAULT_FROM_EMAIL
 
+
+# settings.py
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.yandex.ru'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'sapunowdany@yandex.by'  # Замените на ваш адрес Gmail
+EMAIL_HOST_PASSWORD = 'rviyhjzxibthjppy'  # Замените на пароль приложения
 import os
 
 LOGGING = {
