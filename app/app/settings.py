@@ -110,12 +110,12 @@ neo_cfg.DATABASE_URL = f"bolt://{settings.DB_NEO_USER}:{settings.DB_NEO_PASS}@{s
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
+ #   {
+ #       'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+ #   },
+ #   {
+ #       'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+ #   },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },

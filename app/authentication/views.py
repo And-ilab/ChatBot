@@ -6,13 +6,21 @@ from django.contrib import messages
 from .auth_with_AD import validate_user_credentials
 from .decorators import role_required
 import jwt
-from django.http import JsonResponse
 from django.conf import settings
 from .utils import generate_jwt
 from django.contrib.auth.decorators import login_required
 from chat_dashboard.models import Settings, User
 from django.utils import timezone
-
+from django.urls import reverse
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.sites.shortcuts import get_current_site
+from django.template.loader import render_to_string
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.views.generic import View
+from django.http import JsonResponse
+from django.core.mail import send_mail
+from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetCompleteView
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +97,7 @@ def get_ad_authentication_enabled():
     settings_obj, created = Settings.objects.get_or_create(ad_enabled=False)
     return settings_obj.ad_enabled
 
+
 # def login_view(request):
 #     """Handles user login."""
 #     logger.info("User login attempt.")
@@ -157,7 +166,6 @@ def login_view(request):
             password = form.cleaned_data.get('password')
             logger.debug(f"Login attempt: Username={username}")
 
-            # Получаем состояние авторизации через AD
             ad_enabled = get_ad_authentication_enabled()
 
             if not ad_enabled and '@' in username:
@@ -174,10 +182,12 @@ def login_view(request):
 
                         if role in ['admin', 'operator']:
                             logger.info(f"User {username} with role {role} redirected to admin dashboard.")
-                            return redirect('chat_dashboard:archive')
+                            return JsonResponse(
+                                {'message': 'Вход успешен!', 'redirect': reverse('chat_dashboard:archive')}, status=200)
                         else:
                             logger.info(f"User {username} redirected to chat.")
-                            return redirect('chat_user:chat')
+                            return JsonResponse({'message': 'Вход успешен!', 'redirect': reverse('chat_user:chat')},
+                                                status=200)
                     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
                         messages.error(request, 'Ошибка при обработке токена.')
                         logger.error("Token error during login.")
@@ -187,11 +197,11 @@ def login_view(request):
                     return JsonResponse({'error': 'Введён неверный логин или пароль.'}, status=400)
 
             elif ad_enabled:
-                # Если авторизация через AD включена, используем стандартную аутентификацию
                 user_entry = validate_user_credentials(username, password)
                 if user_entry:
                     logger.info(f"User {username} validated via AD.")
-                    return redirect('chat_dashboard:user_list')
+                    return JsonResponse({'message': 'Вход успешен!', 'redirect': reverse('chat_dashboard:user_list')},
+                                        status=200)
                 else:
                     logger.warning(f"Failed AD login attempt for Username={username}.")
                     return JsonResponse({'error': 'Неправильный логин или пароль.'}, status=400)
@@ -204,6 +214,7 @@ def login_view(request):
         form = CustomUserLoginForm()
 
     return render(request, 'authentication/login.html', {'form': form})
+
 
 @login_required
 def logout_view(request):
@@ -234,4 +245,39 @@ def activate_account(request, token):
     except User.DoesNotExist:
         messages.error(request, 'Пользователь не найден.')
         return redirect('authentication:registration')
-    
+
+
+class CustomPasswordResetView(View):
+    def post(self, request, *args, **kwargs):
+        email = request.POST.get('email')
+        user = User.objects.filter(email=email).first()
+
+        if user:
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            reset_link = f"http://127.0.0.1:8000/authentication/reset/{uid}/{token}/"  # Замените на ваш домен
+
+            subject = "Сброс пароля"
+            message = render_to_string('authentication/password_reset_email.html', {
+                'user': user,
+                'reset_link': reset_link,
+            })
+            send_mail(subject, message, None, [email])
+            return JsonResponse({'success': True, 'message': 'Ссылка для восстановления пароля отправлена на вашу почту.'})
+
+        return JsonResponse({'success': False, 'message': 'Пользователь с таким e-mail не найден.'})
+
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    template_name = 'authentication/password_reset_confirm.html'
+
+    def form_valid(self, form):
+        # Успешный сброс пароля
+        messages.success(self.request, "Ваш пароль успешно сброшен!")
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Ошибка при сбросе пароля. Пожалуйста, проверьте введенные данные.")
+        return super().form_invalid(form)
+
+class CustomPasswordResetCompleteView(PasswordResetCompleteView):
+    template_name = 'authentication/password_reset_complete.html'

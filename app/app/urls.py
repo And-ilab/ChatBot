@@ -43,9 +43,4 @@ urlpatterns = [
     path("api/user-activity/", dashboard_views.user_activity_data, name="user_activity_data"),
     path("api/messages-count-data/", dashboard_views.messages_count_data, name="messages_count_data"),
     path("api/daily-messages/", dashboard_views.daily_messages_data, name="daily_messages_data"),
-    path('password_reset/', auth_views.PasswordResetView.as_view(template_name="authentication/password_reset_form"), name='password_reset'),
-    path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(template_name="authentication/password_reset_done"), name='password_reset_done'),
-    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name="authentication/password_reset_form"),
-                       name='password_reset_confirm'),
-    path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

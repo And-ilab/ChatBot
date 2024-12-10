@@ -5,8 +5,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
-    <div class="form-container"
-         style="max-width: 600px; padding: 30px; background-color: rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+    <div class="form-container" style="max-width: 600px; padding: 30px; background-color: rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
         <h2 class="text-center mb-4">Вход</h2>
 
         <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
@@ -27,14 +26,59 @@
         </form>
         <div class="text-center mt-4">
             <p>Нет аккаунта? <a href="{% url 'authentication:register' %}" class="text-decoration-none">Зарегистрироваться</a></p>
-            <p><a href="{% url 'password_reset' %}" class="text-decoration-none">Забыли пароль?</a></p>
+            <p><a href="#" class="text-decoration-none" onclick="showPasswordResetModal();">Забыли пароль?</a></p>
         </div>
     </div>
 </div>
 
+<!-- Модальное окно для сброса пароля -->
+<div class="modal" id="passwordResetModal" tabindex="-1" role="dialog" style="display: none;">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Сброс пароля</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closePasswordResetModal();">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Введите ваш e-mail для сброса пароля:</p>
+                <input type="email" id="reset-email" class="form-control" required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closePasswordResetModal();">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="sendPasswordResetEmail();">Отправить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Подключение Toastr -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
 <script>
+    // Настройки Toastr
+    toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": true,
+        "progressBar": true,
+        "positionClass": "toast-top-center",  // Положение уведомления по центру вверху
+        "preventDuplicates": false,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    };
+
     function handleLogin(event) {
-        event.preventDefault(); // Предотвратить стандартное поведение формы
+        event.preventDefault();
 
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
@@ -43,33 +87,62 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': '{{ csrf_token }}'  // Убедитесь, что токен CSRF включён
+                'X-CSRFToken': '{{ csrf_token }}'
             },
             body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
         })
         .then(response => {
-            if (!response.ok) {
-                // Если вход не удался, показать сообщение об ошибке
-                return response.json().then(data => {
+            return response.json().then(data => {
+                if (response.ok) {
+                    window.location.href = data.redirect;  // Перенаправление
+                } else {
                     const errorMessage = data.error || 'Введён неверный пароль либо такого пользователя не существует!';
-                    document.getElementById('error-message').innerText = errorMessage;
-                    document.getElementById('error-message').classList.remove('d-none');
-                    document.getElementById('error-message').classList.add('alert-danger');
-                });
+                    toastr.error(errorMessage, 'Ошибка');
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            toastr.error('Произошла ошибка. Попробуйте ещё раз.', 'Ошибка');
+        });
+    }
+
+    function showPasswordResetModal() {
+        document.getElementById('passwordResetModal').style.display = 'block';
+    }
+
+    function closePasswordResetModal() {
+        document.getElementById('passwordResetModal').style.display = 'none';
+    }
+
+    function sendPasswordResetEmail() {
+        const email = document.getElementById('reset-email').value;
+
+        fetch("{% url 'authentication:password_reset' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `email=${encodeURIComponent(email)}`
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Сервер вернул ошибку: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                toastr.success(data.message, 'Успех');
+                closePasswordResetModal();
             } else {
-                // Если вход успешен, просто показываем сообщение об успехе
-                document.getElementById('error-message').innerText = 'Вход успешен!';
-                document.getElementById('error-message').classList.remove('d-none');
-                document.getElementById('error-message').classList.add('alert-success');
-                // Здесь можно очистить поля ввода, если нужно
-                document.getElementById('username').value = '';
-                document.getElementById('password').value = '';
+                toastr.error(data.message, 'Ошибка');
             }
         })
         .catch(error => {
             console.error('Ошибка:', error);
-            document.getElementById('error-message').innerText = 'Произошла ошибка. Попробуйте ещё раз.';
-            document.getElementById('error-message').classList.remove('d-none');
+            toastr.error('Произошла ошибка. Попробуйте ещё раз.', 'Ошибка');
         });
     }
 </script>
