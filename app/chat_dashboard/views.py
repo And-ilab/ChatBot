@@ -14,6 +14,8 @@ import re
 import spacy
 import pymorphy3
 from django.contrib import messages
+from django.utils import timezone
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -402,6 +404,7 @@ def get_last_message_subquery(field):
 def archive(request):
     """Displays the archive of dialogs with the last messages."""
     logger.info("Accessing archive page.")
+    delete_old_messages()
     user = request.user
     dialogs = Dialog.objects.annotate(
         has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
@@ -430,6 +433,47 @@ def archive(request):
     return render(request, 'chat_dashboard/archive.html',
                   {'dialogs': dialogs, 'user': user, 'user_statuses': user_statuses, 'last_active': user.last_active,
                    'is_online': user.is_online, })
+
+
+def archive_filter_view(request):
+    """Фильтрует диалоги по времени через API."""
+    days = request.GET.get('days', 'all')
+    time_threshold = None
+
+    # Устанавливаем временной порог в зависимости от выбранного периода
+    if days == '1':
+        time_threshold = timezone.now() - timedelta(days=1)
+    elif days == '7':
+        time_threshold = timezone.now() - timedelta(days=7)
+    elif days == '30':
+        time_threshold = timezone.now() - timedelta(days=30)
+
+    # Формируем запрос
+    dialogs = Dialog.objects.annotate(
+        last_message_timestamp=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]
+        ),
+        username=F('user__username'),
+        last_message=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]
+        )
+    ).filter(Exists(Message.objects.filter(dialog=OuterRef('pk'))))
+
+    # Применяем фильтрацию по времени, если установлен временной порог
+    if time_threshold:
+        dialogs = dialogs.filter(last_message_timestamp__gte=time_threshold)
+
+    # Сортируем диалоги по времени последнего сообщения (сначала новые)
+    dialogs = dialogs.order_by('-last_message_timestamp')
+
+    dialog_list = list(dialogs.values(
+        'id',
+        'username',
+        'last_message',
+        'last_message_timestamp'
+    ))
+
+    return JsonResponse({'dialogs': dialog_list})
 
 
 def get_messages(request, dialog_id):
@@ -494,17 +538,31 @@ def send_message(request, dialog_id):
     logger.warning("Invalid method: only POST is supported.")
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
-
+@role_required(['admin',])
 def settings_view(request):
-    # Получаем или создаем объект настроек
-    settings, created = Settings.objects.get_or_create(id=1)  # Используем фиксированный id для одной записи
+    settings, created = Settings.objects.get_or_create(id=1)
+
+    months = list(range(1, 13))  # Список от 1 до 12
+    current_retention_months = settings.message_retention_days // 30 if settings.message_retention_days else 1
 
     if request.method == 'POST':
-        # Получаем состояние из запроса
-        enable_ad = request.POST.get('enable_ad') == 'on'  # Проверяем, включен ли AD
-        settings.ad_enabled = enable_ad  # Обновляем значение
-        settings.save()  # Сохраняем изменения
+        enable_ad = request.POST.get('enable_ad') == 'on'
+        retention_months = request.POST.get('message_retention_months', current_retention_months)
 
-        return JsonResponse({'status': 'success', 'ad_enabled': settings.ad_enabled})
+        settings.ad_enabled = enable_ad  # Обновляем значение в объекте
+        settings.message_retention_days = int(retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
+        settings.save()
 
-    return render(request, 'chat_dashboard/settings.html', {'settings': settings})
+        return JsonResponse({'status': 'success', 'ad_enabled': settings.ad_enabled, 'message_retention_days': settings.message_retention_days})
+
+    return render(request, 'chat_dashboard/settings.html', {
+        'settings': settings,
+        'months': months,
+        'current_retention_months': current_retention_months,
+    })
+
+def delete_old_messages():
+    settings = Settings.objects.get(id=1)
+    retention_days = settings.message_retention_days
+    cutoff_date = timezone.now() - timedelta(days=retention_days)
+    Message.objects.filter(created_at__lt=cutoff_date).delete()

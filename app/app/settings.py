@@ -12,13 +12,13 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
-from django.conf.global_settings import EMAIL_HOST_PASSWORD
+#from django.conf.global_settings import EMAIL_HOST_PASSWORD
 from dotenv import load_dotenv
 import io
 from config import settings
 from neomodel import config as neo_cfg
 
-from app.config import settings
+# from app.config import settings
 
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -110,12 +110,12 @@ neo_cfg.DATABASE_URL = f"bolt://{settings.DB_NEO_USER}:{settings.DB_NEO_PASS}@{s
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
+ #   {
+ #       'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+ #   },
+ #   {
+ #       'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+ #   },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
@@ -163,6 +163,7 @@ DOMAIN = settings.DOMAIN
 BASE_DN = settings.base_dn
 
 AUTHENTICATION_BACKENDS = (
+    'authentication.backends.CustomAuthBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
 
@@ -184,26 +185,15 @@ def authenticate(username, password):
         return False
 
 
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = settings.EMAIL_HOST
-# EMAIL_PORT = settings.EMAIL_PORT
-# EMAIL_HOST_USER = settings.EMAIL_HOST_USER
-# EMAIL_HOST_PASSWORD = settings.EMAIL_HOST_PASSWORD
-# EMAIL_USE_TLS = False
-# EMAIL_USE_SSL = False
-# DEFAULT_FROM_EMAIL = settings.DEFAULT_FROM_EMAIL
-
-
-# settings.py
-
-EMAIL_BACKEND = settings.EMAIL_BACKEND
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = settings.EMAIL_HOST
 EMAIL_PORT = settings.EMAIL_PORT
-EMAIL_USE_TLS = settings.EMAIL_USE_TLS
+EMAIL_USE_TLS = True
 EMAIL_HOST_USER = settings.EMAIL_HOST_USER  # Замените на ваш адрес Gmail
-EMAIL_HOST_PASSWORD = settings.EMAIL_HOST_PASSWORD  # Замените на пароль приложения
+EMAIL_HOST_PASSWORD = settings.EMAIL_HOST_PASSWORD
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-import os
+SITE_URL = 'http://localhost:8000'
 
 LOGGING = {
     'version': 1,

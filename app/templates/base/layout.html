@@ -45,21 +45,27 @@
             </li>
         </ul>
         <div class="account-wrapper">
-            {% if user.is_authenticated %}
-            <!-- Settings Button -->
-            <a href="{% url 'chat_dashboard:settings' %}" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right" title="Настройки">
-                <i class="fa fa-cog"></i>
-            </a>
-            <a href="{% url 'authentication:logout' %}" class="nav-link" data-bs-toggle="tooltip"
-               data-bs-placement="right" title="Выход">
-                <i class="fa fa-sign-out-alt"></i>
-            </a>
-            {% else %}
-            <a href="{% url 'authentication:login' %}" class="nav-link" data-bs-toggle="tooltip"
-               data-bs-placement="right" title="Вход">
-                <i class="fa fa-sign-in-alt"></i>
-            </a>
-            {% endif %}
+{% if user.is_authenticated %}
+    <!-- Settings Button -->
+    {% if user.role == 'admin' %}  <!-- Проверка на роль admin -->
+        <a href="{% url 'chat_dashboard:settings' %}" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right" title="Настройки">
+            <i class="fa fa-cog"></i>
+        </a>
+    {% else %}
+        <a href="javascript:void(0);" class="nav-link disabled text-muted" data-bs-toggle="tooltip" data-bs-placement="right" title="У вас нет прав для доступа к настройкам">
+            <i class="fa fa-cog"></i>
+        </a>
+    {% endif %}
+    <a href="{% url 'authentication:logout' %}" class="nav-link" data-bs-toggle="tooltip"
+       data-bs-placement="right" title="Выход">
+        <i class="fa fa-sign-out-alt"></i>
+    </a>
+{% else %}
+    <a href="{% url 'authentication:login' %}" class="nav-link" data-bs-toggle="tooltip"
+       data-bs-placement="right" title="Вход">
+        <i class="fa fa-sign-in-alt"></i>
+    </a>
+{% endif %}
         </div>
     </div>
     <div class="container-fluid p-0 vh-100">
