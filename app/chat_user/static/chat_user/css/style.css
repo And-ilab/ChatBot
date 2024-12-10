@@ -27,24 +27,56 @@ body {
     height: 550px;
     overflow-y: auto;
     padding: 10px 15px 10px 15px;
-    display: flex;
+    display: none;
     flex-direction: column;
     gap: 10px;
 }
 
+
+.message {
+    position: relative;
+    max-width: 515px;
+    padding: 8px 8px 25px 8px;
+    border-radius: 5px;
+    overflow-wrap: break-word;
+}
+
 .bot-message {
     background-color: #f1f1f1;
-    padding: 8px;
-    border-radius: 5px;
     align-self: flex-start;
 }
 
 .user-message {
     background-color: #007bff;
     color: white;
-    padding: 8px;
-    border-radius: 5px;
     align-self: flex-end;
+}
+
+.message-time {
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    font-size: 0.8em;
+    color: gray;
+    text-align: right;
+    margin-top: 5px;
+}
+
+.user-message-time {
+    color: #E0E0E0;
+}
+
+.message-date-wrapper {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+.message-date-content {
+    background-color: rgba(0, 123, 255, 0.3);
+    border-radius: 14px;
+    color: black;
+    padding: 5px 10px 5px 10px;
 }
 
 .chat-footer {
@@ -61,4 +93,71 @@ body {
     background-color: #007bff;
     color: white;
     border: none;
+    border-radius: 14px;
+}
+
+.chat-buttons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 20px;
+}
+
+.chat-login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 550px;
+    z-index: 2000;
+}
+
+.chat-login {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    width: 320px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.chat-login-header {
+    font-size: 1.5em;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.chat-login-form, .chat-register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.chat-login-footer {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+
+.chat-login-footer a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.chat-login-footer a:hover {
+    text-decoration: underline;
+}
+
+.chat-login-submit {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 1em;
+    cursor: pointer;
+}
+
+.chat-login-submit:hover {
+    background-color: #0056b3;
 }

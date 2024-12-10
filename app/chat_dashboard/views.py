@@ -13,6 +13,8 @@ import json
 import re
 import spacy
 import pymorphy3
+import requests
+from requests.auth import HTTPBasicAuth
 
 logger = logging.getLogger(__name__)
 
@@ -207,25 +209,40 @@ def extract_keywords_view(request):
 
 @csrf_exempt
 def create_node(request):
-    """Creates a new node in the graph."""
     if request.method == 'POST':
-        logger.info("Creating a new node.")
         try:
             data = json.loads(request.body)
 
-            node_type = data.get('type').lower()
-            node_name = data.get('name').lower()
+            node_type = data.get('type')
+            node_name = data.get('name')
             node_content = data.get('content')
 
             if not node_type or not node_name:
-                logger.warning("Missing required fields: type or name.")
                 return JsonResponse({'error': 'Missing required fields: type or name'}, status=400)
 
-            node = Node(type=node_type, name=node_name, content=node_content if node_content else '').save()
-            logger.info(f"Node created with ID: {node.element_id}")
-            return JsonResponse({'id': node.element_id, 'type': node_type, 'name': node_name, 'content': node_content}, status=201)
+            logger.info(f"node class: {node_type}")
+            sql_command = f"CREATE VERTEX {node_type} SET name = '{node_name}', content = '{node_content}'"
+            url = 'http://localhost:2480/command/chat-bot-db/sql'
+            headers = {'Content-Type': 'application/json'}
+            json_data = {"command": sql_command}
+            response = requests.post(url, headers=headers, json=json_data, auth=('root', 'gure'))
+
+            if response.status_code == 200:
+                logger.info(f"Node created successfully: {response.text}")
+                try:
+                    response_data = response.json()
+                    logger.info(f"Response JSON: {response_data}")
+                    return JsonResponse({'status': 'success', 'data': response_data}, status=201)
+                except ValueError as e:
+                    logger.error(f"Error parsing JSON response: {e}")
+                    return JsonResponse({'error': 'Failed to parse response'}, status=500)
+
+            else:
+                logger.error(f"Error fetching data: HTTP {response.status_code} - {response.text}")
+                return JsonResponse({'error': f"Error {response.status_code}: {response.text}"}, status=response.status_code)
+
         except Exception as e:
-            logger.exception("An error occurred while creating an entity.")
+            logger.error(f"Error in creating node: {e}")
             return JsonResponse({'error': str(e)}, status=400)
 
 
@@ -267,7 +284,7 @@ def get_nodes(request):
         logger.info("Fetching all nodes.")
         try:
             nodes = Node.nodes.all()
-            nodes_data = [{'id': node.element_id, 'type': node.type, 'name': node.name[:15]} for node in nodes]
+            nodes_data = [{'id': node.element_id, 'type': node.type, 'name': f"{node.name[:30] if len(node.name) > 30 else node.name}..."} for node in nodes]
             logger.debug(f"Nodes retrieved: {nodes_data}")
             return JsonResponse(nodes_data, safe=False, status=200)
         except Exception as e:
@@ -424,7 +441,7 @@ def get_messages(request, dialog_id):
     messages = Message.objects.filter(dialog_id=dialog_id).order_by('created_at')
     messages_data = [
         {
-            'sender': message.sender.username if message.sender and message.sender_type == 'user' else 'Bot',
+            'sender': message.sender.username if message.sender and message.sender_type == 'user' else 'bot',
             'content': message.content,
             'timestamp': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
         }
@@ -444,14 +461,16 @@ def send_message(request, dialog_id):
             content = data.get('content')
             sender_type = data.get('sender_type')
             sender_id = data.get('sender_id')
+            timestamp = data.get('timestamp')
 
-            if content and sender_type:
+            if content and sender_type and timestamp:
                 dialog = Dialog.objects.get(id=dialog_id)
                 Message.objects.create(
                     dialog=dialog,
                     sender_type=sender_type,
                     sender_id=sender_id if sender_type == 'user' else None,
-                    content=content
+                    content=content,
+                    created_at=timestamp
                 )
                 logger.info("Message sent successfully.")
                 return JsonResponse({'status': 'success', 'message': 'Message sent'})

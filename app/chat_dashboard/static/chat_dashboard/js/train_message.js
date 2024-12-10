@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Создание узла
     document.getElementById('create-node-btn').addEventListener('click', async function () {
         const nodeType = document.getElementById('node-type').value;
+        console.log(nodeType);
         const nodeName = document.getElementById('node-name').value;
         const nodeContent = document.getElementById('node-content').value;
 
@@ -137,11 +138,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }),
             });
 
+            console.log(response);
+
             if (response.status === 201) {
-                document.getElementById('node-type').value = '';
                 document.getElementById('node-name').value = '';
                 document.getElementById('node-content').value = '';
-                alert("Сущность успешно создана");
             } else {
                 console.error('Ошибка при создании узла:', await response.json());
                 alert('Не удалось создать сущность.');
@@ -178,7 +179,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             if (response.status === 201) {
                 document.getElementById('relation-type').value = '';
-                alert("Связь успешно создана");
             } else {
                 console.error('Ошибка при создании связи:', await response.json());
                 alert('Не удалось создать связь.');

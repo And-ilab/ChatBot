@@ -10,14 +10,59 @@
     <link rel="stylesheet" href="{% static 'chat_user/css/style.css' %}">
 </head>
 <body>
-    <button id="user-chat-toggle" data-dialog-id="{{dialog_id}}" data-user-id="{{user_id}}" class="btn btn-primary"
+    <button id="user-chat-toggle" class="btn btn-primary"
             style="position: fixed; bottom: 20px; right: 20px;">
         Chat
     </button>
     <div class="chat-window" id="user-chat-window" style="display: none;">
         <div class="chat-header d-flex justify-content-between align-items-center">
-            <h5>Чат-бот для поддержки пользователей</h5>  <!-- Изменено название чата -->
+            <h5>Чат-бот для поддержки пользователей</h5>
             <button id="user-close-chat" class="btn-close btn-close-white" aria-label="Close"></button>
+        </div>
+        <div class="chat-login-wrapper" id="chat-login-wrapper">
+            <div class="chat-login small-window">
+                <div class="chat-login-header" id="chat-login-header">Авторизация</div>
+                <form class="chat-login-form" id="login-form">
+                    <div class="form-group">
+                        <label for="user-email" class="form-label">Email</label>
+                        <input type="email" id="user-email" name="email" class="form-control" placeholder="Введите ваш email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="user-password" class="form-label">Пароль</label>
+                        <input type="password" id="user-password" name="password" class="form-control" placeholder="Введите ваш пароль" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary chat-login-submit">Войти</button>
+                    <div class="chat-login-footer">
+                        <span>Нет аккаунта?</span>
+                        <a href="#" id="switch-to-register">Зарегистрироваться</a>
+                    </div>
+                </form>
+
+                <form class="chat-register-form" id="register-form" style="display: none;">
+                    <div class="form-group">
+                        <label for="register-email" class="form-label">Email</label>
+                        <input type="email" id="register-email" name="email" class="form-control" placeholder="Введите ваш email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-username" class="form-label">Имя пользователя</label>
+                        <input type="text" id="register-username" name="username" class="form-control" placeholder="Введите ваше имя пользователя" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password" class="form-label">Пароль</label>
+                        <input type="password" id="register-password" name="password" class="form-control" placeholder="Введите ваш пароль" required autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password" class="form-label">Подтверждение пароля</label>
+                        <input type="password" id="confirm-password" name="password_confirm" class="form-control" placeholder="Подтвердите пароль" required autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary chat-login-submit">Зарегистрироваться</button>
+                    <div class="chat-login-footer">
+                        <span>Уже есть аккаунт?</span>
+                        <a href="#" id="switch-to-login">Войти</a>
+                    </div>
+                </form>
+
+            </div>
         </div>
         <div class="chat-messages" id="user-chat-messages">
 
@@ -28,7 +73,7 @@
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
-    </div>
+</div>
     <script src="{% static 'chat_user/js/chat.js' %}"></script>
 </body>
 </html>

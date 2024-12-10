@@ -20,6 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 import chat_dashboard.views as dashboard_views
 import chat_user.views as chat_views
+import authentication.views as authentication_views
 
 
 urlpatterns = [
@@ -36,6 +37,11 @@ urlpatterns = [
     path('api/create-node/', dashboard_views.create_node, name='create_node'),
     path('api/create-relation/', dashboard_views.create_relation, name='create_relation'),
     path('api/get-nodes/', dashboard_views.get_nodes, name='get_nodes'),
+    path('api/login/', authentication_views.api_login_view, name='api_login_view'),
+    path('api/register/', authentication_views.api_register_view, name='api_register_view'),
+    path('api/dialogs/<int:user_id>/', chat_views.get_dialog_and_username, name='get_dialog_and_username'),
+    path('api/get-nodes-by-type/', chat_views.get_nodes_by_type, name='get_nodes_by_type'),
+    path('api/get-nodes-by-type-with-relation/', chat_views.get_nodes_by_type_with_relation, name='get_nodes_by_type_with_relation'),
     path('api/create-training-message/', dashboard_views.create_training_message, name='create_training_message'),
     path("api/user-activity/", dashboard_views.user_activity_data, name="user_activity_data"),
     path("api/messages-count-data/", dashboard_views.messages_count_data, name="messages_count_data"),

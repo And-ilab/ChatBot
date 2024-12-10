@@ -15,3 +15,4 @@ class Node(StructuredNode):
     type = StringProperty()
     name = StringProperty()
     content = StringProperty()
+    include = RelationshipTo('Node', 'включает')
