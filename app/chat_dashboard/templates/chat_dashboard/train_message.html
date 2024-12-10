@@ -130,8 +130,12 @@
             <span class="modal-close-button">&times;</span>
             <h5 style="text-align: center;">Создать сущность</h5>
             <form id="create-node-form" class="d-flex flex-column mt-2">
-                <label for="node-type">Тип сущности:</label>
-                <input type="text" id="node-type" class="form-control ml-2 mt-2" placeholder="Введите тип сущности">
+                <label for="node-type" class="mt-2">Тип сущности:</label>
+                <select id="node-type" class="form-control ml-2 mt-2">
+                    <option value="Section">Раздел</option>
+                    <option value="Topic">Тема</option>
+                    <option value="Question">Вопрос</option>
+                </select>
 
                 <label for="node-type" class="mt-2">Название сущности:</label>
                 <input type="text" id="node-name" class="form-control ml-2 mt-2" placeholder="Введите название сущности">

@@ -4,8 +4,12 @@ from django.contrib.auth import login, authenticate, logout
 from .forms import UserRegistrationForm, CustomUserLoginForm
 from django.contrib import messages
 from .auth_with_AD import validate_user_credentials
-from .decorators import role_required
+from django.views.decorators.csrf import csrf_exempt
 import jwt
+
+import json
+from django.http import JsonResponse
+
 from django.conf import settings
 from .utils import generate_jwt
 from django.contrib.auth.decorators import login_required
@@ -227,6 +231,51 @@ def logout_view(request):
     return redirect('authentication:login')
 
 
+@csrf_exempt
+def api_register_view(request):
+    """API endpoint for user registration."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            form = UserRegistrationForm(data)
+            if form.is_valid():
+                user = form.save(commit=False)
+                user.set_password(form.cleaned_data['password'])
+                user.save()
+                return JsonResponse({'status': 'success', 'username': user.username, 'id': user.id}, status=201)
+            else:
+                return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+
+@csrf_exempt
+def api_login_view(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            password = data.get('password')
+
+            logger.debug(f"Received email: {email}")
+
+            if not email or not password:
+                return JsonResponse({'status': 'error', 'message': 'Email and password are required'}, status=400)
+
+            user = authenticate(request, username=email, password=password)
+            if user:
+                login(request, user)
+                return JsonResponse({'status': 'success', 'email': user.email, 'id': user.id}, status=200)
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Invalid credentials'}, status=401)
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON received")
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+
+=======
 def activate_account(request, token):
     try:
         user = User.objects.get(activation_token=token)
@@ -281,3 +330,4 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
 
 class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = 'authentication/password_reset_complete.html'
+
