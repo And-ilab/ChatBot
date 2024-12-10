@@ -14,6 +14,8 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from imghdr import test_pbm
+
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
@@ -21,6 +23,7 @@ from django.conf.urls.static import static
 import chat_dashboard.views as dashboard_views
 import chat_user.views as chat_views
 import authentication.views as authentication_views
+from django.contrib.auth import views as auth_views
 
 
 urlpatterns = [
@@ -29,6 +32,7 @@ urlpatterns = [
     path('chat_dashboard/', include('chat_dashboard.urls', namespace='chat_dashboard')),
     path('authentication/', include('authentication.urls', namespace='authentication')),
     path('api/messages/<int:dialog_id>/', dashboard_views.get_messages, name='get_messages'),
+    path('api/get_info/<int:user_id>/', dashboard_views.get_info, name='get_info'),
     path('api/send-message/<int:dialog_id>/', dashboard_views.send_message, name='send_message'),
     path('api/toggle_ignore/<int:message_id>/', dashboard_views.toggle_ignore_message, name='toggle_ignore'),
     path('api/delete_message/<int:message_id>/', dashboard_views.delete_message, name='delete_message'),

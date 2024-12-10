@@ -11,9 +11,13 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 from pathlib import Path
+
+#from django.conf.global_settings import EMAIL_HOST_PASSWORD
 from dotenv import load_dotenv
 import io
 from config import settings
+
+# from app.config import settings
 
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -29,16 +33,16 @@ SECRET_KEY = settings.SECRET_KEY_django
 DEBUG = True
 
 ALLOWED_HOSTS = [
-		'134.17.17.131',
-		'localhost',
-        '127.0.0.1',
-		'chatbot.digitranslab.com',
-		'www.chatbot.digitranslab.com'
+    '134.17.17.131',
+    'localhost',
+    '127.0.0.1',
+    'chatbot.digitranslab.com',
+    'www.chatbot.digitranslab.com'
 ]
 # Application definition
 
 INSTALLED_APPS = [
-#    'corsheaders',
+    #    'corsheaders',
     'authentication',
     'app',
     'chat_user',
@@ -54,16 +58,17 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-#    'corsheaders.middleware.CorsMiddleware',
+    #    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'chat_dashboard.middleware.UpdateLastActivityMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True 
- 
+CORS_ALLOW_ALL_ORIGINS = True
+
 ROOT_URLCONF = 'app.urls'
 
 TEMPLATES = [
@@ -84,7 +89,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'app.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -104,12 +108,12 @@ DATABASES = {
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
+ #   {
+ #       'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+ #   },
+ #   {
+ #       'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+ #   },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
@@ -139,7 +143,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     BASE_DIR / "chat_dashboard" / "static",
     BASE_DIR / "chat_user" / "static",
-#    BASE_DIR / "chat_training" / "static",
+    #    BASE_DIR / "chat_training" / "static",
     BASE_DIR / "authentication" / "static",
 ]
 
@@ -157,9 +161,9 @@ DOMAIN = settings.DOMAIN
 BASE_DN = settings.base_dn
 
 AUTHENTICATION_BACKENDS = (
+    'authentication.backends.CustomAuthBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
-
 
 
 def authenticate(username, password):
@@ -182,13 +186,12 @@ def authenticate(username, password):
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = settings.EMAIL_HOST
 EMAIL_PORT = settings.EMAIL_PORT
-EMAIL_HOST_USER = settings.EMAIL_HOST_USER
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = settings.EMAIL_HOST_USER  # Замените на ваш адрес Gmail
 EMAIL_HOST_PASSWORD = settings.EMAIL_HOST_PASSWORD
-EMAIL_USE_TLS = False
-EMAIL_USE_SSL = False
-DEFAULT_FROM_EMAIL = settings.DEFAULT_FROM_EMAIL
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-import os
+SITE_URL = 'http://localhost:8000'
 
 LOGGING = {
     'version': 1,
@@ -260,4 +263,3 @@ LOGGING = {
         },
     },
 }
-

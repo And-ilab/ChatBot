@@ -1,4 +1,5 @@
 {% extends 'base/layout.html' %}
+{% load custom_filters %}
 
 {% block title %}Архив{% endblock %}
 
@@ -8,67 +9,118 @@
         <div class="py-2 sidebar-header d-flex align-items-center justify-content-center border-bottom p-0">
             <h3 class="mb-0">Архив</h3>
         </div>
-        <div class="dropdown d-flex align-items-center justify-content-start py-3 px-4">
-            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                Фильтр
-            </button>
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="#">Yesterday</a></li>
-                <li><a class="dropdown-item" href="#">Last 7 Days</a></li>
-                <li><a class="dropdown-item" href="#">Last 30 Days</a></li>
-                <li><a class="dropdown-item" href="#">Last Month</a></li>
-                <li><a class="dropdown-item" href="#">Last 3 months</a></li>
-                <li><a class="dropdown-item" href="#">Current month</a></li>
-                <li><a class="dropdown-item" href="#">Current year</a></li>
-                <li><a class="dropdown-item" href="#">Last year</a></li>
-              </ul>
+        <div class="d-flex justify-content-center mb-2">
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    Фильтр сообщений
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                    <li><a class="dropdown-item" href="#" onclick="filterDialogs('all')">Все сообщения</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filterDialogs(1)">За 1 день</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filterDialogs(7)">За 7 дней</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filterDialogs(30)">За 30 дней</a></li>
+                </ul>
+            </div>
         </div>
         <ul class="chat-list" style="flex-grow: 1; overflow-y: auto; box-sizing: border-box; list-style-type: none; padding-left: 0;">
             {% for dialog in dialogs %}
             <li class="chat-item border-top border-bottom py-3 px-2"
                 id="dialog-{{ dialog.id }}"
-                key="{{ dialog.id }}"
-                data-username="{{ dialog.username }}"
+                data-username="{{ dialog.user.username }}"
+                data-userid="{{ dialog.user.id }}"
                 style="transition: background-color 0.3s ease; cursor: pointer"
-                onclick="loadMessages({{ dialog.id }}); setActiveDialog(this); updateUserInfo('{{ dialog.username }}');"
-                onmouseover="if (!this.classList.contains('active')) this.style.backgroundColor='#e0e0e0'"
-                onmouseout="if (!this.classList.contains('active')) this.style.backgroundColor='transparent'">
+                onclick="loadMessages({{ dialog.id }}); setActiveDialog(this); updateUserInfo('{{ dialog.user.username }}'); loadUserStatus({{ dialog.user.id }});">
                 <div class="chat-item-wrapper d-flex flex-column justify-content-between" style="width: 250px;">
                     <div class="d-flex w-100 flex-row justify-content-between">
-                        <div class="chat_user w-50" style="overflow-x: hidden; font-weight: bold;">{{ dialog.username }}</div>
+                        <div class="chat_user w-50" style="overflow-x: hidden; font-weight: bold;">{{ dialog.user.username }}</div>
                         <div class="chat-time d-flex w-50 justify-content-end text-muted" style="overflow-x: hidden;">
-                            <span class="timestamp">{{ dialog.last_message_timestamp|date:'Y-m-d H:i:s' }}</span>
+                            <span class="timestamp">{{ dialog.started_at|date:'Y-m-d H:i:s' }}</span>
                         </div>
                     </div>
                     <div class="d-flex w-100">
-                        <span style="font-weight: bold;">{{ dialog.last_message_username|slice:":1" }}:</span>
-                            <p class="dialog-content mb-0">
-                                {% if dialog.last_message|length > 25 %}
-                                    {{ dialog.last_message|slice:":25" }}...
-                                {% else %}
-                                    {{ dialog.last_message }}
-                                {% endif %}
-                            </p>
+                        <span style="font-weight: bold;">Последнее сообщение:</span>
+                        <p class="dialog-content mb-0">
+                            {% if dialog.last_message|length > 25 %}
+                                {{ dialog.last_message|slice:":25" }}...
+                            {% else %}
+                                {{ dialog.last_message }}
+                            {% endif %}
+                        </p>
                     </div>
                 </div>
             </li>
             {% endfor %}
         </ul>
     </div>
+
     <div class="chat-container d-flex flex-column flex-grow-1">
         <div class="chat-header d-flex align-items-center justify-content-center border-bottom border-start border-end py-2">
             <h3 class="mb-0">История чата</h3>
         </div>
         <div id="chat-messages" class="chat-messages flex-grow-1 p-3 border-start border-end" style="overflow-y: auto;"></div>
     </div>
-    <div class="user-info d-flex flex-column align-items-center"
-         style="width: 300px;">
+
+    <div class="user-info d-flex flex-column align-items-center" style="width: 300px; margin-left: auto;">
         <div class="user-info-header w-100 d-flex align-items-center justify-content-center border-bottom py-2 mb-4">
             <h3 class="mb-0">Подробности</h3>
         </div>
-        <h4 class="mb-2"></h4>
-        <p class="mb-2" style="color:green;">Активен</p>
-        <p class="mb-4" style="font-size: 0.8rem;">Последнее посещение: 2 часа назад</p>
+        <h4 class="mb-2" id="user-info-username">{{ user.username }}</h4>
+        <p class="mb-2" id="user-info-status" style="color: {{ user.is_online|yesno:'green,red' }};">
+            {{ user.is_online|yesno:'Активен,Не активен' }}
+        </p>
+        <p class="mb-4" style="font-size: 0.8rem;" id="user-info-last-active">
+            Последняя активность: {{ user.last_active|date:'Y-m-d H:i:s' }}
+        </p>
     </div>
 </div>
+
+<!-- Include JavaScript File -->
+<script>
+    function filterDialogs(days) {
+        // Отправка AJAX-запроса на новый маршрут
+        fetch("{% url 'chat_dashboard:archive_filter' %}?days=" + days)
+            .then(response => response.json())
+            .then(data => {
+                updateDialogList(data.dialogs);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function updateDialogList(dialogs) {
+        const chatList = document.querySelector('.chat-list');
+        chatList.innerHTML = ''; // Очистить текущий список
+
+        dialogs.forEach(dialog => {
+            const listItem = document.createElement('li');
+            listItem.className = 'chat-item border-top border-bottom py-3 px-2';
+            listItem.id = `dialog-${dialog.id}`;
+            listItem.setAttribute('data-username', dialog.username);
+            listItem.style.cursor = 'pointer';
+
+            listItem.onclick = function() {
+                loadMessages(dialog.id);
+                setActiveDialog(this);
+                updateUserInfo(dialog.username);
+                loadUserStatus(dialog.user_id);  // Убедитесь, что это правильное поле
+            };
+
+            listItem.innerHTML = `
+                <div class="chat-item-wrapper d-flex flex-column justify-content-between" style="width: 250px;">
+                    <div class="d-flex w-100 flex-row justify-content-between">
+                        <div class="chat_user w-50" style="overflow-x: hidden; font-weight: bold;">${dialog.username}</div>
+                        <div class="chat-time d-flex w-50 justify-content-end text-muted" style="overflow-x: hidden;">
+                            <span class="timestamp">${new Date(dialog.last_message_timestamp).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex w-100">
+                        <span style="font-weight: bold;">Последнее сообщение:</span>
+                        <p class="dialog-content mb-0">${dialog.last_message.length > 25 ? dialog.last_message.slice(0, 25) + '...' : dialog.last_message}</p>
+                    </div>
+                </div>
+            `;
+
+            chatList.appendChild(listItem);
+        });
+    }
+</script>
 {% endblock %}

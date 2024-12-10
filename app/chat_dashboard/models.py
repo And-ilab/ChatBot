@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
-
+from django.utils import timezone
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -33,6 +33,16 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50, unique=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
     is_staff = models.BooleanField(default=False)
+    last_active = models.DateTimeField(null=True, blank=True)
+    is_online = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)
+    activation_token = models.CharField(max_length=32, blank=True, null=True)
+    activation_token_created = models.DateTimeField(blank=True, null=True)
+
+    def update_last_active(self):
+        self.last_active = timezone.now()
+        self.is_online = True
+        self.save()
 
     groups = models.ManyToManyField(
         Group,
@@ -95,3 +105,11 @@ class TrainingMessage(models.Model):
 
     def __str__(self):
         return f"{self.sender} - {self.content[:20]}"
+
+
+class Settings(models.Model):
+    ad_enabled = models.BooleanField(default=False)
+    message_retention_days = models.PositiveIntegerField(default=30)  # Время хранения сообщений в днях
+
+    def __str__(self):
+        return f"Settings(ad_enabled={self.ad_enabled}, message_retention_days={self.message_retention_days})"
