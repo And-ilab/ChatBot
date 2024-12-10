@@ -21,7 +21,7 @@ class Settings:
     base_dn = os.getenv("base_dn")
     SECRET_KEY_django = os.getenv("SECRET_KEY_django")
     EMAIL_HOST = os.getenv("EMAIL_HOST")
-    EMAIL_PORT = os.getenv("EMAIL_PORT")
+    EMAIL_PORT = int(os.getenv("EMAIL_PORT"))
     EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
     EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
     DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
@@ -31,5 +31,6 @@ class Settings:
     DB_NEO_USER = os.getenv("DB_NEO_USER")
     DB_NEO_PASS = os.getenv("DB_NEO_PASS")
     DB_NEO_PORT = int(os.getenv("DB_NEO_PORT"))
+    SITE_URL = os.getenv("SITE_URL")
 
 settings = Settings()

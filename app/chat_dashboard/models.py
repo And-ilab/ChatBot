@@ -35,6 +35,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     last_active = models.DateTimeField(null=True, blank=True)
     is_online = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)
+    activation_token = models.CharField(max_length=32, blank=True, null=True)
+    activation_token_created = models.DateTimeField(blank=True, null=True)
 
     def update_last_active(self):
         self.last_active = timezone.now()
@@ -106,6 +109,7 @@ class TrainingMessage(models.Model):
 
 class Settings(models.Model):
     ad_enabled = models.BooleanField(default=False)
+    message_retention_days = models.PositiveIntegerField(default=30)  # Время хранения сообщений в днях
 
     def __str__(self):
-        return f"Настройки: AD Enabled = {self.ad_enabled}"
+        return f"Settings(ad_enabled={self.ad_enabled}, message_retention_days={self.message_retention_days})"

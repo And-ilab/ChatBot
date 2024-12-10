@@ -8,24 +8,69 @@
     <div class="form-container"
          style="max-width: 600px; padding: 30px; background-color: rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
         <h2 class="text-center mb-4">Вход</h2>
-        <form method="post">
+
+        <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+
+        <form id="login-form" method="post" onsubmit="return handleLogin(event);">
             {% csrf_token %}
             <div class="form-group mb-3">
-                <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label }}</label>
-                <input type="text" name="username" id="{{ form.username.id_for_label }}" class="form-control" required>
+                <label for="username" class="form-label">Логин</label>
+                <input type="text" name="username" id="username" class="form-control" required>
             </div>
             <div class="form-group mb-3">
-                <label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label }}</label>
-                <input type="password" name="password" id="{{ form.password.id_for_label }}" class="form-control" required>
+                <label for="password" class="form-label">Пароль</label>
+                <input type="password" name="password" id="password" class="form-control" required>
             </div>
             <div class="text-center">
                 <button type="submit" class="btn btn-primary mt-3" style="width: 100%;">Войти</button>
             </div>
         </form>
         <div class="text-center mt-4">
-            <p>Нет аккаунта? <a href="{% url 'authentication:register' %}" class="text-decoration-none">Зарегистрироваться</a>
-            </p>
+            <p>Нет аккаунта? <a href="{% url 'authentication:register' %}" class="text-decoration-none">Зарегистрироваться</a></p>
+            <p><a href="{% url 'password_reset' %}" class="text-decoration-none">Забыли пароль?</a></p>
         </div>
     </div>
 </div>
+
+<script>
+    function handleLogin(event) {
+        event.preventDefault(); // Предотвратить стандартное поведение формы
+
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        fetch("{% url 'authentication:login' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'  // Убедитесь, что токен CSRF включён
+            },
+            body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+        })
+        .then(response => {
+            if (!response.ok) {
+                // Если вход не удался, показать сообщение об ошибке
+                return response.json().then(data => {
+                    const errorMessage = data.error || 'Введён неверный пароль либо такого пользователя не существует!';
+                    document.getElementById('error-message').innerText = errorMessage;
+                    document.getElementById('error-message').classList.remove('d-none');
+                    document.getElementById('error-message').classList.add('alert-danger');
+                });
+            } else {
+                // Если вход успешен, просто показываем сообщение об успехе
+                document.getElementById('error-message').innerText = 'Вход успешен!';
+                document.getElementById('error-message').classList.remove('d-none');
+                document.getElementById('error-message').classList.add('alert-success');
+                // Здесь можно очистить поля ввода, если нужно
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            document.getElementById('error-message').innerText = 'Произошла ошибка. Попробуйте ещё раз.';
+            document.getElementById('error-message').classList.remove('d-none');
+        });
+    }
+</script>
 {% endblock %}

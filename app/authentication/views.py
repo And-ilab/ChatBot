@@ -10,7 +10,9 @@ from django.http import JsonResponse
 from django.conf import settings
 from .utils import generate_jwt
 from django.contrib.auth.decorators import login_required
-from chat_dashboard.models import Settings
+from chat_dashboard.models import Settings, User
+from django.utils import timezone
+
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +89,64 @@ def get_ad_authentication_enabled():
     settings_obj, created = Settings.objects.get_or_create(ad_enabled=False)
     return settings_obj.ad_enabled
 
+# def login_view(request):
+#     """Handles user login."""
+#     logger.info("User login attempt.")
+#     if request.method == 'POST':
+#         form = CustomUserLoginForm(request.POST)
+#         if form.is_valid():
+#             username = form.cleaned_data.get('username')
+#             password = form.cleaned_data.get('password')
+#             logger.debug(f"Login attempt: Username={username}")
+#
+#             # Получаем состояние авторизации через AD
+#             ad_enabled = get_ad_authentication_enabled()
+#
+#             if not ad_enabled and '@' in username:
+#                 user = authenticate(request, username=username, password=password)
+#                 if user is not None:
+#                     token = generate_jwt(user)
+#                     request.session['token'] = token
+#                     login(request, user)
+#                     logger.info(f"User logged in: Username={username}")
+#
+#                     try:
+#                         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+#                         role = payload.get('role')
+#
+#                         if role in ['admin', 'operator']:
+#                             logger.info(f"User {username} with role {role} redirected to admin dashboard.")
+#                             return redirect('chat_dashboard:archive')
+#                         else:
+#                             logger.info(f"User {username} redirected to chat.")
+#                             return redirect('chat_user:chat')
+#                     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+#                         messages.error(request, 'Ошибка при обработке токена.')
+#                         logger.error("Token error during login.")
+#                         return redirect('login')
+#                 else:
+#                     logger.warning(f"Failed login attempt for Username={username}.")
+#                     return JsonResponse({'error': 'Введён неверный логин или пароль.'}, status=400)
+#
+#             elif ad_enabled:
+#                 # Если авторизация через AD отключена, используем стандартную аутентификацию
+#                 user_entry = validate_user_credentials(username, password)
+#                 if user_entry:
+#                     logger.info(f"User {username} validated via AD.")
+#                     return redirect('chat_dashboard:user_list')
+#                 else:
+#                     messages.error(request, 'Неправильный логин или пароль.')
+#                     logger.warning(f"Failed AD login attempt for Username={username}.")
+#             else:
+#                 messages.error(request, 'Неправильный логин или пароль.')
+#                 logger.warning(f"Failed login attempt for Username={username}.")
+#
+#     else:
+#         form = CustomUserLoginForm()
+#
+#     return render(request, 'authentication/login.html', {'form': form})
+
+
 def login_view(request):
     """Handles user login."""
     logger.info("User login attempt.")
@@ -121,28 +181,29 @@ def login_view(request):
                     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
                         messages.error(request, 'Ошибка при обработке токена.')
                         logger.error("Token error during login.")
-                        return redirect('login')
+                        return JsonResponse({'error': 'Ошибка при обработке токена.'}, status=400)
                 else:
-                    messages.error(request, 'Неправильный логин или пароль.')
                     logger.warning(f"Failed login attempt for Username={username}.")
+                    return JsonResponse({'error': 'Введён неверный логин или пароль.'}, status=400)
+
             elif ad_enabled:
-                # Если авторизация через AD отключена, используем стандартную аутентификацию
+                # Если авторизация через AD включена, используем стандартную аутентификацию
                 user_entry = validate_user_credentials(username, password)
                 if user_entry:
                     logger.info(f"User {username} validated via AD.")
                     return redirect('chat_dashboard:user_list')
                 else:
-                    messages.error(request, 'Неправильный логин или пароль.')
                     logger.warning(f"Failed AD login attempt for Username={username}.")
+                    return JsonResponse({'error': 'Неправильный логин или пароль.'}, status=400)
+
             else:
-                messages.error(request, 'Неправильный логин или пароль.')
                 logger.warning(f"Failed login attempt for Username={username}.")
+                return JsonResponse({'error': 'Неправильный логин или пароль.'}, status=400)
 
     else:
         form = CustomUserLoginForm()
 
     return render(request, 'authentication/login.html', {'form': form})
-
 
 @login_required
 def logout_view(request):
@@ -153,3 +214,24 @@ def logout_view(request):
     user.save()
     logout(request)
     return redirect('authentication:login')
+
+
+def activate_account(request, token):
+    try:
+        user = User.objects.get(activation_token=token)
+
+        # Проверка времени действия токена
+        if user.activation_token_created and (timezone.now() - user.activation_token_created).total_seconds() < 86400:
+            user.is_active = True
+            user.activation_token = None
+            user.activation_token_created = None
+            user.save()
+            messages.success(request, 'Ваш аккаунт активирован! Вы можете войти.')
+            return redirect('authentication:login')  # Перенаправление на страницу входа
+        else:
+            messages.error(request, 'Токен активации истек или неверен.')
+            return redirect('authentication:registration')  # Перенаправление на страницу регистрации
+    except User.DoesNotExist:
+        messages.error(request, 'Пользователь не найден.')
+        return redirect('authentication:registration')
+    
