@@ -46,8 +46,8 @@ const loadMessages = async () => {
         const dialogData = await dialogResponse.json();
         console.log('Данные:', dialogData);
 
-        dialogId = dialogData.dialog_id; 
-        username = dialogData.username; 
+        dialogId = dialogData.dialog_id;
+        username = dialogData.username;
         started_at = dialogData.started_at;
 
         console.log('ID диалога:', dialogId);
@@ -130,7 +130,7 @@ loginForm.addEventListener("submit", async function (e) {
     });
 
     const result = await response.json();
-    
+
     if (response.ok) {
         chatLogin.style.display = 'none';
         chatMessages.style.display = 'flex';
@@ -191,7 +191,7 @@ const sendMessageToAPI = async (senderType, content, timestamp) => {
       }),
     });
 };
-  
+
 
 const sendBotMessage = async (content) => {
     try {
@@ -231,7 +231,7 @@ const fetchNodes = async (type) => {
     const encodedType = encodeURIComponent(type);
     try {
         const response = await fetch(`/api/get-nodes-by-type/?type=${encodedType}`, { method: 'GET' });
-        
+
         if (!response.ok) {
             // Выводим статус ошибки и текст ответа для диагностики
             const errorText = await response.text();
@@ -239,14 +239,14 @@ const fetchNodes = async (type) => {
         }
 
         const data = await response.json();
-        
+
         // Проверка полученного JSON на наличие ожидаемой структуры
         if (data && Array.isArray(data.result)) {
             return data.result;
         } else {
             throw new Error('Unexpected response format: missing or malformed "result"');
         }
-        
+
     } catch (error) {
         // Логируем более подробную информацию об ошибке
         console.error('Error fetching nodes:', error.message);

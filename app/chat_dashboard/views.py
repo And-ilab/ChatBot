@@ -233,7 +233,7 @@ def create_node(request):
             url = 'http://localhost:2480/command/chat-bot-db/sql'
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
-            response = requests.post(url, headers=headers, json=json_data, auth=('root', 'gure'))
+            response = requests.post(url, headers=headers, json=json_data, auth=('root', 'guregure'))
 
             if response.status_code == 200:
                 logger.info(f"Node created successfully: {response.text}")
