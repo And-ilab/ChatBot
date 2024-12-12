@@ -38,7 +38,6 @@
                         </div>
                     </div>
                     <div class="d-flex w-100">
-                        <span style="font-weight: bold;">Последнее сообщение:</span>
                         <p class="dialog-content mb-0">
                             {% if dialog.last_message|length > 25 %}
                                 {{ dialog.last_message|slice:":25" }}...

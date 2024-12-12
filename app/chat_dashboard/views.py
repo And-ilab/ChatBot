@@ -221,15 +221,20 @@ def create_node(request):
         try:
             data = json.loads(request.body)
 
+            node_class = data.get('class')
             node_type = data.get('type')
             node_name = data.get('name')
             node_content = data.get('content')
 
-            if not node_type or not node_name:
+            if not node_class or not node_name:
                 return JsonResponse({'error': 'Missing required fields: type or name'}, status=400)
 
-            logger.info(f"node class: {node_type}")
-            sql_command = f"CREATE VERTEX {node_type} SET name = '{node_name}', content = '{node_content}'"
+            logger.info(f"node class: {node_class}")
+            logger.info(f"node type: {node_type}")
+            if node_content:
+                sql_command = f"CREATE VERTEX {node_class} SET type = '{node_type}', name = '{node_name}', content = '{node_content}'"
+            else:
+                sql_command = f"CREATE VERTEX {node_class} SET type = '{node_type}', name = '{node_name}'"
             url = 'http://localhost:2480/command/chat-bot-db/sql'
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
@@ -262,23 +267,21 @@ def create_relation(request):
         try:
             data = json.loads(request.body)
 
-            relation_type = data.get('type').lower()
+            # relation_type = data.get('type').lower()
             start_node_id = data.get('start_node_id')
             end_node_id = data.get('end_node_id')
 
-            if not relation_type or not start_node_id or not end_node_id:
+            if not start_node_id or not end_node_id:
                 logger.warning("Missing required fields for relation creation.")
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
-            query = f"""
-            MATCH (startNode), (endNode)
-            WHERE elementId(startNode) = '{start_node_id}' AND elementId(endNode) = '{end_node_id}'
-            CREATE (startNode)-[r:{relation_type}]->(endNode)
-            RETURN startNode, endNode
-            """
-            results, meta = db.cypher_query(query)
+            command = f"CREATE EDGE Includes FROM {start_node_id} TO {end_node_id}"
+            url = 'http://localhost:2480/command/chat-bot-db/sql'
+            headers = {'Content-Type': 'application/json'}
+            json_data = {"command": command}
+            response = requests.post(url, headers=headers, json=json_data, auth=('root', 'gure'))
 
-            logger.info(f"Relation of type {relation_type} created between nodes {start_node_id} and {end_node_id}.")
+            logger.info(f"Relation created between nodes {start_node_id} and {end_node_id}.")
             return JsonResponse({'message': 'Relation successfully created'}, status=201)
         except Exception as e:
             logger.exception("An error occurred while creating a relation.")
@@ -290,11 +293,27 @@ def get_nodes(request):
     """Retrieves all nodes."""
     if request.method == 'GET':
         logger.info("Fetching all nodes.")
+
         try:
-            nodes = Node.nodes.all()
-            nodes_data = [{'id': node.element_id, 'type': node.type, 'name': f"{node.name[:30] if len(node.name) > 30 else node.name}..."} for node in nodes]
-            logger.debug(f"Nodes retrieved: {nodes_data}")
-            return JsonResponse(nodes_data, safe=False, status=200)
+            sql_command = f"SELECT * FROM V"
+            url = 'http://localhost:2480/command/chat-bot-db/sql'
+            headers = {'Content-Type': 'application/json'}
+            json_data = {"command": sql_command}
+            response = requests.post(url, headers=headers, json=json_data, auth=('root', 'gure'))
+
+            if response.status_code == 200:
+                logger.info(f"Nodes get successfully: {response.text}")
+                try:
+                    response_data = response.json()
+                    logger.info(f"Response JSON: {response_data}")
+                    return JsonResponse({'status': 'success', 'data': response_data}, status=201)
+                except ValueError as e:
+                    logger.error(f"Error parsing JSON response: {e}")
+                    return JsonResponse({'error': 'Failed to parse response'}, status=500)
+
+            else:
+                logger.error(f"Error fetching data: HTTP {response.status_code} - {response.text}")
+                return JsonResponse({'error': f"Error {response.status_code}: {response.text}"}, status=response.status_code)
         except Exception as e:
             logger.exception("An error occurred while fetching nodes.")
             return JsonResponse({'error': str(e)}, status=400)

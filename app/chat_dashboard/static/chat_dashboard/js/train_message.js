@@ -60,13 +60,17 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Получение данных
                 const nodesResponse = await fetch('/api/get-nodes/');
                 if (nodesResponse.ok) {
-                    const nodes = await nodesResponse.json();
+                    const data = await nodesResponse.json();
+                    console.log(data);
+                    const nodes = data["data"]["result"];
+                    console.log(nodes);
                     // Очистка и заполнение селектов
                     startNodeSelect.innerHTML = '';
                     endNodeSelect.innerHTML = '';
+                    console.log(nodes);
                     nodes.forEach(node => {
                         const option = document.createElement('option');
-                        option.value = node.id;
+                        option.value = node["@rid"];
                         option.textContent = `${node.type}: ${node.name}`;
                         startNodeSelect.appendChild(option.cloneNode(true));
                         endNodeSelect.appendChild(option);
@@ -114,8 +118,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Создание узла
     document.getElementById('create-node-btn').addEventListener('click', async function () {
-        const nodeType = document.getElementById('node-type').value;
-        console.log(nodeType);
+        nodeTypeEl = document.getElementById('node-type');
+        const nodeClass = nodeTypeEl.value;
+        const nodeType = nodeTypeEl.options[nodeTypeEl.selectedIndex].textContent;
         const nodeName = document.getElementById('node-name').value;
         const nodeContent = document.getElementById('node-content').value;
 
@@ -132,6 +137,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     'X-CSRFToken': getCookie('csrftoken'),
                 },
                 body: JSON.stringify({
+                    class: nodeClass,
                     type: nodeType,
                     name: nodeName,
                     content: nodeContent,
@@ -154,11 +160,11 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Создание связи
     document.getElementById('create-relation-btn').addEventListener('click', async function () {
-        const relationType = document.getElementById('relation-type').value;
+//        const relationType = document.getElementById('relation-type').value;
         const startNodeId = document.getElementById('start-node').value;
         const endNodeId = document.getElementById('end-node').value;
 
-        if (!relationType || !startNodeId || !endNodeId) {
+        if (!startNodeId || !endNodeId) {
             alert('Пожалуйста, заполните все поля.');
             return;
         }
@@ -171,15 +177,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                     'X-CSRFToken': getCookie('csrftoken'),
                 },
                 body: JSON.stringify({
-                    type: relationType,
+//                    type: relationType,
                     start_node_id: startNodeId,
                     end_node_id: endNodeId,
                 }),
             });
-
             if (response.status === 201) {
-                document.getElementById('relation-type').value = '';
-            } else {
+                alert('Cвязь успешно создана.');
+            }
+            else {
+//                document.getElementById('relation-type').value = '';
                 console.error('Ошибка при создании связи:', await response.json());
                 alert('Не удалось создать связь.');
             }
