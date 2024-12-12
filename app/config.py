@@ -27,10 +27,6 @@ class Settings:
     DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
     EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS")
     EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")
-    DB_NEO_HOST = os.getenv("DB_NEO_HOST")
-    DB_NEO_USER = os.getenv("DB_NEO_USER")
-    DB_NEO_PASS = os.getenv("DB_NEO_PASS")
-    DB_NEO_PORT = int(os.getenv("DB_NEO_PORT"))
     SITE_URL = os.getenv("SITE_URL")
 
 settings = Settings()

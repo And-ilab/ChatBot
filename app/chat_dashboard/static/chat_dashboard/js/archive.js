@@ -17,14 +17,14 @@ async function loadMessages(dialogId) {
             const messageElement = document.createElement('div');
             messageElement.classList.add(
                 'd-flex',
-                message.sender === 'Bot' ? 'justify-content-start' : 'justify-content-end',
+                message.sender === 'bot' ? 'justify-content-start' : 'justify-content-end',
                 'archive-item',
                 'w-90',
                 'mb-3'
             );
             messageElement.innerHTML = `
                 <div class="message-wrapper"
-                     style="${message.sender === 'Bot' ? 'background-color: #8cc3f4;' : 'background-color: #f1f1f1;'}
+                     style="${message.sender === 'bot' ? 'background-color: #8cc3f4;' : 'background-color: #f1f1f1;'}
                             border-radius: 10px; padding: 5px 10px 20px 10px; position: relative;
                             min-width: 180px; max-width: 70%; overflow-wrap: break-word;">
                     <div class="d-flex message-sender">${message.sender}</div>

@@ -274,8 +274,6 @@ def api_login_view(request):
             return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
-
-=======
 def activate_account(request, token):
     try:
         user = User.objects.get(activation_token=token)

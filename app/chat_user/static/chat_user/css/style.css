@@ -99,8 +99,9 @@ body {
 .chat-buttons-container {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 10px;
-    height: 20px;
+    min-height: 20px;
 }
 
 .chat-login-wrapper {

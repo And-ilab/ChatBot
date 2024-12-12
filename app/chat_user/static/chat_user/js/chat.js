@@ -146,6 +146,13 @@ loginForm.addEventListener("submit", async function (e) {
 let lastMessageDate = null;
 
 const appendMessage = (sender, content, timestamp) => {
+    // Убираем все кнопки в чате перед добавлением нового сообщения
+    const buttonsContainer = document.querySelector('.chat-buttons-container');
+    if (buttonsContainer) {
+        buttonsContainer.remove();
+    }
+
+    // Создаем новое сообщение
     const messageDiv = document.createElement('div');
     messageDiv.className = sender === 'bot' ? 'message bot-message' : 'message user-message';
     const time = timestamp.split(' ')[1].slice(0, 5);
@@ -166,14 +173,15 @@ const appendMessage = (sender, content, timestamp) => {
         chatMessages.appendChild(dateWrapper);
     }
 
-    messageDiv.innerHTML = `
+    messageDiv.innerHTML = ` 
         <strong>${sender === 'bot' ? 'Бот' : 'Вы'}:</strong> ${content}
-        <div class="${timeClass}">${time}</div>`
-    ;
+        <div class="${timeClass}">${time}</div>
+    `;
     messageDiv.dataset.date = messageDate;
     chatMessages.appendChild(messageDiv);
     setTimeout(scrollToBottom, 0);
 };
+
 
 
 const sendMessageToAPI = async (senderType, content, timestamp) => {
@@ -270,6 +278,7 @@ const createButtonsFromNodes = (nodes, onClickHandler) => {
     });
 
     document.querySelector('.chat-messages').appendChild(buttonsContainer);
+    setTimeout(scrollToBottom, 0);
 };
 
 
