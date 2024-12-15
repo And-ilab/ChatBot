@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
 from django.utils import timezone
+from numpy.lib.recfunctions import drop_fields
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -40,6 +42,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=False)
     activation_token = models.CharField(max_length=32, blank=True, null=True)
     activation_token_created = models.DateTimeField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        # Генерация username как первая буква имени + фамилия
+        if not self.username:
+            self.username = f"{self.first_name[0].upper()}.{self.last_name}"
+        super().save(*args, **kwargs)
 
     def update_last_active(self):
         self.last_active = timezone.now()
@@ -112,6 +120,9 @@ class TrainingMessage(models.Model):
 class Settings(models.Model):
     ad_enabled = models.BooleanField(default=False)
     message_retention_days = models.PositiveIntegerField(default=30)  # Время хранения сообщений в днях
+    ldap_server = models.CharField(max_length=100, default='ldap://company.local')
+    domain = models.CharField(max_length=50, default='COMPANY')
+
 
     def __str__(self):
         return f"Settings(ad_enabled={self.ad_enabled}, message_retention_days={self.message_retention_days})"

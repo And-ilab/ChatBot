@@ -16,7 +16,7 @@ import pymorphy3
 from config import settings
 import requests
 from requests.auth import HTTPBasicAuth
-
+from django.db.models import Q
 from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
@@ -371,7 +371,27 @@ def create_training_message(request):
 def user_list(request):
     """Displays a list of users."""
     logger.info("Accessing user list.")
+
+    search_query = request.GET.get('search', '')
+    sort_column = request.GET.get('sort', 'username')  # По умолчанию сортировка по username
+
     users = User.objects.all()
+
+    # Фильтрация по поисковому запросу
+    if search_query:
+        users = users.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query)
+        )
+
+    # Сортировка
+    if sort_column.startswith('-'):
+        users = users.order_by(sort_column[1:]).reverse()
+    else:
+        users = users.order_by(sort_column)
+
     logger.debug(f"Users retrieved: {list(users)}")
     return render(request, 'chat_dashboard/users.html', {'users': users})
 
@@ -582,15 +602,19 @@ def send_message(request, dialog_id):
 def settings_view(request):
     settings, created = Settings.objects.get_or_create(id=1)
 
-    months = list(range(1, 25))  # Список от 1 до 12
+    months = list(range(1, 25))  # Список от 1 до 24
     current_retention_months = settings.message_retention_days // 30 if settings.message_retention_days else 1
 
     if request.method == 'POST':
         enable_ad = request.POST.get('enable_ad') == 'on'
         retention_months = request.POST.get('message_retention_months', current_retention_months)
+        ldap_server = request.POST.get('ad_server', settings.ldap_server)
+        domain = request.POST.get('ad_domain', settings.domain)
 
-        settings.ad_enabled = enable_ad  # Обновляем значение в объекте
+        settings.ad_enabled = enable_ad
         settings.message_retention_days = int(retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
+        settings.ldap_server = ldap_server
+        settings.domain = domain
         settings.save()
 
         return JsonResponse({'status': 'success', 'ad_enabled': settings.ad_enabled, 'message_retention_days': settings.message_retention_days})
@@ -600,7 +624,6 @@ def settings_view(request):
         'months': months,
         'current_retention_months': current_retention_months,
     })
-
 def delete_old_messages():
     settings = Settings.objects.get(id=1)
     retention_days = settings.message_retention_days
