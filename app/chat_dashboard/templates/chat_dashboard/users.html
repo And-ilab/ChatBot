@@ -14,17 +14,17 @@
     <link rel="stylesheet" href="{% static 'chat_dashboard/css/style.css' %}">
     <style>
         .table-container {
-            height: calc(100vh - 120px);
-            overflow-y: auto;
-            border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
+            max-height: 60vh; /* Максимальная высота таблицы */
+            overflow-y: auto; /* Вертикальная прокрутка, если содержимое превышает высоту */
+            border: 1px solid #dee2e6; /* Граница вокруг таблицы */
+            border-radius: 0.25rem; /* Скругление углов */
         }
         .modal-dialog {
-            max-width: 600px;
-            width: 90%;
+            max-width: 600px; /* Ширина модального окна */
+            width: 90%; /* Адаптивная ширина */
         }
         .table th, .table td {
-            white-space: nowrap;
+            white-space: nowrap; /* Запрет на перенос текста */
         }
     </style>
 </head>
