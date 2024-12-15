@@ -13,7 +13,7 @@ import json
 import re
 import spacy
 import pymorphy3
-
+from config import settings
 import requests
 from requests.auth import HTTPBasicAuth
 
@@ -235,10 +235,10 @@ def create_node(request):
                 sql_command = f"CREATE VERTEX {node_class} SET type = '{node_type}', name = '{node_name}', content = '{node_content}'"
             else:
                 sql_command = f"CREATE VERTEX {node_class} SET type = '{node_type}', name = '{node_name}'"
-            url = 'http://localhost:2480/command/chat-bot-db/sql'
+            url = settings.URL_for_orientDB
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
-            response = requests.post(url, headers=headers, json=json_data, auth=('root', 'guregure'))
+            response = requests.post(url, headers=headers, json=json_data, auth=(settings.login_orientdb, settings.pass_orientdb))
 
             if response.status_code == 200:
                 logger.info(f"Node created successfully: {response.text}")
@@ -276,10 +276,10 @@ def create_relation(request):
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
             command = f"CREATE EDGE Includes FROM {start_node_id} TO {end_node_id}"
-            url = 'http://localhost:2480/command/chat-bot-db/sql'
+            url = settings.URL_for_orientDB
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": command}
-            response = requests.post(url, headers=headers, json=json_data, auth=('root', 'gure'))
+            response = requests.post(url, headers=headers, json=json_data, auth=(settings.login_orientdb, settings.pass_orientdb))
 
             logger.info(f"Relation created between nodes {start_node_id} and {end_node_id}.")
             return JsonResponse({'message': 'Relation successfully created'}, status=201)
@@ -296,10 +296,10 @@ def get_nodes(request):
 
         try:
             sql_command = f"SELECT * FROM V"
-            url = 'http://localhost:2480/command/chat-bot-db/sql'
+            url = settings.URL_for_orientDB
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
-            response = requests.post(url, headers=headers, json=json_data, auth=('root', 'gure'))
+            response = requests.post(url, headers=headers, json=json_data, auth=(settings.login_orientdb, settings.pass_orientdb))
 
             if response.status_code == 200:
                 logger.info(f"Nodes get successfully: {response.text}")
@@ -582,7 +582,7 @@ def send_message(request, dialog_id):
 def settings_view(request):
     settings, created = Settings.objects.get_or_create(id=1)
 
-    months = list(range(1, 13))  # Список от 1 до 12
+    months = list(range(1, 25))  # Список от 1 до 12
     current_retention_months = settings.message_retention_days // 30 if settings.message_retention_days else 1
 
     if request.method == 'POST':

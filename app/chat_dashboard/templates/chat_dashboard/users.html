@@ -14,17 +14,17 @@
     <link rel="stylesheet" href="{% static 'chat_dashboard/css/style.css' %}">
     <style>
         .table-container {
-            height: calc(100vh - 120px); /* Высота таблицы с учётом отступов */
-            overflow-y: auto; /* Включите вертикальную прокрутку */
-            border: 1px solid #dee2e6; /* Граница вокруг таблицы */
-            border-radius: 0.25rem; /* Скругление углов */
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
         }
         .modal-dialog {
-            max-width: 600px; /* Ширина модального окна */
-            width: 90%; /* Адаптивная ширина */
+            max-width: 600px;
+            width: 90%;
         }
         .table th, .table td {
-            white-space: nowrap; /* Запрет на перенос текста */
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -41,6 +41,8 @@
                 <table class="table table-striped table-bordered">
                     <thead class="table-light">
                         <tr>
+                            <th class="text-center">Имя</th>
+                            <th class="text-center">Фамилия</th>
                             <th class="text-center">Username</th>
                             <th class="text-center">Email</th>
                             <th class="text-center">ID пользователя</th>
@@ -51,6 +53,8 @@
                     <tbody>
                         {% for user in users %}
                         <tr>
+                            <td class="text-center text-dark">{{ user.first_name }}</td>
+                            <td class="text-center text-dark">{{ user.last_name }}</td>
                             <td class="text-center text-dark">{{ user.username }}</td>
                             <td class="text-center text-dark">{{ user.email }}</td>
                             <td class="text-center text-dark">{{ user.id }}</td>

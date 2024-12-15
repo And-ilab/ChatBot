@@ -31,6 +31,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=50, unique=True)
+    first_name = models.CharField(max_length=50, blank=True)  # Новое поле
+    last_name = models.CharField(max_length=50, blank=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
     is_staff = models.BooleanField(default=False)
     last_active = models.DateTimeField(null=True, blank=True)
