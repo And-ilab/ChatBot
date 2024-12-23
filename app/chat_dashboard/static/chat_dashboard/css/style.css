@@ -1,13 +1,17 @@
 .sidebar {
+    position: fixed; /* Фиксированное позиционирование */
+    top: 0;
+    left: 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
     background-color: #343a40;
     color: #fff;
-    height: 100vh;
-    width: 52px;
+    height: 100vh; /* Растягивается на всю высоту экрана */
+    width: 52px; /* Ширина сайдбара */
     padding: 20px 0;
+    z-index: 1000; /* Устанавливаем приоритет слоя */
 }
 
 .nav-item {
@@ -32,13 +36,17 @@
 }
 
 .sidebar .nav {
-    height: 50%
+    height: 50%;
 }
 
-.sidebar .account_wrapper {
+.sidebar .account-wrapper {
     display: flex;
-    width: 100%
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    align-items: center;
 }
+
 
 .chat-container {
     display: flex;
@@ -85,16 +93,19 @@
 }
 
 .archive-sidebar {
+    margin-left: 50px;
     border-right: 1px solid #ccc;
     background-color: #f8f9fa;
 }
 
 .training-sidebar {
+    margin-left: 50px;
     border-right: 1px solid #ccc;
     background-color: #f8f9fa;
 }
 
 .chat-sidebar {
+    margin-left: 50px;
     border-right: 1px solid #ccc;
     padding: 20px;
     background-color: #f8f9fa;

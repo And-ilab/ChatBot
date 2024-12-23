@@ -5,6 +5,7 @@ app_name = 'chat_dashboard'
 
 urlpatterns = [
     path('archive/', views.archive, name='archive'),
+    path('edit-content/', views.create_or_edit_content, name='create_or_edit_content'),
     path('archive/filter/', views.archive_filter_view, name='archive_filter'),
     path('analytics/', views.analytics, name='analytics'),
     path('users/', views.user_list, name='user_list'),

@@ -1,0 +1,88 @@
+{% extends 'base/layout.html' %}
+
+{% block title %}Создание и редактирование контента{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <h2 class="text-center mt-4">Добавление и редактирование контента</h2>
+
+    <form method="POST" class="mt-4 mx-auto" style="max-width: 800px; display: flex; flex-direction: column; align-items: center;">
+        {% csrf_token %}
+
+        <!-- Блок селектов -->
+        <div class="mb-4 border p-3 rounded" style="background-color: #f9f9f9; width: 500px;">
+            <div class="mb-3">
+                <label for="section" class="form-label">Выберите раздел</label>
+                <select class="form-select" id="section" name="section" style="max-width: 400px;" required>
+                    <option value="" disabled selected>Выберите раздел</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="topic" class="form-label">Выберите тему</label>
+                <select class="form-select" id="topic" name="topic" style="max-width: 400px;" required>
+                    <option value="" disabled selected>Выберите тему</option>
+                </select>
+            </div>
+            <div class="mb-3 d-flex align-items-end">
+                <div style="flex: 1; max-width: 400px;">
+                    <label for="question" class="form-label">Выберите вопрос</label>
+                    <select class="form-select" id="question" name="question" required>
+                        <option value="" disabled selected>Выберите вопрос</option>
+                    </select>
+                </div>
+                <div class="d-flex gap-2 ms-3">
+                    <button type="button" class="btn btn-sm btn-outline-warning" id="edit-question" style="height: 38px; width: 38px;">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Текстовый ввод -->
+        <div class="mb-4">
+            <label for="answer" class="form-label">Ответ</label>
+            <div class="d-flex">
+                <textarea class="form-control" id="answer" name="answer" rows="6" style="resize: none; height: 300px; width: 700px;" readonly></textarea>
+                <div class="d-flex flex-column gap-2 ms-3">
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="delete-answer">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" id="edit-answer">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно для редактирования вопроса -->
+        <div class="modal" id="editQuestionModal" tabindex="-1" aria-labelledby="editQuestionModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editQuestionModalLabel">Редактирование вопроса</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="question-input" class="form-label">Измените вопрос</label>
+                        <input type="text" class="form-control" id="question-input">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                        <button type="button" class="btn btn-primary" id="save-question">Сохранить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Список документов -->
+        <div class="mb-4 border p-3 rounded" style="background-color: #f9f9f9; width: 700px; overflow-y: auto;">
+            <h5>Документы</h5>
+            <ul class="list-group" id="document-list">
+                <!-- Сюда будут добавляться документы -->
+            </ul>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

@@ -105,7 +105,7 @@ body {
 }
 
 .chat-login-wrapper {
-    display: flex;
+    display: none;
     justify-content: center;
     align-items: center;
     width: 100%;
@@ -161,4 +161,68 @@ body {
 
 .chat-login-submit:hover {
     background-color: #0056b3;
+}
+
+.extend-session-wrapper {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 550px;
+    padding: 0 100px;
+}
+
+.extend-session-window {
+    padding: 80px 50px;
+    height: 300px;
+    justify-content: space-between;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.extend-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.extend-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.document-block {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #f1f1f1;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.document-icon {
+    font-size: 24px;
+    color: #007bff;
+    margin-right: 10px;
+}
+
+.document-link {
+    font-size: 18px;
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+    word-wrap: break-word;
+    transition: color 0.3s ease, text-decoration 0.3s ease;
+}
+
+.document-link:hover {
+    text-decoration: underline;
+    color: #00c4ff;
 }
