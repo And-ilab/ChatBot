@@ -280,6 +280,7 @@ def create_relation(request):
             url = settings.URL_for_orientDB
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": command}
+
             response = requests.post(url, headers=headers, json=json_data, auth=(settings.login_orientdb, settings.pass_orientdb))
 
             logger.info(f"Relation created between nodes {start_node_id} and {end_node_id}.")
@@ -300,7 +301,9 @@ def get_nodes(request):
             url = settings.URL_for_orientDB
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
+
             response = requests.post(url, headers=headers, json=json_data, auth=(settings.login_orientdb, settings.pass_orientdb))
+
 
             if response.status_code == 200:
                 logger.info(f"Nodes get successfully: {response.text}")
@@ -650,7 +653,10 @@ def send_message(request, dialog_id):
 def settings_view(request):
     settings, created = Settings.objects.get_or_create(id=1)
 
-    months = list(range(1, 25))  # Список от 1 до 24
+
+    months = list(range(1, 25))  # Список от 1 до 12
+
+  # Список от 1 до 24
     current_retention_months = settings.message_retention_days // 30 if settings.message_retention_days else 1
 
     if request.method == 'POST':
