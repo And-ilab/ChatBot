@@ -27,12 +27,12 @@
             <div id="ad-parameters" style="display: {% if settings.ad_enabled %}block{% else %}none{% endif %};">
                 <h5>Настройки авторизации:</h5>
                 <div class="form-group">
-                    <label for="ad_server">Название сервера авторизации:</label>
-                    <input type="text" id="ad_server" name="ad_server" value="{{ settings.ad_server }}" class="form-control mb-2">
+                    <label for="ad_server">Название LDAP сервера(например: ldap://company.local'):</label>
+                    <input type="text" id="ad_server" name="ad_server" value="{{ settings.ldap_server }}" class="form-control mb-2">
                 </div>
                 <div class="form-group">
-                    <label for="ad_port">Порт:</label>
-                    <input type="number" id="ad_port" name="ad_port" value="{{ settings.ad_port }}" class="form-control mb-2">
+                    <label for="ad_domain">Домен(например: COMPANY):</label>
+                    <input type="text" id="ad_domain" name="ad_domain" value="{{ settings.domain }}" class="form-control mb-2">
                 </div>
             </div>
 
@@ -57,12 +57,13 @@
         {% endif %}
     </div>
 </div>
-
 <script>
     const enableAdCheckbox = document.getElementById('enable_ad');
     const adParameters = document.getElementById('ad-parameters');
     const saveButton = document.getElementById('save-settings');
     const retentionSelect = document.getElementById('message_retention_months');
+    const adServerInput = document.getElementById('ad_server');
+    const adDomainInput = document.getElementById('ad_domain');
 
     // Установите обработчики событий для чекбокса и выбора времени хранения
     enableAdCheckbox.addEventListener('change', function() {
@@ -72,6 +73,14 @@
 
     retentionSelect.addEventListener('change', function() {
         saveButton.style.display = 'block'; // Показать кнопку "Сохранить" при изменении времени хранения
+    });
+
+    adServerInput.addEventListener('input', function() {
+        saveButton.style.display = 'block'; // Показать кнопку "Сохранить" при изменении LDAP сервера
+    });
+
+    adDomainInput.addEventListener('input', function() {
+        saveButton.style.display = 'block'; // Показать кнопку "Сохранить" при изменении домена
     });
 
     saveButton.addEventListener('click', function() {

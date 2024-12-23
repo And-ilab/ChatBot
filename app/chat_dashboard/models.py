@@ -2,7 +2,10 @@ from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
 from django.utils import timezone
+
 from chat_user.models import ChatUser
+from numpy.lib.recfunctions import drop_fields
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -32,6 +35,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=50, unique=True)
+    first_name = models.CharField(max_length=50, blank=True)  # Новое поле
+    last_name = models.CharField(max_length=50, blank=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
     is_staff = models.BooleanField(default=False)
     last_active = models.DateTimeField(null=True, blank=True)
@@ -39,6 +44,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=False)
     activation_token = models.CharField(max_length=32, blank=True, null=True)
     activation_token_created = models.DateTimeField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        # Генерация username как первая буква имени + фамилия
+        if not self.username:
+            self.username = f"{self.first_name[0].upper()}.{self.last_name}"
+        super().save(*args, **kwargs)
 
     def update_last_active(self):
         self.last_active = timezone.now()
@@ -111,6 +122,9 @@ class TrainingMessage(models.Model):
 class Settings(models.Model):
     ad_enabled = models.BooleanField(default=False)
     message_retention_days = models.PositiveIntegerField(default=30)  # Время хранения сообщений в днях
+    ldap_server = models.CharField(max_length=100, default='ldap://company.local')
+    domain = models.CharField(max_length=50, default='COMPANY')
+
 
     def __str__(self):
         return f"Settings(ad_enabled={self.ad_enabled}, message_retention_days={self.message_retention_days})"

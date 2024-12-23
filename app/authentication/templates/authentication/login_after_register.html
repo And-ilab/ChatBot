@@ -25,7 +25,6 @@
             </div>
         </form>
         <div class="text-center mt-4">
-            <p>Нет аккаунта? <a href="{% url 'authentication:register' %}" class="text-decoration-none">Зарегистрироваться</a></p>
             <p><a href="#" class="text-decoration-none" onclick="showPasswordResetModal();">Забыли пароль?</a></p>
         </div>
     </div>
@@ -65,7 +64,7 @@
         "debug": false,
         "newestOnTop": true,
         "progressBar": true,
-        "positionClass": "toast-top-center",  // Положение уведомления по центру вверху
+        "positionClass": "toast-top-center",
         "preventDuplicates": false,
         "showDuration": "300",
         "hideDuration": "1000",
@@ -145,5 +144,12 @@
             toastr.error('Произошла ошибка. Попробуйте ещё раз.', 'Ошибка');
         });
     }
+
+    // Показываем сообщения из Django, если они есть
+    {% if messages %}
+        {% for message in messages %}
+            toastr.success("{{ message }}");
+        {% endfor %}
+    {% endif %}
 </script>
 {% endblock %}
