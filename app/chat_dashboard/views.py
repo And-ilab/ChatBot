@@ -3,11 +3,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, F, Count
-from django.db.models.functions import TruncDate
+from django.db.models.functions import TruncDate, Concat
 from authentication.decorators import role_required
+from django.db import models
+from django.utils.timezone import now
 from .models import Dialog, Message, User, TrainingMessage, Settings
-from chat_user.neo_models import Node
-from neomodel import db
+from chat_user.models import ChatUser, Session
 from .forms import UserForm, UserFormUpdate
 import json
 import re
@@ -444,33 +445,62 @@ def archive(request):
     logger.info("Accessing archive page.")
     delete_old_messages()
     user = request.user
+
+    # Подзапросы для получения активности пользователей
+    latest_session_query = Session.objects.filter(user=OuterRef('user_id')).order_by('-expires_at')
+    user_last_active = latest_session_query.values('expires_at')[:1]
+    user_is_online = Case(
+        When(expires_at__gt=Value(now()), then=Value(True)),
+        default=Value(False),
+        output_field=models.BooleanField()
+    )
+
     dialogs = Dialog.objects.annotate(
         has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
-        username=F('user__username'),
-        last_message=Subquery(get_last_message_subquery('content')),
-        last_message_timestamp=Subquery(get_last_message_subquery('created_at')),
+        username=Concat(
+            F('user__first_name'),
+            Value(' '),
+            F('user__last_name')
+        ),
+        last_message=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]
+        ),
+        last_message_timestamp=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]
+        ),
         last_message_sender_id=Subquery(
             Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]
         ),
         last_message_username=Case(
             When(last_message_sender_id=None, then=Value('Bot')),
             default=Subquery(
-                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__username')[:1]
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1]
             )
-        )
+        ),
+        last_active=Subquery(user_last_active),
+        is_online=Subquery(latest_session_query.annotate(is_active=user_is_online).values('is_active')[:1]),
     ).filter(has_messages=True).order_by('-last_message_timestamp')
 
+    # Статусы активности для рендеринга
     user_statuses = {
         dialog.user.id: {
-            'last_active': dialog.user.last_active,
-            'is_online': dialog.user.is_online
+            'last_active': dialog.last_active,
+            'is_online': dialog.is_online
         } for dialog in dialogs
     }
 
     logger.debug(f"Dialogs retrieved: {list(dialogs)}")
-    return render(request, 'chat_dashboard/archive.html',
-                  {'dialogs': dialogs, 'user': user, 'user_statuses': user_statuses, 'last_active': user.last_active,
-                   'is_online': user.is_online, })
+    return render(request, 'chat_dashboard/archive.html', {
+        'dialogs': dialogs,
+        'user': user,
+        'user_statuses': user_statuses,
+        'last_active': user.last_active,
+        'is_online': user.is_online,
+    })
+
+
+def create_or_edit_content(request):
+    return render(request, 'chat_dashboard/edit_content.html')
 
 
 def archive_filter_view(request):
@@ -517,17 +547,35 @@ def archive_filter_view(request):
 def get_messages(request, dialog_id):
     """Retrieves all messages in a dialog."""
     logger.info(f"Fetching messages for dialog ID: {dialog_id}")
-    messages = Message.objects.filter(dialog_id=dialog_id).order_by('created_at')
-    messages_data = [
-        {
-            'sender': message.sender.username if message.sender and message.sender_type == 'user' else 'bot',
-            'content': message.content,
-            'timestamp': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        }
-        for message in messages
-    ]
-    logger.debug(f"Messages retrieved: {messages_data}")
-    return JsonResponse({'messages': messages_data})
+
+    try:
+        messages = Message.objects.filter(dialog_id=dialog_id).order_by('created_at')
+
+        # Если сообщений нет
+        if not messages:
+            logger.error(f"No messages found for dialog ID {dialog_id}.")
+            return JsonResponse({"status": "error", "message": "No messages found."}, status=404)
+
+        logger.debug(f"Messages retrieved: {messages}")
+        messages_data = [
+            {
+                'sender': (
+                    f"{message.sender.first_name} {message.sender.last_name}".strip()
+                    if message.sender and message.sender_type == 'user'
+                    else 'bot'
+                ),
+                'content': message.content,
+                'timestamp': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            }
+            for message in messages
+        ]
+        logger.debug(f"Messages retrieved: {messages_data}")
+        return JsonResponse({'messages': messages_data})
+
+    except Exception as e:
+        logger.error(f"Error fetching messages for dialog ID {dialog_id}: {str(e)}")
+        return JsonResponse({"status": "error", "message": "Internal server error."}, status=500)
+
 
 
 def get_info(request, user_id):

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
 from django.utils import timezone
+from chat_user.models import ChatUser
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -68,7 +69,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Dialog(models.Model):
-    user = models.ForeignKey('chat_dashboard.User', on_delete=models.CASCADE)
+    user = models.ForeignKey('chat_user.ChatUser', on_delete=models.CASCADE)
     started_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -83,7 +84,7 @@ class Message(models.Model):
 
     dialog = models.ForeignKey(Dialog, on_delete=models.CASCADE, related_name="messages")
     sender_type = models.CharField(max_length=4, choices=SENDER_CHOICES, default="bot")
-    sender = models.ForeignKey('chat_dashboard.User', null=True, blank=True, on_delete=models.SET_NULL)
+    sender = models.ForeignKey('chat_user.ChatUser', null=True, blank=True, on_delete=models.SET_NULL)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
