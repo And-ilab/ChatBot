@@ -7,6 +7,8 @@ from .auth_with_AD import validate_user_credentials
 from django.views.decorators.csrf import csrf_exempt
 import jwt
 
+from django.contrib.auth import views as auth_views
+
 import json
 from django.http import JsonResponse
 
@@ -39,7 +41,8 @@ def register_view(request):
             user.set_password(form.cleaned_data['password'])
             user.save()
             logger.info(f"User registered: Username={user.username}, Email={user.email}")
-            return redirect('authentication:login')
+            messages.success(request, 'Поздравляем, вы успешно зарегистрированы!')
+            return render(request, 'authentication/login_after_register.html')
         else:
             logger.warning(f"Registration form errors: {form.errors}")
     else:
@@ -205,7 +208,7 @@ class CustomPasswordResetView(View):
             })
             send_mail(subject, message, None, [email])
             return JsonResponse(
-                {'success': True, 'message': 'Ссылка для восстановления пароля отправлена на вашу почту.'})
+                {'success': True, 'message': f'Ссылка для восстановления пароля отправлена на {email}. Если письма нет во входящих, проверьте папку "Спам".'})
 
         return JsonResponse({'success': False, 'message': 'Пользователь с таким e-mail не найден.'})
 
@@ -225,9 +228,6 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     def get_success_url(self):
         # Перенаправление на страницу логина после успешного сброса пароля
         return reverse('authentication:login')  # Замените 'login' на имя вашего URL для логина
-
-
-from django.contrib.auth import views as auth_views
 
 
 class CustomPasswordResetCompleteView(auth_views.PasswordResetCompleteView):

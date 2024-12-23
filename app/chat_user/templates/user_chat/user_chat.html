@@ -22,50 +22,35 @@
         <div class="chat-login-wrapper" id="chat-login-wrapper">
             <div class="chat-login small-window">
                 <div class="chat-login-header" id="chat-login-header">Авторизация</div>
-                <form class="chat-login-form" id="login-form">
+                <form class="chat-login-form" id="user-info-form">
+                    {% csrf_token %}
                     <div class="form-group">
-                        <label for="user-email" class="form-label">Email</label>
+                        <label for="user-first-name" class="form-label">Имя</label>
+                        <input type="text" id="user-first-name" name="first_name" class="form-control" placeholder="Введите ваше имя" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="user-last-name" class="form-label">Фамилия</label>
+                        <input type="text" id="user-last-name" name="last_name" class="form-control" placeholder="Введите вашу фамилию" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="user-email" class="form-label">Электронная почта</label>
                         <input type="email" id="user-email" name="email" class="form-control" placeholder="Введите ваш email" required>
                     </div>
-                    <div class="form-group">
-                        <label for="user-password" class="form-label">Пароль</label>
-                        <input type="password" id="user-password" name="password" class="form-control" placeholder="Введите ваш пароль" required autocomplete="current-password">
-                    </div>
-                    <button type="submit" class="btn btn-primary chat-login-submit">Войти</button>
-                    <div class="chat-login-footer">
-                        <span>Нет аккаунта?</span>
-                        <a href="#" id="switch-to-register">Зарегистрироваться</a>
-                    </div>
+                    <button type="submit" class="btn btn-primary chat-login-submit">Продолжить</button>
                 </form>
-
-                <form class="chat-register-form" id="register-form" style="display: none;">
-                    <div class="form-group">
-                        <label for="register-email" class="form-label">Email</label>
-                        <input type="email" id="register-email" name="email" class="form-control" placeholder="Введите ваш email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="register-username" class="form-label">Имя пользователя</label>
-                        <input type="text" id="register-username" name="username" class="form-control" placeholder="Введите ваше имя пользователя" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="register-password" class="form-label">Пароль</label>
-                        <input type="password" id="register-password" name="password" class="form-control" placeholder="Введите ваш пароль" required autocomplete="new-password">
-                    </div>
-                    <div class="form-group">
-                        <label for="confirm-password" class="form-label">Подтверждение пароля</label>
-                        <input type="password" id="confirm-password" name="password_confirm" class="form-control" placeholder="Подтвердите пароль" required autocomplete="new-password">
-                    </div>
-                    <button type="submit" class="btn btn-primary chat-login-submit">Зарегистрироваться</button>
-                    <div class="chat-login-footer">
-                        <span>Уже есть аккаунт?</span>
-                        <a href="#" id="switch-to-login">Войти</a>
-                    </div>
-                </form>
-
             </div>
         </div>
         <div class="chat-messages" id="user-chat-messages">
 
+        </div>
+        <div class="extend-session-wrapper" id="extend-session-wrapper">
+            <div class="extend-session-window" >
+                <h5 class="extend-title" id="sessionExpiredModalLabel">Ваша сессия истекла. Желаете продолжить?</h5>
+                <div class="extend-buttons">
+                    <button type="button" class="btn btn-success" id="extend-btn">Продолжить сессию</button>
+                    <button type="button" class="btn btn-secondary" id="new-session-btn">Создать новую сессию</button>
+                </div>
+            </div>
         </div>
         <div class="chat-footer">
             <input type="text" class="form-control chat-input" placeholder="Ваше сообщение..." id="user-chat-input">
@@ -74,6 +59,7 @@
             </button>
         </div>
 </div>
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
     <script src="{% static 'chat_user/js/chat.js' %}"></script>
 </body>
 </html>

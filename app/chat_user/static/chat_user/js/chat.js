@@ -4,13 +4,12 @@ const closeChat = document.getElementById('user-close-chat');
 const chatInput = document.getElementById('user-chat-input');
 const sendMessageButton = document.getElementById('user-send-message');
 const chatMessages = document.getElementById('user-chat-messages');
+const extendButton = document.getElementById('extend-btn');
+const newSessionButton = document.getElementById('new-session-btn');
+const extendSessionWindow = document.getElementById('extend-session-wrapper');
 const chatLogin = document.getElementById('chat-login-wrapper');
-
-const loginForm = document.getElementById("login-form");
-const registerForm = document.getElementById("register-form");
-const switchToRegister = document.getElementById("switch-to-register");
-const switchToLogin = document.getElementById("switch-to-login");
-const chatLoginHeader = document.getElementById("chat-login-header");
+const loginForm = document.getElementById("user-info-form");
+const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
 const greetings = [
     'привет', 'здравствуй', 'добрый день', 'добрый вечер', 'приветствую',
@@ -19,47 +18,26 @@ const greetings = [
 ];
 
 
-let dialogId;
-let userId;
+let dialogID;
+let userID;
 let username;
 let started_at;
+let navigationStack = [];
 
 
 closeChat.addEventListener('click', () => {
     chatWindow.style.display = 'none';
 });
 
-const getCSRFToken = () => {
-    const csrfTokenMeta = document.querySelector("meta[name='csrf-token']");
-    return csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
-};
 
 const loadMessages = async () => {
-    try {
-        console.log('ID пользователя:', userId);
-
-        const dialogResponse = await fetch(`/api/dialogs/${userId}/`);
-        if (!dialogResponse.ok) {
-            throw new Error('Ошибка загрузки диалога');
-        }
-
-        const dialogData = await dialogResponse.json();
-        console.log('Данные:', dialogData);
-
-        dialogId = dialogData.dialog_id;
-        username = dialogData.username;
-        started_at = dialogData.started_at;
-
-        console.log('ID диалога:', dialogId);
-        console.log('Имя пользователя:', username);
-        console.log('Дата начала диалога:', started_at);
-
-        const messagesResponse = await fetch(`/api/messages/${dialogId}/`);
+    try {;
+        const messagesResponse = await fetch(`/api/messages/${dialogID}/`);
         const data = await messagesResponse.json();
 
         chatMessages.innerHTML = '';
         data.messages.forEach(({ sender, content, timestamp }) => {
-          appendMessage(sender, content, timestamp);
+            appendMessage(sender, content, timestamp);
         });
         scrollToBottom();
     } catch (error) {
@@ -73,46 +51,96 @@ const scrollToBottom = () => {
 };
 
 
-chatToggle.addEventListener('click', () => {
-    chatWindow.style.display = 'block';
-});
+async function checkUserSession() {
+    const sessionToken = localStorage.getItem("sessionToken");
 
-
-switchToRegister.addEventListener("click", function (e) {
-    e.preventDefault();
-    loginForm.style.display = "none";
-    registerForm.style.display = "flex";
-    chatLoginHeader.textContent = "Регистрация";
-});
-
-switchToLogin.addEventListener("click", function (e) {
-    e.preventDefault();
-    registerForm.style.display = "none";
-    loginForm.style.display = "flex";
-    chatLoginHeader.textContent = "Авторизация";
-});
-
-
-registerForm.addEventListener("submit", async function (e) {
-    e.preventDefault();
-    const formData = new FormData(registerForm);
-    const jsonData = Object.fromEntries(formData.entries());
-
-    const response = await fetch("/api/register/", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(jsonData),
-    });
-
-    const result = await response.json();
-    if (response.ok) {
-        switchToLogin.click();
-    } else {
-        console.error(result.errors || result.message);
-        alert("Ошибка регистрации");
+    if (!sessionToken) {
+        return { status: "login", message: "Сессия отсутствует" };
     }
+
+    try {
+        const response = await fetch("/api/check-session/", {
+            method: "GET",
+            headers: {
+                "Authorization": sessionToken,
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Ошибка сессии:", errorData.message);
+            return { status: "error", message: errorData.message || "Неизвестная ошибка" };
+        }
+
+        const data = await response.json();
+
+        if (data.status === "success") {
+            userID = data["user_id"];
+            return { status: "success", data };
+        } else if (data.status === "expired") {
+            return { status: "expired", message: data.message };
+        } else if (data.status === "login") {
+            return { status: "login", message: data.message };
+        } else {
+            console.warn("Неизвестный статус ответа:", data);
+            return { status: "unknown", message: "Неизвестный ответ от сервера" };
+        }
+    } catch (error) {
+        console.error("Ошибка при запросе:", error);
+        return { status: "error", message: "Ошибка при проверке сессии" };
+    }
+}
+
+chatToggle.addEventListener('click', async () => {
+    chatWindow.style.display = 'block';
+    const result = await checkUserSession();
+    console.log(result);
+
+    switch (result.status) {
+        case "login":
+            console.log("Сессия отсутствует. Пожалуйста, войдите.");
+            chatLogin.style.display = 'flex';  
+            break;
+        case "success":
+            console.log("Добро пожаловать! Продолжайте работу.");
+            chatMessages.style.display = 'flex';
+            await loadDialogMessages();
+            break;
+        case "expired":
+            console.log("Сессия истекла.");
+            extendSessionWindow.style.display = 'flex';
+            break;
+        case "error":
+            alert(`Ошибка: ${result.message}`);
+            break;
+
+        default:
+            console.error("Неизвестный статус:", result.status);
+    }
+});
+
+
+async function loadDialogMessages() {
+    userID = jwt_decode(localStorage.getItem("sessionToken"))["user_id"];
+    dialogID = await getLatestDialog(userID);
+    const userData = await getUserDetails(userID);
+    username = `${userData["first_name"]} ${userData["last_name"]}`;
+    await loadMessages();
+}
+
+
+extendButton.addEventListener('click', async () => {
+    await extendSession();
+    extendSessionWindow.style.display = 'none';
+    chatMessages.style.display = 'flex';
+    await loadDialogMessages();
+});
+
+
+newSessionButton.addEventListener('click', async () => {
+    extendSessionWindow.style.display = 'none';
+    chatLogin.style.display = 'flex';  
 });
 
 
@@ -121,10 +149,12 @@ loginForm.addEventListener("submit", async function (e) {
     const formData = new FormData(loginForm);
     const jsonData = Object.fromEntries(formData.entries());
 
-    const response = await fetch("/api/login/", {
+    userID = jsonData["user_id"];
+    const response = await fetch("/api/chat-login/", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
         },
         body: JSON.stringify(jsonData),
     });
@@ -132,10 +162,16 @@ loginForm.addEventListener("submit", async function (e) {
     const result = await response.json();
 
     if (response.ok) {
-        chatLogin.style.display = 'none';
-        chatMessages.style.display = 'flex';
-        userId = result.id;
-        loadMessages();
+        localStorage.setItem("sessionToken", result.session_token);
+        userID = jwt_decode(result["session_token"])["user_id"];
+        const dialogData = await createNewDialog(userID);
+
+        if (dialogData) {
+            dialogID = dialogData["dialog_id"];
+            chatLogin.style.display = 'none';
+            chatMessages.style.display = 'flex';
+        }
+    
     } else {
         console.error(result.message);
         alert("Ошибка авторизации");
@@ -146,13 +182,11 @@ loginForm.addEventListener("submit", async function (e) {
 let lastMessageDate = null;
 
 const appendMessage = (sender, content, timestamp) => {
-    // Убираем все кнопки в чате перед добавлением нового сообщения
     const buttonsContainer = document.querySelector('.chat-buttons-container');
     if (buttonsContainer) {
         buttonsContainer.remove();
     }
 
-    // Создаем новое сообщение
     const messageDiv = document.createElement('div');
     messageDiv.className = sender === 'bot' ? 'message bot-message' : 'message user-message';
     const time = timestamp.split(' ')[1].slice(0, 5);
@@ -183,17 +217,16 @@ const appendMessage = (sender, content, timestamp) => {
 };
 
 
-
-const sendMessageToAPI = async (senderType, content, timestamp) => {
-    await fetch(`/api/send-message/${dialogId}/`, {
+const sendMessageToAPI = async (dialog_id, senderType, content, timestamp) => {
+    await fetch(`/api/send-message/${dialog_id}/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRFToken': getCSRFToken(),
+        'X-CSRFToken': csrfToken,
       },
       body: JSON.stringify({
         sender_type: senderType,
-        sender_id: senderType === 'user' ? userId : undefined,
+        sender_id: senderType === 'user' ? userID : undefined,
         content,
         timestamp
       }),
@@ -204,7 +237,7 @@ const sendMessageToAPI = async (senderType, content, timestamp) => {
 const sendBotMessage = async (content) => {
     try {
         const timestamp = getTimestamp();
-        await sendMessageToAPI('bot', content, timestamp);
+        await sendMessageToAPI(dialogID, 'bot', content, timestamp);
     } catch (error) {
         console.error('Ошибка при сохранении сообщения бота:', error);
     }
@@ -221,12 +254,11 @@ const sendUserMessage = async () => {
 
     chatInput.value = '';
     try {
-        await sendMessageToAPI('user', message, userMessageTimestamp);
+        await sendMessageToAPI(dialogID, 'user', message, userMessageTimestamp);
         if (message.endsWith('?')) {
             console.log('question');
 //          await handleQuestion(message);
         } else {
-            console.log('user response handler');
             userResponseHandler(message);
         }
     } catch (error) {
@@ -265,11 +297,92 @@ const fetchNodes = async (type) => {
     }
 };
 
-const createButtonsFromNodes = (nodes, onClickHandler) => {
-    const buttonsContainer = document.createElement('div');
-    buttonsContainer.classList.add('chat-buttons-container');
+const fetchNodesWithRelation = async (startNodeType, startNodeName, finishNodeType) => {
+    const encodeStartNodeType = encodeURIComponent(startNodeType);
+    const encodeStartNodeName = encodeURIComponent(startNodeName);
+    const encodeFinishNodeType = encodeURIComponent(finishNodeType);
+    try {
+        const response = await fetch(`/api/get-nodes-by-type-with-relation/?startNodeType=${encodeStartNodeType}&startNodeName=${encodeStartNodeName}&finishNodeType=${encodeFinishNodeType}`, { method: 'GET' });
 
-    nodes.forEach(node => {
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error fetching nodes: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data["result"];
+
+    } catch (error) {
+        console.error('Error fetching nodes with relation:', error.message);
+        return [];
+    }
+};
+
+
+const fetchAnswer = async (questionId) => {
+    const encodedQuestionId = encodeURIComponent(questionId);
+    try {
+        const response = await fetch(`/api/get-answer/?questionId=${encodedQuestionId}`, { method: 'GET' });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error fetching answer: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data['result'][0];
+    } catch (error) {
+        console.error('Error fetching answer:', error.message);
+        return '';
+    }
+};
+
+
+const fetchDocuments = async (answerID) => {
+    const encodedAnswerID = encodeURIComponent(answerID);
+    try {
+        const response = await fetch(`/api/get-documents/?answerID=${encodedAnswerID}`, { method: 'GET' });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error fetching answer: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data['result'];
+    } catch (error) {
+        console.error('Error fetching answer:', error.message);
+        return '';
+    }
+};
+
+
+// const createButtonsFromNodes = (nodes, onClickHandler) => {
+//     const buttonsContainer = document.createElement('div');
+//     buttonsContainer.classList.add('chat-buttons-container');
+
+//     nodes.forEach(node => {
+//         const button = document.createElement('button');
+//         button.textContent = node.name;
+//         button.classList.add('chat-button');
+//         button.onclick = () => onClickHandler(node, buttonsContainer);
+//         buttonsContainer.appendChild(button);
+//     });
+
+//     document.querySelector('.chat-messages').appendChild(buttonsContainer);
+//     setTimeout(scrollToBottom, 0);
+// };
+
+const createButtonsFromNodes = (nodes, onClickHandler) => {
+    let buttonsContainer = document.querySelector('.chat-buttons-container');
+    if (buttonsContainer) {
+        buttonsContainer.innerHTML = '';
+    } else {
+        buttonsContainer = document.createElement('div');
+        buttonsContainer.classList.add('chat-buttons-container');
+    }
+
+    nodes.forEach((node) => {
         const button = document.createElement('button');
         button.textContent = node.name;
         button.classList.add('chat-button');
@@ -277,10 +390,51 @@ const createButtonsFromNodes = (nodes, onClickHandler) => {
         buttonsContainer.appendChild(button);
     });
 
+    // Добавляем контейнер на страницу
     document.querySelector('.chat-messages').appendChild(buttonsContainer);
     setTimeout(scrollToBottom, 0);
 };
 
+const createDocumentBlock = (documents) => {
+    const chatMessages = document.querySelector('.chat-messages');
+    
+    if (!chatMessages) {
+        console.error('Элемент .chat-messages не найден');
+        return;
+    }
+
+    documents.forEach((doc) => {
+        const documentBlock = document.createElement('div');
+        documentBlock.classList.add('document-block');
+
+        const icon = document.createElement('i');
+        icon.classList.add('fa', 'fa-file-alt', 'document-icon');
+        documentBlock.appendChild(icon);
+
+        const link = document.createElement('a');
+        link.textContent = doc.name;
+        link.href = doc.content;
+        link.target = '_blank';
+        link.classList.add('document-link');
+        documentBlock.appendChild(link);
+        chatMessages.appendChild(documentBlock);
+    });
+
+    // Прокручиваем чат вниз
+    setTimeout(scrollToBottom, 0);
+};
+
+function addBackButton(){
+    const buttonsContainer = document.querySelector('.chat-buttons-container');
+
+    if (navigationStack.length > 1) {
+        const backButton = document.createElement('button');
+        backButton.textContent = 'Назад';
+        backButton.classList.add('chat-button');
+        backButton.onclick = () => goBack();
+        buttonsContainer.appendChild(backButton);
+    }
+}
 
 const userResponseHandler = async (message) => {
     console.log("User Response Handler");
@@ -306,12 +460,83 @@ const userResponseHandler = async (message) => {
         appendMessage('bot', randomGreetingOption, getTimestamp());
         await sendBotMessage(randomGreetingOption);
 
-        const nodes = await fetchNodes('Раздел');
-        createButtonsFromNodes(nodes, async (selectedNode, container) => {
-            appendMessage('user', selectedNode.name, getTimestamp());
-            container.remove();
-        });
+        // const nodes = await fetchNodes('Section');
+        // createButtonsFromNodes(nodes, async (selectedNode, container) => {
+        //     appendMessage('user', selectedNode.name, getTimestamp());
+        //     container.remove();
+        // });
+        showSectionButtons();
     }
+};
+
+
+const goBack = async () => {
+    if (navigationStack.length === 0) {
+        console.error("Navigation stack is empty.");
+        return;
+    }
+
+    const { type, name, fetchFunction } = navigationStack[navigationStack.length - 1];
+    console.log("Navigating back to:", type, name);
+
+    if (type === 'Section'){
+        showSectionButtons();
+        navigationStack.pop();
+    } else if (type === 'Topic') {
+        const sectionName = navigationStack[navigationStack.length - 1]["name"];
+        console.log(sectionName);
+        showTopicButtons(sectionName);
+        navigationStack.pop();
+    }
+};
+
+
+const showSectionButtons = async () => {
+    const nodes = await fetchNodes('Section');
+    createButtonsFromNodes(nodes, async (selectedNode) => {
+        appendMessage('user', selectedNode.name, getTimestamp());
+        await sendMessageToAPI(dialogID, 'user', selectedNode.name, getTimestamp());
+        navigationStack.push({ type: 'Section', name: selectedNode.name, fetchFunction: fetchNodes });
+        console.log(navigationStack);
+        await showTopicButtons(selectedNode.name);
+    });
+};
+
+const showTopicButtons = async (sectionName) => {
+    const nodes = await fetchNodesWithRelation('Section', sectionName, 'Topic');
+    createButtonsFromNodes(nodes, async (selectedNode) => {
+        appendMessage('user', selectedNode.name, getTimestamp());
+        await sendMessageToAPI(dialogID, 'user', selectedNode.name, getTimestamp());
+        navigationStack.push({ type: 'Topic', name: selectedNode.name, fetchFunction: fetchNodesWithRelation });
+        console.log(navigationStack);
+        await showQuestionsButtons(selectedNode.name);
+    });
+};
+
+const showQuestionsButtons = async (topicName) => {
+    const nodes = await fetchNodesWithRelation('Topic', topicName, 'Question');
+    console.log(`nodes = ${nodes}`);
+    createButtonsFromNodes(nodes, async (selectedNode) => {
+        appendMessage('user', selectedNode.name, getTimestamp());
+        await sendMessageToAPI(dialogID, 'user', selectedNode.name, getTimestamp());
+        navigationStack.push({ type: 'Question', name: selectedNode.name, fetchFunction: fetchNodesWithRelation });
+        console.log(navigationStack);
+        console.log(selectedNode);
+        await showAnswer(selectedNode.id);
+    });
+};
+
+const showAnswer = async (questionID) => {
+    const answer = await fetchAnswer(questionID);
+    appendMessage('bot', answer.content, getTimestamp());
+    await sendBotMessage(answer.content);
+    await showDocuments(answer.id);
+};
+
+const showDocuments = async (answerID) => {
+    const documentsData = await fetchDocuments(answerID);
+    console.log(documentsData);
+    createDocumentBlock(documentsData);
 };
 
 
@@ -343,3 +568,102 @@ chatInput.addEventListener('keydown', (event) => {
         sendUserMessage();
     }
 });
+
+
+async function getLatestDialog(userId) {
+    try {
+        const response = await fetch(`/api/dialogs/latest/${userId}/`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            console.log("Самый новый диалог:", data);
+            return data.dialog_id;
+        } else {
+            console.warn("Ошибка при получении диалога:", data.message);
+            return null;
+        }
+    } catch (error) {
+        console.error("Ошибка при запросе:", error);
+        return null;
+    }
+}
+
+
+async function createNewDialog(userId) {
+    try {
+
+        const response = await fetch(`/api/dialogs/create/${userId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
+            },
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            console.log("Новый диалог создан:", data);
+            return data.dialog_id;
+        } else {
+            console.warn("Ошибка при создании диалога:", data.message);
+            return null;
+        }
+    } catch (error) {
+        console.error("Ошибка при запросе:", error);
+        return null;
+    }
+}
+
+function decodeToken(token) {
+    const payload = token.split('.')[1];
+    const decodedPayload = atob(payload);
+    return JSON.parse(decodedPayload);
+}
+
+async function extendSession() {
+    const sessionToken = localStorage.getItem("sessionToken");
+    if (!sessionToken) {
+        console.log("No session token found.");
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/extend-session/", {
+            method: "POST",
+            headers: {
+                "Authorization": sessionToken,
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
+            },
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            console.log("Session extended:", data);
+            localStorage.setItem("sessionToken", sessionToken);
+        } else {
+            console.log("Failed to extend session:", data.message);
+        }
+    } catch (error) {
+        console.error("Error extending session:", error);
+    }
+}
+
+const getUserDetails = async (userId) => {
+    try {
+        const response = await fetch(`/api/user/${userId}/`);
+        if (!response.ok) throw new Error("User not found");
+
+        const data = await response.json();
+        return data.user;
+    } catch (error) {
+        console.error("Error fetching user details:", error);
+    }
+};

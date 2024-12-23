@@ -12,14 +12,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
-#from django.conf.global_settings import EMAIL_HOST_PASSWORD
 from dotenv import load_dotenv
-import io
 from config import settings
 
-# from app.config import settings
-
 load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -39,10 +36,10 @@ ALLOWED_HOSTS = [
     'chatbot.digitranslab.com',
     'www.chatbot.digitranslab.com'
 ]
-# Application definition
 
+# Application definition
 INSTALLED_APPS = [
-    #    'corsheaders',
+    'corsheaders',
     'authentication',
     'app',
     'chat_user',
@@ -56,9 +53,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    #    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -103,17 +100,10 @@ DATABASES = {
     }
 }
 
-
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
- #   {
- #       'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
- #   },
- #   {
- #       'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
- #   },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
@@ -143,7 +133,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     BASE_DIR / "chat_dashboard" / "static",
     BASE_DIR / "chat_user" / "static",
-    #    BASE_DIR / "chat_training" / "static",
     BASE_DIR / "authentication" / "static",
 ]
 
@@ -153,8 +142,6 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'chat_dashboard.User'
-
-import ldap3
 
 LDAP_SERVER = settings.LDAP_SERVER
 DOMAIN = settings.DOMAIN
@@ -187,7 +174,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = settings.EMAIL_HOST
 EMAIL_PORT = settings.EMAIL_PORT
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = settings.EMAIL_HOST_USER  # Замените на ваш адрес Gmail
+EMAIL_HOST_USER = settings.EMAIL_HOST_USER
 EMAIL_HOST_PASSWORD = settings.EMAIL_HOST_PASSWORD
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
@@ -207,14 +194,12 @@ LOGGING = {
         },
     },
     'handlers': {
-        # Обработчик для логов Django
         'django_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'django_debug.log'),
             'formatter': 'verbose',
         },
-        # Обработчик для логов приложений
         'app_file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
@@ -243,19 +228,16 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        # Логгер для запросов к базе данных
         'django.db.backends': {
             'level': 'DEBUG',
             'handlers': ['django_file'],
             'propagate': False,
         },
-        # Логгер для запросов и ответов
         'django.request': {
             'level': 'DEBUG',
             'handlers': ['django_file'],
             'propagate': False,
         },
-        # Логгер для работы сервера Django
         'django.server': {
             'level': 'DEBUG',
             'handlers': ['django_file'],

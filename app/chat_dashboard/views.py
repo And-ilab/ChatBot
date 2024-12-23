@@ -3,20 +3,21 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, F, Count
-from django.db.models.functions import TruncDate
+from django.db.models.functions import TruncDate, Concat
 from authentication.decorators import role_required
+from django.db import models
+from django.utils.timezone import now
 from .models import Dialog, Message, User, TrainingMessage, Settings
-from chat_user.neo_models import Node
-from neomodel import db
+from chat_user.models import ChatUser, Session
 from .forms import UserForm, UserFormUpdate
 import json
 import re
 import spacy
 import pymorphy3
-
+from config import settings
 import requests
 from requests.auth import HTTPBasicAuth
-
+from django.db.models import Q
 from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
@@ -235,10 +236,10 @@ def create_node(request):
                 sql_command = f"CREATE VERTEX {node_class} SET type = '{node_type}', name = '{node_name}', content = '{node_content}'"
             else:
                 sql_command = f"CREATE VERTEX {node_class} SET type = '{node_type}', name = '{node_name}'"
-            url = 'http://localhost:2480/command/chat-bot-db/sql'
+            url = settings.URL_for_orientDB
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
-            response = requests.post(url, headers=headers, json=json_data, auth=('root', 'guregure'))
+            response = requests.post(url, headers=headers, json=json_data, auth=(settings.login_orientdb, settings.pass_orientdb))
 
             if response.status_code == 200:
                 logger.info(f"Node created successfully: {response.text}")
@@ -276,10 +277,11 @@ def create_relation(request):
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
             command = f"CREATE EDGE Includes FROM {start_node_id} TO {end_node_id}"
-            url = 'http://localhost:2480/command/chat-bot-db/sql'
+            url = settings.URL_for_orientDB
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": command}
-            response = requests.post(url, headers=headers, json=json_data, auth=('root', 'guregure'))
+
+            response = requests.post(url, headers=headers, json=json_data, auth=(settings.login_orientdb, settings.pass_orientdb))
 
             logger.info(f"Relation created between nodes {start_node_id} and {end_node_id}.")
             return JsonResponse({'message': 'Relation successfully created'}, status=201)
@@ -296,10 +298,12 @@ def get_nodes(request):
 
         try:
             sql_command = f"SELECT * FROM V"
-            url = 'http://localhost:2480/command/chat-bot-db/sql'
+            url = settings.URL_for_orientDB
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
-            response = requests.post(url, headers=headers, json=json_data, auth=('root', 'guregure'))
+
+            response = requests.post(url, headers=headers, json=json_data, auth=(settings.login_orientdb, settings.pass_orientdb))
+
 
             if response.status_code == 200:
                 logger.info(f"Nodes get successfully: {response.text}")
@@ -371,7 +375,27 @@ def create_training_message(request):
 def user_list(request):
     """Displays a list of users."""
     logger.info("Accessing user list.")
+
+    search_query = request.GET.get('search', '')
+    sort_column = request.GET.get('sort', 'username')  # По умолчанию сортировка по username
+
     users = User.objects.all()
+
+    # Фильтрация по поисковому запросу
+    if search_query:
+        users = users.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query)
+        )
+
+    # Сортировка
+    if sort_column.startswith('-'):
+        users = users.order_by(sort_column[1:]).reverse()
+    else:
+        users = users.order_by(sort_column)
+
     logger.debug(f"Users retrieved: {list(users)}")
     return render(request, 'chat_dashboard/users.html', {'users': users})
 
@@ -444,33 +468,62 @@ def archive(request):
     logger.info("Accessing archive page.")
     delete_old_messages()
     user = request.user
+
+    # Подзапросы для получения активности пользователей
+    latest_session_query = Session.objects.filter(user=OuterRef('user_id')).order_by('-expires_at')
+    user_last_active = latest_session_query.values('expires_at')[:1]
+    user_is_online = Case(
+        When(expires_at__gt=Value(now()), then=Value(True)),
+        default=Value(False),
+        output_field=models.BooleanField()
+    )
+
     dialogs = Dialog.objects.annotate(
         has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
-        username=F('user__username'),
-        last_message=Subquery(get_last_message_subquery('content')),
-        last_message_timestamp=Subquery(get_last_message_subquery('created_at')),
+        username=Concat(
+            F('user__first_name'),
+            Value(' '),
+            F('user__last_name')
+        ),
+        last_message=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]
+        ),
+        last_message_timestamp=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]
+        ),
         last_message_sender_id=Subquery(
             Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]
         ),
         last_message_username=Case(
             When(last_message_sender_id=None, then=Value('Bot')),
             default=Subquery(
-                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__username')[:1]
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1]
             )
-        )
+        ),
+        last_active=Subquery(user_last_active),
+        is_online=Subquery(latest_session_query.annotate(is_active=user_is_online).values('is_active')[:1]),
     ).filter(has_messages=True).order_by('-last_message_timestamp')
 
+    # Статусы активности для рендеринга
     user_statuses = {
         dialog.user.id: {
-            'last_active': dialog.user.last_active,
-            'is_online': dialog.user.is_online
+            'last_active': dialog.last_active,
+            'is_online': dialog.is_online
         } for dialog in dialogs
     }
 
     logger.debug(f"Dialogs retrieved: {list(dialogs)}")
-    return render(request, 'chat_dashboard/archive.html',
-                  {'dialogs': dialogs, 'user': user, 'user_statuses': user_statuses, 'last_active': user.last_active,
-                   'is_online': user.is_online, })
+    return render(request, 'chat_dashboard/archive.html', {
+        'dialogs': dialogs,
+        'user': user,
+        'user_statuses': user_statuses,
+        'last_active': user.last_active,
+        'is_online': user.is_online,
+    })
+
+
+def create_or_edit_content(request):
+    return render(request, 'chat_dashboard/edit_content.html')
 
 
 def archive_filter_view(request):
@@ -517,17 +570,35 @@ def archive_filter_view(request):
 def get_messages(request, dialog_id):
     """Retrieves all messages in a dialog."""
     logger.info(f"Fetching messages for dialog ID: {dialog_id}")
-    messages = Message.objects.filter(dialog_id=dialog_id).order_by('created_at')
-    messages_data = [
-        {
-            'sender': message.sender.username if message.sender and message.sender_type == 'user' else 'bot',
-            'content': message.content,
-            'timestamp': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        }
-        for message in messages
-    ]
-    logger.debug(f"Messages retrieved: {messages_data}")
-    return JsonResponse({'messages': messages_data})
+
+    try:
+        messages = Message.objects.filter(dialog_id=dialog_id).order_by('created_at')
+
+        # Если сообщений нет
+        if not messages:
+            logger.error(f"No messages found for dialog ID {dialog_id}.")
+            return JsonResponse({"status": "error", "message": "No messages found."}, status=404)
+
+        logger.debug(f"Messages retrieved: {messages}")
+        messages_data = [
+            {
+                'sender': (
+                    f"{message.sender.first_name} {message.sender.last_name}".strip()
+                    if message.sender and message.sender_type == 'user'
+                    else 'bot'
+                ),
+                'content': message.content,
+                'timestamp': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            }
+            for message in messages
+        ]
+        logger.debug(f"Messages retrieved: {messages_data}")
+        return JsonResponse({'messages': messages_data})
+
+    except Exception as e:
+        logger.error(f"Error fetching messages for dialog ID {dialog_id}: {str(e)}")
+        return JsonResponse({"status": "error", "message": "Internal server error."}, status=500)
+
 
 
 def get_info(request, user_id):
@@ -582,15 +653,22 @@ def send_message(request, dialog_id):
 def settings_view(request):
     settings, created = Settings.objects.get_or_create(id=1)
 
+
     months = list(range(1, 25))  # Список от 1 до 12
+
+  # Список от 1 до 24
     current_retention_months = settings.message_retention_days // 30 if settings.message_retention_days else 1
 
     if request.method == 'POST':
         enable_ad = request.POST.get('enable_ad') == 'on'
         retention_months = request.POST.get('message_retention_months', current_retention_months)
+        ldap_server = request.POST.get('ad_server', settings.ldap_server)
+        domain = request.POST.get('ad_domain', settings.domain)
 
-        settings.ad_enabled = enable_ad  # Обновляем значение в объекте
+        settings.ad_enabled = enable_ad
         settings.message_retention_days = int(retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
+        settings.ldap_server = ldap_server
+        settings.domain = domain
         settings.save()
 
         return JsonResponse({'status': 'success', 'ad_enabled': settings.ad_enabled, 'message_retention_days': settings.message_retention_days})
@@ -600,7 +678,6 @@ def settings_view(request):
         'months': months,
         'current_retention_months': current_retention_months,
     })
-
 def delete_old_messages():
     settings = Settings.objects.get(id=1)
     retention_days = settings.message_retention_days
