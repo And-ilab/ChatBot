@@ -30,7 +30,7 @@ async function loadMessages(dialogId) {
                     <div class="d-flex message-sender">${message.sender}</div>
                     <div class="d-flex message-content">${message.content}</div>
                     <div class="d-flex message-time text-muted" style="position: absolute; right: 10px; bottom: 2px;">
-                        ${message.timestamp}
+                        ${new Date(new Date(message.timestamp).getTime() + 3 * 60 * 60 * 1000).toLocaleString()}
                     </div>
                 </div>
             `;
@@ -52,18 +52,20 @@ async function loadUserStatus(userId) {
         const statusElement = document.getElementById('user-info-status');
         const lastActiveElement = document.getElementById('user-info-last-active');
 
-        if (statusData.messages.length > 0) {
-            const userStatus = statusData.messages[0];
-
+        if (statusData.status.is_online) {
             statusElement.innerHTML = `
-                <span style="color: ${userStatus.is_online ? 'green' : 'red'};">
-                    ${userStatus.is_online ? 'Активен' : 'Не активен'}
+                <span style="color: green;">
+                    Активен
                 </span>
             `;
-
-            lastActiveElement.innerHTML = `
-                Последняя активность: ${new Date(userStatus.last_active).toLocaleString()}
+            lastActiveElement.innerHTML = `Последняя активность: недавно`;
+        } else {
+            statusElement.innerHTML = `
+                <span style="color: red;">
+                    Не активен
+                </span>
             `;
+            lastActiveElement.innerHTML = `Последняя активность: ${new Date(statusData.status.last_active).toLocaleString()}`;
         }
     } catch (error) {
         console.error('Ошибка при загрузке статуса пользователя:', error);
@@ -87,34 +89,23 @@ function updateUserInfo(username) {
 
 // Установка обработчиков событий после загрузки страницы
 document.addEventListener('DOMContentLoaded', () => {
-    const sendButton = document.getElementById('send-message-button');
-
-    if (sendButton) {
-        sendButton.addEventListener('click', sendMessage);
-    }
-
     const allDialogs = document.querySelectorAll('.chat-item');
 
-    // Check localStorage for the last selected dialog
-    const lastSelectedDialogId = localStorage.getItem('selectedDialogId');
+    if (allDialogs.length > 0) {
+        const firstDialog = allDialogs[0];
+        const dialogId = firstDialog.id.split('-')[1];
 
-    if (lastSelectedDialogId) {
-        const lastDialog = document.getElementById(`dialog-${lastSelectedDialogId}`);
-        if (lastDialog) {
-            loadMessages(lastSelectedDialogId);
-            setActiveDialog(lastDialog);
-            updateUserInfo(lastDialog.dataset.username);
-            loadUserStatus(lastDialog.dataset.userid);
-        }
-    } else if (allDialogs.length > 0) {
-        const firstDialogId = allDialogs[0].id.split('-')[1];
-        loadMessages(firstDialogId);
-        setActiveDialog(allDialogs[0]);
-        updateUserInfo(allDialogs[0].dataset.username);
-        loadUserStatus(allDialogs[0].dataset.userid);
+        // Подгружаем сообщения для первого диалога
+        loadMessages(dialogId);
+
+        // Устанавливаем первый диалог как активный
+        setActiveDialog(firstDialog);
+
+        // Обновляем информацию о пользователе
+        updateUserInfo(firstDialog.dataset.username);
+        loadUserStatus(firstDialog.dataset.userid);
     }
 
-    // Save the selected dialog ID to localStorage when clicked
     allDialogs.forEach(dialog => {
         dialog.addEventListener('click', () => {
             const dialogId = dialog.id.split('-')[1];

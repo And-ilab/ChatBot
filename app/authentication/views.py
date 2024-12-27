@@ -35,6 +35,7 @@ def register_view(request):
     """Handles user registration."""
     logger.info("User registration attempt.")
     if request.method == 'POST':
+        logger.info("POST")
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
@@ -62,6 +63,7 @@ def login_view(request):
     if request.method == 'POST':
         form = CustomUserLoginForm(request.POST)
         if form.is_valid():
+            logger.info("VALID")
             username = form.cleaned_data.get('username')
             password = form.cleaned_data.get('password')
             logger.debug(f"Login attempt: Username={username}")
@@ -130,9 +132,11 @@ def logout_view(request):
 @csrf_exempt
 def api_register_view(request):
     """API endpoint for user registration."""
+    logger.info(f"User registration attempt")
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            logger.info(f"Data = {data}")
             form = UserRegistrationForm(data)
             if form.is_valid():
                 user = form.save(commit=False)

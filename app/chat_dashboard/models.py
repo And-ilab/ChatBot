@@ -121,10 +121,12 @@ class TrainingMessage(models.Model):
 
 class Settings(models.Model):
     ad_enabled = models.BooleanField(default=False)
-    message_retention_days = models.PositiveIntegerField(default=30)  # Время хранения сообщений в днях
+    message_retention_days = models.PositiveIntegerField(default=30)
     ldap_server = models.CharField(max_length=100, default='ldap://company.local')
     domain = models.CharField(max_length=50, default='COMPANY')
-
+    session_duration = models.PositiveIntegerField(default=30)
 
     def __str__(self):
-        return f"Settings(ad_enabled={self.ad_enabled}, message_retention_days={self.message_retention_days})"
+
+        return f"Settings(ad_enabled={self.ad_enabled}, message_retention_days={self.message_retention_days}, session_duration={self.session_duration})"
+

@@ -29,6 +29,8 @@ SECRET_KEY = settings.SECRET_KEY_django
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+SESSION_DURATION_MINUTES = 30
+
 ALLOWED_HOSTS = [
     '134.17.17.131',
     'localhost',
@@ -59,7 +61,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'chat_dashboard.middleware.UpdateLastActivityMiddleware',
+    # 'chat_dashboard.middleware.UpdateLastActivityMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

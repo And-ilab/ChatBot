@@ -164,14 +164,13 @@ loginForm.addEventListener("submit", async function (e) {
     if (response.ok) {
         localStorage.setItem("sessionToken", result.session_token);
         userID = jwt_decode(result["session_token"])["user_id"];
-        const dialogData = await createNewDialog(userID);
-
-        if (dialogData) {
-            dialogID = dialogData["dialog_id"];
-            chatLogin.style.display = 'none';
-            chatMessages.style.display = 'flex';
-        }
-    
+        dialogID = await createNewDialog(userID);
+        const userData = await getUserDetails(userID);
+        username = `${userData["first_name"]} ${userData["last_name"]}`;
+        chatLogin.style.display = 'none';
+        chatMessages.style.display = 'flex';
+        await showGreetingMessages();
+        await showSectionButtons();
     } else {
         console.error(result.message);
         alert("Ошибка авторизации");
@@ -357,22 +356,6 @@ const fetchDocuments = async (answerID) => {
 };
 
 
-// const createButtonsFromNodes = (nodes, onClickHandler) => {
-//     const buttonsContainer = document.createElement('div');
-//     buttonsContainer.classList.add('chat-buttons-container');
-
-//     nodes.forEach(node => {
-//         const button = document.createElement('button');
-//         button.textContent = node.name;
-//         button.classList.add('chat-button');
-//         button.onclick = () => onClickHandler(node, buttonsContainer);
-//         buttonsContainer.appendChild(button);
-//     });
-
-//     document.querySelector('.chat-messages').appendChild(buttonsContainer);
-//     setTimeout(scrollToBottom, 0);
-// };
-
 const createButtonsFromNodes = (nodes, onClickHandler) => {
     let buttonsContainer = document.querySelector('.chat-buttons-container');
     if (buttonsContainer) {
@@ -390,7 +373,15 @@ const createButtonsFromNodes = (nodes, onClickHandler) => {
         buttonsContainer.appendChild(button);
     });
 
-    // Добавляем контейнер на страницу
+    if (navigationStack.length > 0)
+    {
+        const backButton = document.createElement('button');
+        backButton.textContent = 'Назад';
+        backButton.classList.add('chat-button');
+        backButton.onclick = () => goBack();
+        buttonsContainer.appendChild(backButton);
+    }
+
     document.querySelector('.chat-messages').appendChild(buttonsContainer);
     setTimeout(scrollToBottom, 0);
 };
@@ -420,21 +411,8 @@ const createDocumentBlock = (documents) => {
         chatMessages.appendChild(documentBlock);
     });
 
-    // Прокручиваем чат вниз
     setTimeout(scrollToBottom, 0);
 };
-
-function addBackButton(){
-    const buttonsContainer = document.querySelector('.chat-buttons-container');
-
-    if (navigationStack.length > 1) {
-        const backButton = document.createElement('button');
-        backButton.textContent = 'Назад';
-        backButton.classList.add('chat-button');
-        backButton.onclick = () => goBack();
-        buttonsContainer.appendChild(backButton);
-    }
-}
 
 const userResponseHandler = async (message) => {
     console.log("User Response Handler");
@@ -443,50 +421,50 @@ const userResponseHandler = async (message) => {
     const isGreeting = greetings.some(greeting => cleanedMessage.includes(greeting));
 
     if (isGreeting) {
-        const responses = [
-            `Здравствуйте, ${username}!`,
-            `Привет, ${username}!`,
-            `Привет, ${username}! Надеюсь у Вас всё супер😊!`
-        ];
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-        appendMessage('bot', randomResponse, getTimestamp());
-        await sendBotMessage(randomResponse);
-
-        const greetingOptions = [
-            'Задайте свой вопрос или выберите из списка:',
-            'Я всегда рад помочь! Задавайте свои вопросы или выбирайте интересующую вас тему :)'
-        ];
-        const randomGreetingOption = greetingOptions[Math.floor(Math.random() * greetingOptions.length)];
-        appendMessage('bot', randomGreetingOption, getTimestamp());
-        await sendBotMessage(randomGreetingOption);
-
-        // const nodes = await fetchNodes('Section');
-        // createButtonsFromNodes(nodes, async (selectedNode, container) => {
-        //     appendMessage('user', selectedNode.name, getTimestamp());
-        //     container.remove();
-        // });
-        showSectionButtons();
+        showGreetingMessages();
     }
+};
+
+
+const showGreetingMessages = async () => {
+    const responses = [
+        `Здравствуйте, ${username}!`,
+        `Привет, ${username}!`,
+        `Привет, ${username}! Надеюсь у Вас всё супер😊!`
+    ];
+    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+    appendMessage('bot', randomResponse, getTimestamp());
+    await sendBotMessage(randomResponse);
+
+    const greetingOptions = [
+        'Задайте свой вопрос или выберите из списка:',
+        'Я всегда рад помочь! Задавайте свои вопросы или выбирайте интересующую вас тему :)'
+    ];
+    const randomGreetingOption = greetingOptions[Math.floor(Math.random() * greetingOptions.length)];
+    appendMessage('bot', randomGreetingOption, getTimestamp());
+    await sendBotMessage(randomGreetingOption);
+
+    showSectionButtons();
 };
 
 
 const goBack = async () => {
     if (navigationStack.length === 0) {
-        console.error("Navigation stack is empty.");
         return;
     }
+    let time = getTimestamp();
+    appendMessage('user', 'Назад', time);
+    await sendMessageToAPI(dialogID, 'user', 'Назад', time);
 
-    const { type, name, fetchFunction } = navigationStack[navigationStack.length - 1];
-    console.log("Navigating back to:", type, name);
+    const { type, name } = navigationStack[navigationStack.length - 1];
 
     if (type === 'Section'){
-        showSectionButtons();
         navigationStack.pop();
+        await showSectionButtons();
     } else if (type === 'Topic') {
-        const sectionName = navigationStack[navigationStack.length - 1]["name"];
-        console.log(sectionName);
-        showTopicButtons(sectionName);
+        const sectionName = navigationStack[navigationStack.length - 2]["name"];
         navigationStack.pop();
+        await showTopicButtons(sectionName);
     }
 };
 
@@ -497,7 +475,6 @@ const showSectionButtons = async () => {
         appendMessage('user', selectedNode.name, getTimestamp());
         await sendMessageToAPI(dialogID, 'user', selectedNode.name, getTimestamp());
         navigationStack.push({ type: 'Section', name: selectedNode.name, fetchFunction: fetchNodes });
-        console.log(navigationStack);
         await showTopicButtons(selectedNode.name);
     });
 };
@@ -508,34 +485,40 @@ const showTopicButtons = async (sectionName) => {
         appendMessage('user', selectedNode.name, getTimestamp());
         await sendMessageToAPI(dialogID, 'user', selectedNode.name, getTimestamp());
         navigationStack.push({ type: 'Topic', name: selectedNode.name, fetchFunction: fetchNodesWithRelation });
-        console.log(navigationStack);
         await showQuestionsButtons(selectedNode.name);
     });
 };
 
 const showQuestionsButtons = async (topicName) => {
     const nodes = await fetchNodesWithRelation('Topic', topicName, 'Question');
-    console.log(`nodes = ${nodes}`);
     createButtonsFromNodes(nodes, async (selectedNode) => {
         appendMessage('user', selectedNode.name, getTimestamp());
         await sendMessageToAPI(dialogID, 'user', selectedNode.name, getTimestamp());
         navigationStack.push({ type: 'Question', name: selectedNode.name, fetchFunction: fetchNodesWithRelation });
-        console.log(navigationStack);
-        console.log(selectedNode);
         await showAnswer(selectedNode.id);
     });
 };
 
 const showAnswer = async (questionID) => {
+    const typingAnimation = document.createElement('div');
+    typingAnimation.classList.add('typing-animation');
+    const spanText = document.createElement('span');
+    typingAnimation.appendChild(spanText);
+    chatMessages.appendChild(typingAnimation);
+
+    const randomDelay = Math.floor(Math.random() * 2000) + 2000; // 2000-4000 миллисекунд
+    await new Promise(resolve => setTimeout(resolve, randomDelay));
+
     const answer = await fetchAnswer(questionID);
+    typingAnimation.style.display = 'none';
     appendMessage('bot', answer.content, getTimestamp());
     await sendBotMessage(answer.content);
     await showDocuments(answer.id);
+    
 };
 
 const showDocuments = async (answerID) => {
     const documentsData = await fetchDocuments(answerID);
-    console.log(documentsData);
     createDocumentBlock(documentsData);
 };
 
