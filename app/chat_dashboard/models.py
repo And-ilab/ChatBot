@@ -35,7 +35,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=50, unique=True)
-    first_name = models.CharField(max_length=50, blank=True)  # Новое поле
+    first_name = models.CharField(max_length=50)  # Новое поле
     last_name = models.CharField(max_length=50, blank=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
     is_staff = models.BooleanField(default=False)
@@ -127,4 +127,6 @@ class Settings(models.Model):
     session_duration = models.PositiveIntegerField(default=30)
 
     def __str__(self):
+
         return f"Settings(ad_enabled={self.ad_enabled}, message_retention_days={self.message_retention_days}, session_duration={self.session_duration})"
+
