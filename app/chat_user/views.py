@@ -257,7 +257,7 @@ def get_nodes_by_type(request):
     url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {type}"
 
     try:
-        response = requests.get(url, auth=('root', 'gure'))
+        response = requests.get(url, auth=('root', 'guregure'))
 
         if response.status_code == 200:
             logger.info(f"Successfully fetched data for type: {node_type}")
@@ -303,7 +303,7 @@ def get_nodes_by_type_with_relation(request):
                    f"FROM (SELECT FROM {start_node_type} WHERE content = '{start_node_name}'))")
 
             try:
-                response = requests.get(url, auth=('root', 'gure'))
+                response = requests.get(url, auth=('root', 'guregure'))
 
                 if not response.ok:
                     logger.warning("Base node not found.")
@@ -339,7 +339,7 @@ def get_answer(request):
             try:
                 response = requests.get(
                     url,
-                    auth=('root', 'gure'),
+                    auth=('root', 'guregure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": query}
                 )
@@ -388,7 +388,7 @@ def get_documents(request):
             try:
                 response = requests.get(
                     url,
-                    auth=('root', 'gure'),
+                    auth=('root', 'guregure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": documents_query}
                 )
@@ -412,7 +412,7 @@ def get_documents(request):
             try:
                 response = requests.get(
                     url,
-                    auth=('root', 'gure'),
+                    auth=('root', 'guregure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": links_query}
                 )
@@ -522,7 +522,7 @@ def update_answer(request):
 
             response = requests.get(
                 url,
-                auth=('root', 'gure'),
+                auth=('root', 'guregure'),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
@@ -567,7 +567,7 @@ def update_question(request):
 
             response = requests.get(
                 url,
-                auth=('root', 'gure'),
+                auth=('root', 'guregure'),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
