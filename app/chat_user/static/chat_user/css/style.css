@@ -226,3 +226,34 @@ body {
     text-decoration: underline;
     color: #00c4ff;
 }
+
+.typing-animation {
+    font-size: 16px;
+    color: #888;
+    font-style: italic;
+    margin-top: 10px;
+    text-align: center;
+    width: 100%;
+    position: relative;
+}
+
+.typing-animation::after {
+    content: "Печатает";
+    position: absolute;
+    animation: typing 1.5s infinite steps(5, end);
+}
+
+@keyframes typing {
+    0% {
+        content: "Печатает";
+    }
+    25% {
+        content: "Печатает.";
+    }
+    50% {
+        content: "Печатает..";
+    }
+    75% {
+        content: "Печатает...";
+    }
+}

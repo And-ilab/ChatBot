@@ -2,7 +2,7 @@ import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, F, Count
+from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, F, Count, Max
 from django.db.models.functions import TruncDate, Concat
 from authentication.decorators import role_required
 from django.db import models
@@ -45,6 +45,39 @@ def user_activity_data(request):
     )
     logger.debug(f"User activity data retrieved: {list(data)}")
     return JsonResponse(list(data), safe=False)
+
+
+@csrf_exempt
+def send_message(request, dialog_id):
+    """Sends a message in the specified dialog."""
+    logger.info(f"Sending message to dialog ID: {dialog_id}")
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            content = data.get('content')
+            sender_type = data.get('sender_type')
+            sender_id = data.get('sender_id')
+            timestamp = data.get('timestamp')
+
+            if content and sender_type and timestamp:
+                dialog = Dialog.objects.get(id=dialog_id)
+                Message.objects.create(
+                    dialog=dialog,
+                    sender_type=sender_type,
+                    sender_id=sender_id if sender_type == 'user' else None,
+                    content=content,
+                    created_at=timestamp
+                )
+                logger.info("Message sent successfully.")
+                return JsonResponse({'status': 'success', 'message': 'Message sent'})
+            logger.warning("Invalid data: content or sender_type is missing.")
+            return JsonResponse({'status': 'error', 'message': 'Invalid data'}, status=400)
+        except Exception as e:
+            logger.exception("An error occurred while sending a message.")
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    logger.warning("Invalid method: only POST is supported.")
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
 
 def messages_count_data(request):
@@ -457,27 +490,16 @@ def user_delete(request, pk):
 
 
 def get_last_message_subquery(field):
-    """Creates a subquery to get the last message by a specified field."""
     logger.debug("Creating a subquery for the last message.")
     return Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values(field)[:1]
 
 
 @role_required(['admin', 'operator'])
 def archive(request):
-    """Displays the archive of dialogs with the last messages."""
-    logger.info("Accessing archive page.")
-    delete_old_messages()
     user = request.user
+    logger.info(f"Accessing archive page by user {user}.")
 
-    # Подзапросы для получения активности пользователей
-    latest_session_query = Session.objects.filter(user=OuterRef('user_id')).order_by('-expires_at')
-    user_last_active = latest_session_query.values('expires_at')[:1]
-    user_is_online = Case(
-        When(expires_at__gt=Value(now()), then=Value(True)),
-        default=Value(False),
-        output_field=models.BooleanField()
-    )
-
+    # Получение данных о диалогах с аннотацией последнего сообщения и его отправителя
     dialogs = Dialog.objects.annotate(
         has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
         username=Concat(
@@ -500,71 +522,84 @@ def archive(request):
                 Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1]
             )
         ),
-        last_active=Subquery(user_last_active),
-        is_online=Subquery(latest_session_query.annotate(is_active=user_is_online).values('is_active')[:1]),
     ).filter(has_messages=True).order_by('-last_message_timestamp')
 
-    # Статусы активности для рендеринга
-    user_statuses = {
-        dialog.user.id: {
-            'last_active': dialog.last_active,
-            'is_online': dialog.is_online
-        } for dialog in dialogs
-    }
-
+    # Логирование для отладки
     logger.debug(f"Dialogs retrieved: {list(dialogs)}")
+
     return render(request, 'chat_dashboard/archive.html', {
         'dialogs': dialogs,
         'user': user,
-        'user_statuses': user_statuses,
-        'last_active': user.last_active,
-        'is_online': user.is_online,
     })
-
 
 def create_or_edit_content(request):
     return render(request, 'chat_dashboard/edit_content.html')
 
 
-def archive_filter_view(request):
-    """Фильтрует диалоги по времени через API."""
-    days = request.GET.get('days', 'all')
-    time_threshold = None
+@role_required(['admin', 'operator'])
+def filter_dialogs(request, period):
+    user = request.user
+    logger.info(f"Filtering dialogs by user {user} with period {period}.")
 
-    # Устанавливаем временной порог в зависимости от выбранного периода
-    if days == '1':
-        time_threshold = timezone.now() - timedelta(days=1)
-    elif days == '7':
-        time_threshold = timezone.now() - timedelta(days=7)
-    elif days == '30':
-        time_threshold = timezone.now() - timedelta(days=30)
+    # Определяем дату для фильтрации
+    now = timezone.now()
+    if period == 'all':
+        # Если фильтруем все диалоги, то период не ограничиваем
+        dialogs = Dialog.objects.annotate(
+            has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
+            username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
+            last_message=Subquery(
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]),
+            last_message_timestamp=Subquery(
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]),
+            last_message_sender_id=Subquery(
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]),
+            last_message_username=Case(
+                When(last_message_sender_id=None, then=Value('Bot')),
+                default=Subquery(
+                    Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[
+                    :1])
+            ),
+        ).filter(has_messages=True).order_by('-last_message_timestamp')
+    else:
+        # Если фильтруем по дате, создаем фильтрацию по времени
+        time_filter = now - timedelta(days=period)
+        dialogs = Dialog.objects.annotate(
+            has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
+            username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
+            last_message=Subquery(
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]),
+            last_message_timestamp=Subquery(
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]),
+            last_message_sender_id=Subquery(
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]),
+            last_message_username=Case(
+                When(last_message_sender_id=None, then=Value('Bot')),
+                default=Subquery(
+                    Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[
+                    :1])
+            ),
+        ).filter(has_messages=True, last_message_timestamp__gte=time_filter).order_by('-last_message_timestamp')
 
-    # Формируем запрос
-    dialogs = Dialog.objects.annotate(
-        last_message_timestamp=Subquery(
-            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]
-        ),
-        username=F('user__username'),
-        last_message=Subquery(
-            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]
-        )
-    ).filter(Exists(Message.objects.filter(dialog=OuterRef('pk'))))
+    # Логирование для отладки
+    logger.debug(f"Filtered dialogs: {list(dialogs)}")
 
-    # Применяем фильтрацию по времени, если установлен временной порог
-    if time_threshold:
-        dialogs = dialogs.filter(last_message_timestamp__gte=time_threshold)
+    # Возвращаем отфильтрованные диалоги в формате JSON
+    dialogs_data = [
+        {
+            'id': dialog.id,
+            'user': {
+                'id': dialog.user.id,
+                'username': dialog.user.username
+            },
+            'last_message': dialog.last_message,
+            'last_message_timestamp': dialog.last_message_timestamp,
+            'last_message_username': dialog.last_message_username
+        }
+        for dialog in dialogs
+    ]
 
-    # Сортируем диалоги по времени последнего сообщения (сначала новые)
-    dialogs = dialogs.order_by('-last_message_timestamp')
-
-    dialog_list = list(dialogs.values(
-        'id',
-        'username',
-        'last_message',
-        'last_message_timestamp'
-    ))
-
-    return JsonResponse({'dialogs': dialog_list})
+    return JsonResponse(dialogs_data, safe=False)
 
 
 def get_messages(request, dialog_id):
@@ -600,56 +635,34 @@ def get_messages(request, dialog_id):
         return JsonResponse({"status": "error", "message": "Internal server error."}, status=500)
 
 
-
 def get_info(request, user_id):
-    """Retrieves user status information."""
-    logger.info(f"Fetching status for user ID: {user_id}")
     try:
-        user = User.objects.get(id=user_id)  # Use 'id' to match the primary key
-        user_data = {
-            'is_online': user.is_online,
-            'last_active': user.last_active,
+        user = ChatUser.objects.get(id=user_id)
+        # Проверяем активность сессий пользователя
+        active_session = Session.objects.filter(user=user, expires_at__gt=now()).first()
+        if active_session:
+            # Если сессия активна
+            user_status = {
+                'is_online': True,
+                'last_active': 'Недавно'
+            }
+        else:
+            # Если сессия не активна
+            last_session = Session.objects.filter(user=user).order_by('-expires_at').first()
+            user_status = {
+                'is_online': False,
+                'last_active': last_session.expires_at if last_session else 'Неизвестно'
+            }
+    except ChatUser.DoesNotExist:
+        user_status = {
+            'is_online': False,
+            'last_active': 'Неизвестно'
         }
-        logger.debug(f"User status retrieved: {user_data}")
-        return JsonResponse({'messages': [user_data]})
-    except User.DoesNotExist:
-        logger.error(f"User with ID {user_id} not found.")
-        return JsonResponse({'error': 'User not found'}, status=404)
+
+    return JsonResponse({'status': user_status})
 
 
-@csrf_exempt
-def send_message(request, dialog_id):
-    """Sends a message in the specified dialog."""
-    logger.info(f"Sending message to dialog ID: {dialog_id}")
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            content = data.get('content')
-            sender_type = data.get('sender_type')
-            sender_id = data.get('sender_id')
-            timestamp = data.get('timestamp')
-
-            if content and sender_type and timestamp:
-                dialog = Dialog.objects.get(id=dialog_id)
-                Message.objects.create(
-                    dialog=dialog,
-                    sender_type=sender_type,
-                    sender_id=sender_id if sender_type == 'user' else None,
-                    content=content,
-                    created_at=timestamp
-                )
-                logger.info("Message sent successfully.")
-                return JsonResponse({'status': 'success', 'message': 'Message sent'})
-            logger.warning("Invalid data: content or sender_type is missing.")
-            return JsonResponse({'status': 'error', 'message': 'Invalid data'}, status=400)
-        except Exception as e:
-            logger.exception("An error occurred while sending a message.")
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-
-    logger.warning("Invalid method: only POST is supported.")
-    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
-
-@role_required(['admin',])
+@role_required(['admin'])
 def settings_view(request):
     settings, created = Settings.objects.get_or_create(id=1)
 
@@ -678,8 +691,18 @@ def settings_view(request):
         'months': months,
         'current_retention_months': current_retention_months,
     })
-def delete_old_messages():
-    settings = Settings.objects.get(id=1)
-    retention_days = settings.message_retention_days
-    cutoff_date = timezone.now() - timedelta(days=retention_days)
-    Message.objects.filter(created_at__lt=cutoff_date).delete()
+
+
+def update_session_duration(request):
+    if request.method == 'POST':
+        try:
+            session_duration = int(request.POST.get('session_duration'))
+            settings = Settings.objects.first()
+            settings.session_duration = session_duration
+            settings.save()
+            return JsonResponse({'status': 'success', 'message': 'Длительность сессии успешно обновлена!'})
+
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+    return JsonResponse({'status': 'error', 'message': 'Неверный запрос'})
