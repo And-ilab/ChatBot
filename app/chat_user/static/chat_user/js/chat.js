@@ -511,10 +511,19 @@ const showAnswer = async (questionID) => {
 
     const answer = await fetchAnswer(questionID);
     typingAnimation.style.display = 'none';
-    appendMessage('bot', answer.content, getTimestamp());
-    await sendBotMessage(answer.content);
+
+    // Делим ответ по абзацам
+    const answerParts = answer.content.split('\n\n'); // Разделение по двойным переводам строки
+
+    for (const part of answerParts) {
+        if (part.trim()) { // Проверяем, что часть не пустая
+            appendMessage('bot', part, getTimestamp());
+            await sendBotMessage(part);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Задержка между абзацами, например, 1 секунда
+        }
+    }
+
     await showDocuments(answer.id);
-    
 };
 
 const showDocuments = async (answerID) => {
@@ -593,6 +602,7 @@ async function createNewDialog(userId) {
 
         if (response.ok) {
             console.log("Новый диалог создан:", data);
+            userID = userId;
             return data.dialog_id;
         } else {
             console.warn("Ошибка при создании диалога:", data.message);
