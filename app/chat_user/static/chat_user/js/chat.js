@@ -531,6 +531,7 @@ const showAnswer = async (questionID) => {
     typingAnimation.remove(); // Убираем элемент "Печатает..." после завершения ответа
 
     await showDocuments(answer.id);
+    
 };
 
 
@@ -611,7 +612,6 @@ async function createNewDialog(userId) {
 
         if (response.ok) {
             console.log("Новый диалог создан:", data);
-            userID = userId;
             return data.dialog_id;
         } else {
             console.warn("Ошибка при создании диалога:", data.message);

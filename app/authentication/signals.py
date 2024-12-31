@@ -3,7 +3,7 @@ import logging
 from chat_dashboard.models import User
 from django.db.models.signals import post_save
 from django.core.mail import send_mail
-from django.conf import settings
+from config import settings
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.urls import reverse
@@ -19,7 +19,7 @@ def user_postsave(sender, instance, created, **kwargs):
         instance.activation_token = token
         instance.activation_token_created = timezone.now()
         instance.save()
-
+       # activation_link =  'https://chatbot.digitranslab.com'
         # Генерация ссылки активации
         activation_link = f"{settings.SITE_URL}{reverse('authentication:activate_account', args=[token])}"
 
