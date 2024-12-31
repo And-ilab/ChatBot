@@ -612,6 +612,7 @@ async function createNewDialog(userId) {
 
         if (response.ok) {
             console.log("Новый диалог создан:", data);
+            userID = userId;
             return data.dialog_id;
         } else {
             console.warn("Ошибка при создании диалога:", data.message);
