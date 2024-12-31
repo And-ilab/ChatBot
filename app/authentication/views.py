@@ -12,7 +12,7 @@ from django.contrib.auth import views as auth_views
 import json
 from django.http import JsonResponse
 
-from django.conf import settings
+
 from .utils import generate_jwt
 from django.contrib.auth.decorators import login_required
 from chat_dashboard.models import Settings, User
