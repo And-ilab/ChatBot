@@ -27,6 +27,8 @@ from django.views.generic import View
 from django.http import JsonResponse
 from django.core.mail import send_mail
 from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetCompleteView
+from config import settings
+
 
 logger = logging.getLogger(__name__)
 
@@ -203,7 +205,7 @@ class CustomPasswordResetView(View):
         if user:
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-            reset_link = f"http://127.0.0.1:8000/authentication/reset/{uid}/{token}/"  # Замените на ваш домен
+            reset_link = f"http://{settings.SITE_URL}/authentication/reset/{uid}/{token}/"  # Замените на ваш домен
 
             subject = "Сброс пароля"
             message = render_to_string('authentication/password_reset_email.html', {

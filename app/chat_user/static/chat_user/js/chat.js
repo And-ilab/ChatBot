@@ -500,31 +500,40 @@ const showQuestionsButtons = async (topicName) => {
 };
 
 const showAnswer = async (questionID) => {
+    // Удаляем существующую анимацию, если она есть
+    let existingTypingAnimation = document.querySelector('.typing-animation');
+    if (existingTypingAnimation) {
+        existingTypingAnimation.remove();
+    }
+
+    // Создаём новую анимацию
     const typingAnimation = document.createElement('div');
     typingAnimation.classList.add('typing-animation');
-    const spanText = document.createElement('span');
-    typingAnimation.appendChild(spanText);
     chatMessages.appendChild(typingAnimation);
 
     const randomDelay = Math.floor(Math.random() * 2000) + 2000; // 2000-4000 миллисекунд
     await new Promise(resolve => setTimeout(resolve, randomDelay));
 
     const answer = await fetchAnswer(questionID);
-    typingAnimation.style.display = 'none';
 
     // Делим ответ по абзацам
     const answerParts = answer.content.split('\n\n'); // Разделение по двойным переводам строки
 
     for (const part of answerParts) {
         if (part.trim()) { // Проверяем, что часть не пустая
+            chatMessages.appendChild(typingAnimation); // Перемещаем "Печатает..." в конец
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Задержка между абзацами, 3-4 секунды
             appendMessage('bot', part, getTimestamp());
             await sendBotMessage(part);
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Задержка между абзацами, например, 1 секунда
         }
     }
 
+    typingAnimation.remove(); // Убираем элемент "Печатает..." после завершения ответа
+
     await showDocuments(answer.id);
 };
+
+
 
 const showDocuments = async (answerID) => {
     const documentsData = await fetchDocuments(answerID);
