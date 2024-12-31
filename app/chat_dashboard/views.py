@@ -725,10 +725,7 @@ def get_info(request, user_id):
 def settings_view(request):
     settings, created = Settings.objects.get_or_create(id=1)
 
-
-    months = list(range(1, 25))  # Список от 1 до 12
-
-  # Список от 1 до 24
+    months = list(range(1, 25))
     current_retention_months = settings.message_retention_days // 30 if settings.message_retention_days else 1
 
     if request.method == 'POST':
@@ -736,11 +733,13 @@ def settings_view(request):
         retention_months = request.POST.get('message_retention_months', current_retention_months)
         ldap_server = request.POST.get('ad_server', settings.ldap_server)
         domain = request.POST.get('ad_domain', settings.domain)
+        ip_address = request.POST.get('ip_address', settings.ip_address)
 
         settings.ad_enabled = enable_ad
         settings.message_retention_days = int(retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
         settings.ldap_server = ldap_server
         settings.domain = domain
+        settings.ip_address = ip_address  # Обновление IP
         settings.save()
 
         return JsonResponse({'status': 'success', 'ad_enabled': settings.ad_enabled, 'message_retention_days': settings.message_retention_days})
@@ -749,15 +748,17 @@ def settings_view(request):
         'settings': settings,
         'months': months,
         'current_retention_months': current_retention_months,
+        'ip_address': settings.ip_address
     })
-
 
 def update_session_duration(request):
     if request.method == 'POST':
         try:
             session_duration = int(request.POST.get('session_duration'))
+            ip_address = request.POST.get('ip_address')
             settings = Settings.objects.first()
             settings.session_duration = session_duration
+            settings.ip_address = ip_address  # Обновление IP
             settings.save()
             return JsonResponse({'status': 'success', 'message': 'Длительность сессии успешно обновлена!'})
 

@@ -10,20 +10,25 @@
             <h3 class="mb-0">Обучение</h3>
         </div>
         <div class="input-group border rounded w-75 mt-3">
-            <input type="text" class="form-control border-0" placeholder="Поиск..." aria-label="Поиск">
-            <button class="btn btn-light border-0" type="button">
+            <input type="text" class="form-control border-0" placeholder="Поиск..." aria-label="Поиск"
+                   data-bs-toggle="tooltip" data-bs-placement="top" title="Поиск неотвеченных или игнорируемых сообщений по имени пользователя">
+
+            <button class="btn btn-light border-0" type="button"
+                    data-bs-toggle="tooltip" data-bs-placement="top" title="Нажмите для поиска">
                 <i class="bi bi-search"></i>
             </button>
         </div>
         <div class="d-flex flex-column gap-2 mt-4">
-            <button id="btn-unread" class="btn custom-btn d-flex justify-content-between align-items-center">
+            <button id="btn-unread" class="btn custom-btn d-flex justify-content-between align-items-center"
+                    data-bs-toggle="tooltip" data-bs-placement="right" title="Вопросы пользователей, оставшиеся без ответа">
                 <span class="d-flex align-items-center gap-2">
                     <i class="bi bi-envelope"></i>
                     Неотвеченные сообщения
                 </span>
                 <span id="unread-indicator" class="indicator {% if unread_messages|length == 0 %}hidden{% endif %}">{{ unread_messages|length }}</span>
             </button>
-            <button id="btn-ignored" class="btn custom-btn d-flex justify-content-between align-items-center">
+            <button id="btn-ignored" class="btn custom-btn d-flex justify-content-between align-items-center"
+                    data-bs-toggle="tooltip" data-bs-placement="right" title="Проигнорированные вопросы пользователей">
                 <span class="d-flex align-items-center gap-2">
                     <i class="bi bi-slash-circle"></i>
                     Игнорируемые сообщения
@@ -96,4 +101,13 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
 {% endblock %}

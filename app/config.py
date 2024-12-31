@@ -32,4 +32,5 @@ class Settings:
     login_orientdb = os.getenv("login_orientdb")
     pass_orientdb = os.getenv("pass_orientdb")
 
+
 settings = Settings()

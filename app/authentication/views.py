@@ -1,4 +1,6 @@
 import logging
+
+from click import pause
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
 from .forms import UserRegistrationForm, CustomUserLoginForm
@@ -83,15 +85,13 @@ def login_view(request):
                     try:
                         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
                         role = payload.get('role')
+                        logger.info(f"payload:{payload}")
+                        print(payload)
 
                         if role in ['admin', 'operator']:
                             logger.info(f"User {username} with role {role} redirected to admin dashboard.")
                             return JsonResponse(
                                 {'message': 'Вход успешен!', 'redirect': reverse('chat_dashboard:archive')}, status=200)
-                        else:
-                            logger.info(f"User {username} redirected to chat.")
-                            return JsonResponse({'message': 'Вход успешен!', 'redirect': reverse('chat_user:chat')},
-                                                status=200)
                     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
                         messages.error(request, 'Ошибка при обработке токена.')
                         logger.error("Token error during login.")

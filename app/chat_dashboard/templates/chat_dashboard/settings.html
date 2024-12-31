@@ -5,7 +5,8 @@
 
 {% block content %}
 <div class="d-flex h-100 justify-center items-center" style="height: 100%; margin-left: 50px;">
-    <div class="settings-sidebar bg-white shadow-lg rounded-lg w-full sm:w-96 max-w-lg space-y-6" style="padding: 50px;">
+    <div class="settings-sidebar bg-white shadow-lg rounded-lg w-full sm:w-96 max-w-lg space-y-6"
+         style="padding: 50px;">
         <div class="sidebar-header text-center border-b pb-4 mb-6">
             <h3 class="text-2xl font-semibold text-gray-800">Настройки</h3>
         </div>
@@ -26,50 +27,64 @@
                        class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-600">
             </div>
 
-            <div id="ad-parameters" style="display: {% if settings.ad_enabled %}block{% else %}none{% endif %};" class="mb-6">
+            <div id="ad-parameters" style="display: {% if settings.ad_enabled %}block{% else %}none{% endif %};"
+                 class="mb-6">
                 <h5 class="text-lg font-medium text-gray-700 mb-4">Настройки авторизации:</h5>
 
                 <div class="form-group mb-4">
-                    <label for="ad_server" class="block text-md font-medium text-gray-600">Название LDAP сервера (например: ldap://company.local):</label>
+                    <label for="ad_server" class="block text-md font-medium text-gray-600">Название LDAP сервера
+                        (например: ldap://company.local):</label>
                     <input type="text" id="ad_server" name="ad_server" value="{{ settings.ldap_server }}"
                            class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600">
                 </div>
 
                 <div class="form-group mb-4">
-                    <label for="ad_domain" class="block text-md font-medium text-gray-600">Домен (например: COMPANY):</label>
+                    <label for="ad_domain" class="block text-md font-medium text-gray-600">Домен (например:
+                        COMPANY):</label>
                     <input type="text" id="ad_domain" name="ad_domain" value="{{ settings.domain }}"
                            class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600">
                 </div>
             </div>
 
             <div class="form-group mb-4">
-                <label for="message_retention_months" class="block text-md font-medium text-gray-600">Срок хранения сообщений (в месяцах):</label>
+                <label for="ip_address" class="block text-md font-medium text-gray-600">IP-адрес:</label>
+                <input type="text" id="ip_address" name="ip_address" value="{{ settings.ip_address }}"
+                       class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600">
+            </div>
+
+            <div class="form-group mb-4">
+                <label for="message_retention_months" class="block text-md font-medium text-gray-600">Срок хранения
+                    сообщений (в месяцах):</label>
                 <select id="message_retention_months" name="message_retention_months"
                         class="form-select mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600">
                     {% for month in months %}
-                        <option value="{{ month }}" {% if month == current_retention_months %}selected{% endif %}>
-                            {{ month }}
-                        </option>
+                    <option value="{{ month }}" {% if month == current_retention_months %}selected{% endif %}>
+                        {{ month }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
 
             <div class="form-group mb-4">
-                <label for="session_duration" class="block text-md font-medium text-gray-600">Длительность сессии (в минутах):</label>
-                <input type="number" id="session_duration" name="session_duration" value="{{ settings.session_duration }}"
+                <label for="session_duration" class="block text-md font-medium text-gray-600">Длительность сессии (в
+                    минутах):</label>
+                <input type="number" id="session_duration" name="session_duration"
+                       value="{{ settings.session_duration }}"
                        class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600"
                        min="5" max="120" style="-moz-appearance: textfield; -webkit-appearance: none;">
             </div>
 
-            <button type="button" id="save-settings" class="btn btn-success mt-4 w-full py-3 text-white font-semibold bg-blue-500 rounded-lg hover:bg-blue-600 transition" style="display: none;">
+            <button type="button" id="save-settings"
+                    class="btn btn-success mt-4 w-full py-3 text-white font-semibold bg-blue-500 rounded-lg hover:bg-blue-600 transition"
+                    style="display: none;">
                 Сохранить
             </button>
         </form>
 
         {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-success mt-3 p-4 text-white bg-green-500 rounded-lg">{{ message }}</div>
-            {% endfor %}
+        {% for message in messages %}
+        <div class="alert alert-success mt-3 p-4 text-white bg-green-500 rounded-lg">{{ message }}</div>
+        {% endfor %}
         {% endif %}
     </div>
 </div>
@@ -82,6 +97,8 @@
     const adServerInput = document.getElementById('ad_server');
     const adDomainInput = document.getElementById('ad_domain');
     const sessionDurationInput = document.getElementById('session_duration');
+    const ipAddressInput = document.getElementById('ip_address');
+
 
     // Функция для показа кнопки "Сохранить"
     function showSaveButton() {
@@ -95,12 +112,14 @@
 
     retentionSelect.addEventListener('change', showSaveButton);
     adServerInput.addEventListener('input', showSaveButton);
+    ipAddressInput.addEventListener('input', showSaveButton);
     adDomainInput.addEventListener('input', showSaveButton);
     sessionDurationInput.addEventListener('input', showSaveButton);
 
     saveButton.addEventListener('click', function() {
         const formData = new FormData();
         formData.append('session_duration', sessionDurationInput.value);
+        formData.append('ip_address', ipAddressInput.value);
         const csrftoken = document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1];
 
         fetch('/api/update-session/', {
@@ -114,7 +133,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('Длительность сессии успешно обновлена!');
+                alert('Изменения сохранены!');
                 saveButton.style.display = 'none';
             } else {
                 alert('Ошибка при сохранении: ' + data.message);

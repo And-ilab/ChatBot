@@ -125,6 +125,7 @@ class Settings(models.Model):
     ldap_server = models.CharField(max_length=100, default='ldap://company.local')
     domain = models.CharField(max_length=50, default='COMPANY')
     session_duration = models.PositiveIntegerField(default=30)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
 
     def __str__(self):
 
