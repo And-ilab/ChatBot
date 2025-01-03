@@ -3,7 +3,7 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.contrib import messages
 import jwt
-from django.conf import settings
+from config import settings
 
 def role_required(required_roles):
     def decorator(view_func):
@@ -15,6 +15,7 @@ def role_required(required_roles):
                     # Декодирование токена
                     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
                     user_role = payload.get('role')
+
 
                     # Проверка роли
                     if user_role in required_roles:  # Проверяем, находится ли роль в списке разрешенных

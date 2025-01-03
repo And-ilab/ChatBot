@@ -53,8 +53,7 @@
         </ul>
         <div class="account-wrapper">
 {% if user.is_authenticated %}
-    <!-- Settings Button -->
-    {% if user.role == 'admin' %}  <!-- Проверка на роль admin -->
+    {% if user.role == 'admin' %}
         <a href="{% url 'chat_dashboard:settings' %}" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right" title="Настройки">
             <i class="fa fa-cog"></i>
         </a>

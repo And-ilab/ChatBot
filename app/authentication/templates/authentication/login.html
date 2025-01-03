@@ -5,7 +5,8 @@
 
 {% block content %}
 <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
-    <div class="form-container" style="max-width: 600px; padding: 30px; background-color: rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+    <div class="form-container"
+         style="max-width: 600px; padding: 30px; background-color: rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
         <h2 class="text-center mb-4">Вход</h2>
 
         <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
@@ -25,7 +26,8 @@
             </div>
         </form>
         <div class="text-center mt-4">
-            <p>Нет аккаунта? <a href="{% url 'authentication:register' %}" class="text-decoration-none">Зарегистрироваться</a></p>
+            <p>Нет аккаунта? <a href="{% url 'authentication:register' %}" class="text-decoration-none">Зарегистрироваться</a>
+            </p>
             <p><a href="#" class="text-decoration-none" onclick="showPasswordResetModal();">Забыли пароль?</a></p>
         </div>
     </div>
@@ -37,7 +39,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Сброс пароля</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closePasswordResetModal();">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                        onclick="closePasswordResetModal();">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -54,7 +57,7 @@
 </div>
 
 <!-- Подключение Toastr -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
@@ -78,34 +81,40 @@
     };
 
     function handleLogin(event) {
-        event.preventDefault();
+    event.preventDefault();
 
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
 
-        fetch("{% url 'authentication:login' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
-        })
-        .then(response => {
-            return response.json().then(data => {
-                if (response.ok) {
-                    window.location.href = data.redirect;  // Перенаправление
-                } else {
-                    const errorMessage = data.error || 'Введён неверный пароль либо такого пользователя не существует!';
-                    toastr.error(errorMessage, 'Ошибка');
-                }
-            });
-        })
-        .catch(error => {
-            console.error('Ошибка:', error);
-            toastr.error('Произошла ошибка. Попробуйте ещё раз.', 'Ошибка');
-        });
+    console.log('Функция handleLogin вызвана');
+
+fetch("{% url 'authentication:login' %}", {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+})
+.then(response => response.json()) // Парсим JSON-ответ
+.then(data => {
+    console.log('Ответ от сервера:', data);
+
+    if (data.redirect) {
+        console.log('Редирект на:', data.redirect);
+        window.location.href = data.redirect;  // Перенаправление
+    } else if (data.error) {
+        toastr.error(data.error, 'Ошибка');
+    } else {
+        toastr.error('Неизвестная ошибка.', 'Ошибка');
     }
+})
+.catch(error => {
+    console.error('Ошибка сети:', error.message);
+    toastr.error('Произошла ошибка. Попробуйте ещё раз.', 'Ошибка');
+});
+
+}
 
     function showPasswordResetModal() {
         document.getElementById('passwordResetModal').style.display = 'block';

@@ -81,65 +81,103 @@
             </button>
         </form>
 
-        {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-success mt-3 p-4 text-white bg-green-500 rounded-lg">{{ message }}</div>
-        {% endfor %}
-        {% endif %}
     </div>
 </div>
 
 <script>
-    const enableAdCheckbox = document.getElementById('enable_ad');
-    const adParameters = document.getElementById('ad-parameters');
-    const saveButton = document.getElementById('save-settings');
-    const retentionSelect = document.getElementById('message_retention_months');
-    const adServerInput = document.getElementById('ad_server');
-    const adDomainInput = document.getElementById('ad_domain');
-    const sessionDurationInput = document.getElementById('session_duration');
-    const ipAddressInput = document.getElementById('ip_address');
+const enableAdCheckbox = document.getElementById('enable_ad');
+const adParameters = document.getElementById('ad-parameters');
+const saveButton = document.getElementById('save-settings');
+const retentionSelect = document.getElementById('message_retention_months');
+const adServerInput = document.getElementById('ad_server');
+const adDomainInput = document.getElementById('ad_domain');
+const sessionDurationInput = document.getElementById('session_duration');
+const ipAddressInput = document.getElementById('ip_address');
+const statusText = document.querySelector('.status p'); // Элемент для статуса AD
 
+// Сохраняем исходные значения формы
+const initialValues = {
+    enableAd: enableAdCheckbox.checked,
+    retentionSelect: retentionSelect.value,
+    adServer: adServerInput.value,
+    adDomain: adDomainInput.value,
+    sessionDuration: sessionDurationInput.value,
+    ipAddress: ipAddressInput.value,
+};
 
-    // Функция для показа кнопки "Сохранить"
-    function showSaveButton() {
-        saveButton.style.display = 'block';
-    }
+// Проверяет, есть ли изменения в форме
+function hasChanges() {
+    return (
+        enableAdCheckbox.checked !== initialValues.enableAd ||
+        retentionSelect.value !== initialValues.retentionSelect ||
+        adServerInput.value !== initialValues.adServer ||
+        adDomainInput.value !== initialValues.adDomain ||
+        sessionDurationInput.value !== initialValues.sessionDuration ||
+        ipAddressInput.value !== initialValues.ipAddress
+    );
+}
 
-    enableAdCheckbox.addEventListener('change', function() {
-        adParameters.style.display = this.checked ? 'block' : 'none';
-        showSaveButton();
-    });
+// Показ или скрытие кнопки "Сохранить" в зависимости от изменений
+function toggleSaveButton() {
+    saveButton.style.display = hasChanges() ? 'block' : 'none';
+}
 
-    retentionSelect.addEventListener('change', showSaveButton);
-    adServerInput.addEventListener('input', showSaveButton);
-    ipAddressInput.addEventListener('input', showSaveButton);
-    adDomainInput.addEventListener('input', showSaveButton);
-    sessionDurationInput.addEventListener('input', showSaveButton);
+// Обработчики событий для полей формы
+enableAdCheckbox.addEventListener('change', () => {
+    adParameters.style.display = enableAdCheckbox.checked ? 'block' : 'none';
+    toggleSaveButton();
+});
+retentionSelect.addEventListener('change', toggleSaveButton);
+adServerInput.addEventListener('input', toggleSaveButton);
+ipAddressInput.addEventListener('input', toggleSaveButton);
+adDomainInput.addEventListener('input', toggleSaveButton);
+sessionDurationInput.addEventListener('input', toggleSaveButton);
 
-    saveButton.addEventListener('click', function() {
-        const formData = new FormData();
-        formData.append('session_duration', sessionDurationInput.value);
-        formData.append('ip_address', ipAddressInput.value);
-        const csrftoken = document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1];
+// Обработчик для кнопки "Сохранить"
+saveButton.addEventListener('click', function () {
+    const formData = new FormData();
+    formData.append('session_duration', sessionDurationInput.value);
+    formData.append('ip_address', ipAddressInput.value);
+    formData.append('ad_server', adServerInput.value);
+    formData.append('ad_domain', adDomainInput.value);
+    formData.append('message_retention_months', retentionSelect.value);
+    formData.append('enable_ad', enableAdCheckbox.checked ? 'on' : 'off'); // Добавлено
 
-        fetch('/api/update-session/', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': csrftoken
-            }
-        })
+    const csrftoken = document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1];
+
+    fetch('/api/update-session/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrftoken
+        }
+    })
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
                 alert('Изменения сохранены!');
                 saveButton.style.display = 'none';
+
+                // Обновляем исходные значения после успешного сохранения
+                initialValues.enableAd = enableAdCheckbox.checked;
+                initialValues.retentionSelect = retentionSelect.value;
+                initialValues.adServer = adServerInput.value;
+                initialValues.adDomain = adDomainInput.value;
+                initialValues.sessionDuration = sessionDurationInput.value;
+                initialValues.ipAddress = ipAddressInput.value;
+
+                // Обновляем статус AD на странице
+                statusText.textContent = enableAdCheckbox.checked ? 'Включена' : 'Отключена';
+                statusText.style.color = enableAdCheckbox.checked ? 'green' : 'red';
             } else {
                 alert('Ошибка при сохранении: ' + data.message);
             }
         })
         .catch(error => console.error('Ошибка:', error));
-    });
+});
+
+// Проверяем начальное состояние формы при загрузке страницы
+toggleSaveButton();
 </script>
 {% endblock %}

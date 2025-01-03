@@ -1,5 +1,5 @@
 import jwt
-from django.conf import settings
+from config import settings
 from django.shortcuts import redirect
 from django.utils import timezone
 from datetime import timedelta

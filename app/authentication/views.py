@@ -86,12 +86,12 @@ def login_view(request):
                         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
                         role = payload.get('role')
                         logger.info(f"payload:{payload}")
-                        print(payload)
+
 
                         if role in ['admin', 'operator']:
                             logger.info(f"User {username} with role {role} redirected to admin dashboard.")
                             return JsonResponse(
-                                {'message': 'Вход успешен!', 'redirect': reverse('chat_dashboard:archive')}, status=200)
+                                {"message": "Вход успешен!", "redirect": reverse('chat_dashboard:archive')}, status=200)
                     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
                         messages.error(request, 'Ошибка при обработке токена.')
                         logger.error("Token error during login.")

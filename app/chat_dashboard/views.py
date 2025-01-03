@@ -22,7 +22,6 @@ from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -272,7 +271,8 @@ def create_node(request):
             url = settings.URL_for_orientDB
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
-            response = requests.post(url, headers=headers, json=json_data, auth=(settings.login_orientdb, settings.pass_orientdb))
+            response = requests.post(url, headers=headers, json=json_data,
+                                     auth=(settings.login_orientdb, settings.pass_orientdb))
 
             if response.status_code == 200:
                 logger.info(f"Node created successfully: {response.text}")
@@ -286,7 +286,8 @@ def create_node(request):
 
             else:
                 logger.error(f"Error fetching data: HTTP {response.status_code} - {response.text}")
-                return JsonResponse({'error': f"Error {response.status_code}: {response.text}"}, status=response.status_code)
+                return JsonResponse({'error': f"Error {response.status_code}: {response.text}"},
+                                    status=response.status_code)
 
         except Exception as e:
             logger.error(f"Error in creating node: {e}")
@@ -314,7 +315,8 @@ def create_relation(request):
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": command}
 
-            response = requests.post(url, headers=headers, json=json_data, auth=(settings.login_orientdb, settings.pass_orientdb))
+            response = requests.post(url, headers=headers, json=json_data,
+                                     auth=(settings.login_orientdb, settings.pass_orientdb))
 
             logger.info(f"Relation created between nodes {start_node_id} and {end_node_id}.")
             return JsonResponse({'message': 'Relation successfully created'}, status=201)
@@ -335,8 +337,8 @@ def get_nodes(request):
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
 
-            response = requests.post(url, headers=headers, json=json_data, auth=(settings.login_orientdb, settings.pass_orientdb))
-
+            response = requests.post(url, headers=headers, json=json_data,
+                                     auth=(settings.login_orientdb, settings.pass_orientdb))
 
             if response.status_code == 200:
                 logger.info(f"Nodes get successfully: {response.text}")
@@ -350,7 +352,8 @@ def get_nodes(request):
 
             else:
                 logger.error(f"Error fetching data: HTTP {response.status_code} - {response.text}")
-                return JsonResponse({'error': f"Error {response.status_code}: {response.text}"}, status=response.status_code)
+                return JsonResponse({'error': f"Error {response.status_code}: {response.text}"},
+                                    status=response.status_code)
         except Exception as e:
             logger.exception("An error occurred while fetching nodes.")
             return JsonResponse({'error': str(e)}, status=400)
@@ -494,14 +497,14 @@ def get_last_message_subquery(field):
     return Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values(field)[:1]
 
 
-#@role_required(['admin', 'operator'])
-#def archive(request):
+# @role_required(['admin', 'operator'])
+# def archive(request):
 #    """Displays the archive of dialogs with the last messages."""
 #    logger.info("Accessing archive page.")
-   # delete_old_messages()
+# delete_old_messages()
 #    user = request.user
 
-    # Подзапросы для получения активности пользователей
+# Подзапросы для получения активности пользователей
 #    latest_session_query = Session.objects.filter(user=OuterRef('user_id')).order_by('-expires_at')
 #    user_last_active = latest_session_query.values('expires_at')[:1]
 #    user_is_online = Case(
@@ -536,7 +539,7 @@ def get_last_message_subquery(field):
 #        is_online=Subquery(latest_session_query.annotate(is_active=user_is_online).values('is_active')[:1]),
 #    ).filter(has_messages=True).order_by('-last_message_timestamp')
 
-    # Статусы активности для рендеринга
+# Статусы активности для рендеринга
 #    user_statuses = {
 #        dialog.user.id: {
 #            'last_active': dialog.last_active,
@@ -590,6 +593,7 @@ def archive(request):
         'dialogs': dialogs,
         'user': user,
     })
+
 
 def create_or_edit_content(request):
     return render(request, 'chat_dashboard/edit_content.html')
@@ -728,21 +732,23 @@ def settings_view(request):
     months = list(range(1, 25))
     current_retention_months = settings.message_retention_days // 30 if settings.message_retention_days else 1
 
-    if request.method == 'POST':
-        enable_ad = request.POST.get('enable_ad') == 'on'
-        retention_months = request.POST.get('message_retention_months', current_retention_months)
-        ldap_server = request.POST.get('ad_server', settings.ldap_server)
-        domain = request.POST.get('ad_domain', settings.domain)
-        ip_address = request.POST.get('ip_address', settings.ip_address)
-
-        settings.ad_enabled = enable_ad
-        settings.message_retention_days = int(retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
-        settings.ldap_server = ldap_server
-        settings.domain = domain
-        settings.ip_address = ip_address  # Обновление IP
-        settings.save()
-
-        return JsonResponse({'status': 'success', 'ad_enabled': settings.ad_enabled, 'message_retention_days': settings.message_retention_days})
+    # if request.method == 'POST':
+    #     enable_ad = request.POST.get('enable_ad') == 'on'
+    #     retention_months = request.POST.get('message_retention_months', current_retention_months)
+    #     ldap_server = request.POST.get('ad_server', settings.ldap_server)
+    #     domain = request.POST.get('ad_domain', settings.domain)
+    #     ip_address = request.POST.get('ip_address', settings.ip_address)
+    #
+    #     settings.ad_enabled = enable_ad
+    #     settings.message_retention_days = int(
+    #         retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
+    #     settings.ldap_server = ldap_server
+    #     settings.domain = domain
+    #     settings.ip_address = ip_address  # Обновление IP
+    #     settings.save()
+    #
+    #     return JsonResponse({'status': 'success', 'ad_enabled': settings.ad_enabled,
+    #                          'message_retention_days': settings.message_retention_days})
 
     return render(request, 'chat_dashboard/settings.html', {
         'settings': settings,
@@ -751,16 +757,28 @@ def settings_view(request):
         'ip_address': settings.ip_address
     })
 
+
 def update_session_duration(request):
     if request.method == 'POST':
         try:
             session_duration = int(request.POST.get('session_duration'))
             ip_address = request.POST.get('ip_address')
+            enable_ad = request.POST.get('enable_ad') == 'on'  # Проверяем на 'on'
+            ldap_server = request.POST.get('ad_server')
+            domain = request.POST.get('ad_domain')
+            retention_months = request.POST.get('message_retention_months')
+
             settings = Settings.objects.first()
             settings.session_duration = session_duration
-            settings.ip_address = ip_address  # Обновление IP
+            settings.ip_address = ip_address
+            settings.ad_enabled = enable_ad  # Обновляем значение AD
+            settings.ldap_server = ldap_server
+            settings.domain = domain
+            settings.message_retention_days = int(
+                retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
             settings.save()
-            return JsonResponse({'status': 'success', 'message': 'Длительность сессии успешно обновлена!'})
+
+            return JsonResponse({'status': 'success', 'message': 'Настройки успешно обновлены!'})
 
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
