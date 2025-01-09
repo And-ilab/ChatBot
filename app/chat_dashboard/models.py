@@ -37,7 +37,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50, unique=True)
     first_name = models.CharField(max_length=50)  # Новое поле
     last_name = models.CharField(max_length=50, blank=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='operator')
     is_staff = models.BooleanField(default=False)
     last_active = models.DateTimeField(null=True, blank=True)
     is_online = models.BooleanField(default=False)
@@ -46,7 +46,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     activation_token_created = models.DateTimeField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        # Генерация username как первая буква имени + фамилия
         if not self.username:
             self.username = f"{self.first_name[0].upper()}.{self.last_name}"
         super().save(*args, **kwargs)

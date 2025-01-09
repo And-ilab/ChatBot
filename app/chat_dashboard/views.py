@@ -445,6 +445,7 @@ def user_create(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
+            user.is_active = True
             user.save()
             logger.info(f"User created: ID={user.id}, Username={user.username}, Email={user.email}")
             return redirect('chat_dashboard:user_list')
@@ -731,24 +732,6 @@ def settings_view(request):
 
     months = list(range(1, 25))
     current_retention_months = settings.message_retention_days // 30 if settings.message_retention_days else 1
-
-    # if request.method == 'POST':
-    #     enable_ad = request.POST.get('enable_ad') == 'on'
-    #     retention_months = request.POST.get('message_retention_months', current_retention_months)
-    #     ldap_server = request.POST.get('ad_server', settings.ldap_server)
-    #     domain = request.POST.get('ad_domain', settings.domain)
-    #     ip_address = request.POST.get('ip_address', settings.ip_address)
-    #
-    #     settings.ad_enabled = enable_ad
-    #     settings.message_retention_days = int(
-    #         retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
-    #     settings.ldap_server = ldap_server
-    #     settings.domain = domain
-    #     settings.ip_address = ip_address  # Обновление IP
-    #     settings.save()
-    #
-    #     return JsonResponse({'status': 'success', 'ad_enabled': settings.ad_enabled,
-    #                          'message_retention_days': settings.message_retention_days})
 
     return render(request, 'chat_dashboard/settings.html', {
         'settings': settings,
