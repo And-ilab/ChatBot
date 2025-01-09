@@ -29,13 +29,19 @@
                     <i class="fa fa-chart-line"></i>
                 </a>
             </li>
-            <li class="nav-item">
+            {% if user.is_authenticated %}
+    {% if user.role == 'admin' %}
                 <a href="{% url 'chat_dashboard:user_list' %}"
                   class="nav-link{% if request.path == '/chat_dashboard/users/' %} active{% endif %}"
                    data-bs-toggle="tooltip" data-bs-placement="right" title="Управление пользователями">
                     <i class="fa fa-users"></i>
                 </a>
-            </li>
+    {% else %}
+        <a href="javascript:void(0);" class="nav-link disabled text-muted" data-bs-toggle="tooltip" data-bs-placement="right" title="У вас нет прав для доступа">
+            <i class="fa fa-users"></i>
+        </a>
+    {% endif %}
+ {% endif %}
             <li class="nav-item">
                 <a href="{% url 'chat_dashboard:training' %}"
                    class="nav-link{% if request.path == '/chat_dashboard/training/' %} active{% endif %}"
