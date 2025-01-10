@@ -595,7 +595,7 @@ def archive(request):
         'user': user,
     })
 
-
+@role_required(['admin', 'operator'])
 def create_or_edit_content(request):
     return render(request, 'chat_dashboard/edit_content.html')
 

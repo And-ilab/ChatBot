@@ -94,13 +94,19 @@ async function checkUserSession() {
 
 chatToggle.addEventListener('click', async () => {
     chatWindow.style.display = 'block';
+
+    // Скрываем все окна перед проверкой сессии
+    extendSessionWindow.style.display = 'none';
+    chatLogin.style.display = 'none';
+    chatMessages.style.display = 'none';
+
     const result = await checkUserSession();
     console.log(result);
 
     switch (result.status) {
         case "login":
             console.log("Сессия отсутствует. Пожалуйста, войдите.");
-            chatLogin.style.display = 'flex';  
+            chatLogin.style.display = 'flex';
             break;
         case "success":
             console.log("Добро пожаловать! Продолжайте работу.");
@@ -114,7 +120,6 @@ chatToggle.addEventListener('click', async () => {
         case "error":
             alert(`Ошибка: ${result.message}`);
             break;
-
         default:
             console.error("Неизвестный статус:", result.status);
     }
