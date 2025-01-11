@@ -46,6 +46,7 @@ urlpatterns = [
     path('api/chat-login/', chat_views.chat_login, name='chat_login'),
     path('api/check-session/', chat_views.check_session, name='check_session'),
     path("api/extend-session/", chat_views.extend_session, name="extend_session"),
+    path("api/close-session/", chat_views.close_session, name="close_session"),
     path('api/update-answer/', chat_views.update_answer, name='update_answer'),
     path('api/update-question/', chat_views.update_question, name='update_question'),
     path('api/user/<int:user_id>/', chat_views.get_user_details, name='get_user_details'),

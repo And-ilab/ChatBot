@@ -3,9 +3,9 @@ import jwt
 import logging
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from django.shortcuts import render, get_object_or_404
-from django.utils.timezone import now
+from django.utils.timezone import make_aware, now
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -25,20 +25,16 @@ def user_chat(request):
 def chat_login(request):
     if request.method == "POST":
         try:
-            # Получение данных из тела запроса
             data = json.loads(request.body)
             first_name = data.get("first_name")
             last_name = data.get("last_name")
             email = data.get("email")
-
-            # Логирование полученных данных
             logger.info(f"Received login request: first_name={first_name}, last_name={last_name}, email={email}")
         except KeyError as e:
             logger.error(f"KeyError: Missing key {str(e)} in request data.")
             return JsonResponse({"status": "error", "message": "Invalid data."}, status=400)
 
         try:
-            # Получение или создание пользователя
             user, created = ChatUser.objects.get_or_create(email=email, defaults={
                 "first_name": first_name,
                 "last_name": last_name
@@ -49,23 +45,18 @@ def chat_login(request):
             else:
                 logger.info(f"Existing user logged in with email {email}.")
 
-            # Получаем длительность сессии из таблицы settings
-            session_duration_minutes = Settings.objects.first().session_duration  # предполагается, что есть хотя бы одна запись в settings
+            session_duration_minutes = Settings.objects.first().session_duration
             logger.info(f"Session duration set to {session_duration_minutes} minutes.")
 
-            # Создание JWT
             payload = {
                 "user_id": user.id,
                 "email": user.email,
-                "exp": datetime.utcnow() + timedelta(minutes=session_duration_minutes),  # Время истечения токена
+                "exp": datetime.now(timezone.utc) + timedelta(minutes=session_duration_minutes),
             }
             session_token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-
-            # Логирование успешного создания токена
             logger.info(f"JWT created for user {user.email} with token {session_token}.")
 
-            # Создание записи сессии в базе данных
-            expires_at = datetime.utcnow() + timedelta(minutes=session_duration_minutes)
+            expires_at = datetime.now(timezone.utc) + timedelta(minutes=session_duration_minutes)
             session = Session.objects.create(
                 user=user,
                 session_token=session_token,
@@ -83,7 +74,6 @@ def chat_login(request):
             logger.error(f"Error occurred while creating session: {str(e)}")
             return JsonResponse({"status": "error", "message": "Internal server error."}, status=500)
 
-    # Логирование при попытке использовать не-POST запрос
     logger.warning("Attempted to access chat_login with a non-POST request.")
     return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
 
@@ -114,7 +104,7 @@ def check_session(request):
                     "expires_at": session.expires_at,
                 }, status=200)
             else:
-                logger.warning(f"Session for user {session.user.email} is expired.")
+                logger.warning(f"Session for user {session.user.email} need be expired or create a new one.")
                 return JsonResponse({
                     "status": "expired",
                     "message": "Сессия истекла. Необходимо создать новую."
@@ -134,58 +124,97 @@ def check_session(request):
 
 @csrf_exempt
 def extend_session(request):
-    if request.method == "POST":
-        session_token = request.headers.get("Authorization")
+    if request.method != "POST":
+        logger.warning("Attempted to access extend_session with a non-POST request.")
+        return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
 
-        if not session_token:
-            logger.warning("Session token not provided.")
-            return JsonResponse({"status": "error", "message": "Session token is required."}, status=400)
+    session_token = request.headers.get("Authorization")
+    if not session_token:
+        logger.info("Session token not provided.")
+        return JsonResponse({"status": "error", "message": "Session token is required."}, status=400)
 
-        try:
-            session = Session.objects.get(session_token=session_token)
-            logger.info(f"Session found for user: {session.user.email} with token: {session_token}")
+    try:
+        session = Session.objects.get(session_token=session_token)
+        logger.info(f"Session found for user: {session.user.email} with token: {session_token}")
 
-            # Ensure session is still valid and not expired
-            if session.expires_at < now():
-                logger.error(f"Session for user {session.user.email} has already expired.")
-                return JsonResponse({"status": "error", "message": "Session has already expired."}, status=401)
+        if session.expires_at > now():
+            logger.error(f"Session for user {session.user.email} has already expired.")
+            return JsonResponse({"status": "error", "message": "Session has already expired."}, status=401)
 
-            # Get session duration from settings, with fallback to a default value if settings are missing
-            try:
-                session_duration_minutes = Settings.objects.first().session_duration
-            except Settings.DoesNotExist:
-                logger.error("Settings not found, using default session duration of 30 minutes.")
-                session_duration_minutes = 30  # Fallback to default value
+        session_duration_minutes = (
+            Settings.objects.first().session_duration
+            if Settings.objects.exists() and Settings.objects.first().session_duration
+            else 5
+        )
 
-            # Update session expiration time
-            new_expires_at = now() + timedelta(minutes=session_duration_minutes)
-            session.expires_at = new_expires_at
-            session.save()
+        new_expires_at = now() + timedelta(minutes=session_duration_minutes)
+        session.expires_at = new_expires_at
+        session.save()
 
-            logger.info(f"Session for user {session.user.email} extended. New expiration: {new_expires_at}")
+        logger.info(f"Session for user {session.user.email} extended. New expiration: {new_expires_at}")
 
-            return JsonResponse({
-                "status": "success",
-                "message": "Session extended successfully.",
-                "new_expires_at": new_expires_at,
-            })
+        return JsonResponse({
+            "status": "success",
+            "message": "Session extended successfully.",
+            "new_expires_at": new_expires_at,
+        })
 
-        except Session.DoesNotExist:
-            logger.error("Session not found with provided token.")
-            return JsonResponse({
-                "status": "error",
-                "message": "Session not found. Please log in again."
-            }, status=404)
+    except Session.DoesNotExist:
+        logger.error("Session not found with provided token.")
+        return JsonResponse({
+            "status": "error",
+            "message": "Session not found. Please log in again."
+        }, status=404)
 
-        except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-            return JsonResponse({
-                "status": "error",
-                "message": "An unexpected error occurred."
-            }, status=500)
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        return JsonResponse({
+            "status": "error",
+            "message": "An unexpected error occurred."
+        }, status=500)
 
-    logger.warning("Attempted to access extend_session with a non-POST request.")
-    return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
+
+@csrf_exempt
+def close_session(request):
+    """
+    Устанавливает expires_at на текущее время для закрытия сессии.
+    """
+    if request.method != "POST":
+        logger.warning("Attempted to access close_session with a non-POST request.")
+        return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
+
+    session_token = request.headers.get("Authorization")
+    if not session_token:
+        logger.info("Session token not provided.")
+        return JsonResponse({"status": "error", "message": "Session token is required."}, status=400)
+
+    try:
+        session = Session.objects.get(session_token=session_token)
+        logger.info(f"Session found for user: {session.user.email} with token: {session_token}")
+
+        session.expires_at = now()
+        session.save()
+
+        logger.info(f"Session for user {session.user.email} marked as closed.")
+
+        return JsonResponse({
+            "status": "success",
+            "message": "Session closed successfully.",
+        })
+
+    except Session.DoesNotExist:
+        logger.error("Session not found with provided token.")
+        return JsonResponse({
+            "status": "error",
+            "message": "Session not found."
+        }, status=404)
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        return JsonResponse({
+            "status": "error",
+            "message": "An unexpected error occurred."
+        }, status=500)
 
 
 
@@ -226,24 +255,21 @@ def process_keywords(request):
 def get_nodes_by_type(request):
     """Fetch nodes of a specific type from the OrientDB database."""
 
-    # Получаем параметр 'type' из запроса
     node_type = request.GET.get('type')
+    logger.info(f"Fetching nodes of type: {node_type}")
 
-    # Проверяем, был ли предоставлен параметр 'type'
     if not node_type:
         logger.warning("Node type not provided.")
         return JsonResponse({"status": "error", "message": "Node type is required."}, status=400)
 
     logger.info(f"Fetching nodes of type: {node_type}")
-
-    # Декодируем параметр 'type' из URL формата
     node_type = urllib.parse.unquote(node_type)
 
     # Формируем URL для запроса
     url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
 
     try:
-        response = requests.get(url, auth=('root', 'guregure'))
+        response = requests.get(url, auth=('root', 'gure'))
 
         if response.status_code == 200:
             logger.info(f"Successfully fetched data for type: {node_type}")
@@ -304,7 +330,7 @@ def get_nodes_by_type_with_relation(request):
                    f"FROM (SELECT FROM {start_node_type} WHERE content = '{start_node_name}'))")
 
             try:
-                response = requests.get(url, auth=('root', 'guregure'))
+                response = requests.get(url, auth=('root', 'gure'))
 
                 # Проверка на успешность ответа
                 if not response.ok:
@@ -347,7 +373,7 @@ def get_answer(request):
                 # Отправляем запрос к базе данных для получения ответа на вопрос
                 response = requests.get(
                     url,
-                    auth=('root', 'guregure'),
+                    auth=('root', 'gure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": query}
                 )
@@ -407,7 +433,7 @@ def get_documents(request):
                 # Получаем данные документов
                 response = requests.get(
                     url,
-                    auth=('root', 'guregure'),
+                    auth=('root', 'gure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": documents_query}
                 )
@@ -432,7 +458,7 @@ def get_documents(request):
                 # Получаем данные ссылок
                 response = requests.get(
                     url,
-                    auth=('root', 'guregure'),
+                    auth=('root', 'gure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": links_query}
                 )
@@ -549,7 +575,7 @@ def update_answer(request):
             # Отправка запроса
             response = requests.get(
                 url,
-                auth=('root', 'guregure'),
+                auth=('root', 'gure'),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
@@ -606,7 +632,7 @@ def update_question(request):
             # Отправляем запрос
             response = requests.get(
                 url,
-                auth=('root', 'guregure'),
+                auth=('root', 'gure'),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )

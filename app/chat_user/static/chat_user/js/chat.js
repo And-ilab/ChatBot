@@ -25,6 +25,27 @@ let started_at;
 let navigationStack = [];
 
 
+window.addEventListener("beforeunload", async (event) => { 
+    const sessionToken = localStorage.getItem("sessionToken");
+    const eventData = JSON.stringify(event);
+
+    const response = await fetch("/api/close-session/", {
+        method: "POST",
+        headers: {
+            "Authorization": sessionToken,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ event: eventData }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Ошибка сессии:", errorData.message);
+        return { status: "error", message: errorData.message || "Неизвестная ошибка" };
+    }
+});
+
+
 closeChat.addEventListener('click', () => {
     chatWindow.style.display = 'none';
 });
@@ -53,6 +74,7 @@ const scrollToBottom = () => {
 
 async function checkUserSession() {
     const sessionToken = localStorage.getItem("sessionToken");
+    console.log(`session token ${sessionToken}`)
 
     if (!sessionToken) {
         return { status: "login", message: "Сессия отсутствует" };
@@ -77,10 +99,13 @@ async function checkUserSession() {
 
         if (data.status === "success") {
             userID = data["user_id"];
+            console.log(`success`)
             return { status: "success", data };
         } else if (data.status === "expired") {
+            console.log(`expired`)
             return { status: "expired", message: data.message };
         } else if (data.status === "login") {
+            console.log(`login`)
             return { status: "login", message: data.message };
         } else {
             console.warn("Неизвестный статус ответа:", data);
@@ -188,7 +213,9 @@ const appendMessage = (sender, content, timestamp) => {
 
     const messageDiv = document.createElement('div');
     messageDiv.className = sender === 'bot' ? 'message bot-message' : 'message user-message';
-    const time = timestamp.split(' ')[1].slice(0, 5);
+    const date = new Date(timestamp);
+    date.setHours(date.getHours() + 3);
+    const time = date.toTimeString().slice(0, 5);
     const timeClass = sender === 'bot' ? 'message-time' : 'message-time user-message-time';
 
     const messageDate = timestamp.split(' ')[0];
@@ -270,6 +297,7 @@ const fetchNodes = async (type) => {
     const encodedType = encodeURIComponent(type);
     try {
         const response = await fetch(`/api/get-nodes-by-type/?type=${encodedType}`, { method: 'GET' });
+        console.log(response);
 
         if (!response.ok) {
             // Выводим статус ошибки и текст ответа для диагностики
@@ -471,6 +499,7 @@ const goBack = async () => {
 
 const showSectionButtons = async () => {
     const nodes = await fetchNodes('Section');
+    console.log(nodes);
     createButtonsFromNodes(nodes, async (selectedNode) => {
         appendMessage('user', selectedNode.name, getTimestamp());
         await sendMessageToAPI(dialogID, 'user', selectedNode.name, getTimestamp());
@@ -648,6 +677,7 @@ async function extendSession() {
         });
 
         const data = await response.json();
+        console.log(data)
         if (response.ok) {
             console.log("Session extended:", data);
             localStorage.setItem("sessionToken", sessionToken);
