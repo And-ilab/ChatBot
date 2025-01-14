@@ -77,6 +77,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.username} ({self.role})"
 
+    def get_role_display(self):
+        return dict(self.ROLE_CHOICES).get(self.role, self.role)
+
 
 class Dialog(models.Model):
     user = models.ForeignKey('chat_user.ChatUser', on_delete=models.CASCADE)

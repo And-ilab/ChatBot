@@ -448,9 +448,18 @@ def user_create(request):
             user.is_active = True
             user.save()
             logger.info(f"User created: ID={user.id}, Username={user.username}, Email={user.email}")
-            return redirect('chat_dashboard:user_list')
+
+            # Добавление сообщения об успешном создании пользователя
+            messages.success(request,
+                             "Создана новая учетная запись. Данные для её активации направлены на указанный вами электронный адрес.")
+
+            # Оставляем пользователя на той же странице с сообщением
+            return render(request, 'chat_dashboard/user_create_form.html',
+                          {'form': UserForm(), 'messages': messages.get_messages(request)})
+
     else:
         form = UserForm()
+
     return render(request, 'chat_dashboard/user_create_form.html', {'form': form})
 
 
@@ -594,6 +603,7 @@ def archive(request):
         'dialogs': dialogs,
         'user': user,
     })
+
 
 @role_required(['admin', 'operator'])
 def create_or_edit_content(request):
@@ -767,5 +777,3 @@ def update_session_duration(request):
             return JsonResponse({'status': 'error', 'message': str(e)})
 
     return JsonResponse({'status': 'error', 'message': 'Неверный запрос'})
-
-
