@@ -767,3 +767,5 @@ def update_session_duration(request):
             return JsonResponse({'status': 'error', 'message': str(e)})
 
     return JsonResponse({'status': 'error', 'message': 'Неверный запрос'})
+
+

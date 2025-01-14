@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from django.conf import settings
 from chat_dashboard.models import Dialog, Message, Settings
 from .models import ChatUser, Session
+from chat_dashboard.models import Settings
 from urllib.parse import unquote
 
 logger = logging.getLogger('Chat')
@@ -134,59 +135,55 @@ def check_session(request):
 
 @csrf_exempt
 def extend_session(request):
+    """Функция для продления сессии."""
     if request.method == "POST":
         session_token = request.headers.get("Authorization")
 
         if not session_token:
             logger.warning("Session token not provided.")
-            return JsonResponse({"status": "error", "message": "Session token is required."}, status=400)
+            return JsonResponse({"status": "error", "message": "Токен сессии обязателен."}, status=400)
 
         try:
+            # Поиск сессии в базе данных
             session = Session.objects.get(session_token=session_token)
-            logger.info(f"Session found for user: {session.user.email} with token: {session_token}")
+            logger.info(f"Сессия найдена для пользователя: {session.user.email} с токеном: {session_token}")
 
-            # Ensure session is still valid and not expired
-            if session.expires_at < now():
-                logger.error(f"Session for user {session.user.email} has already expired.")
-                return JsonResponse({"status": "error", "message": "Session has already expired."}, status=401)
-
-            # Get session duration from settings, with fallback to a default value if settings are missing
+            # Получаем продолжительность сессии из настроек
             try:
                 session_duration_minutes = Settings.objects.first().session_duration
             except Settings.DoesNotExist:
-                logger.error("Settings not found, using default session duration of 30 minutes.")
-                session_duration_minutes = 30  # Fallback to default value
+                logger.error("Настройки не найдены, используем значение по умолчанию в 30 минут.")
+                session_duration_minutes = 30  # Значение по умолчанию
 
-            # Update session expiration time
+            # Обновляем время истечения сессии
             new_expires_at = now() + timedelta(minutes=session_duration_minutes)
             session.expires_at = new_expires_at
             session.save()
 
-            logger.info(f"Session for user {session.user.email} extended. New expiration: {new_expires_at}")
+            logger.info(f"Сессия для пользователя {session.user.email} продлена. Новое время истечения: {new_expires_at}")
 
             return JsonResponse({
                 "status": "success",
-                "message": "Session extended successfully.",
-                "new_expires_at": new_expires_at,
+                "message": "Сессия успешно продлена.",
+                "expires_at": new_expires_at,
             })
 
         except Session.DoesNotExist:
-            logger.error("Session not found with provided token.")
+            logger.error("Сессия не найдена с предоставленным токеном.")
             return JsonResponse({
                 "status": "error",
-                "message": "Session not found. Please log in again."
+                "message": "Сессия не найдена. Пожалуйста, войдите снова."
             }, status=404)
 
         except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+            logger.error(f"Неожиданная ошибка: {str(e)}", exc_info=True)
             return JsonResponse({
                 "status": "error",
-                "message": "An unexpected error occurred."
+                "message": "Произошла неожиданная ошибка."
             }, status=500)
 
-    logger.warning("Attempted to access extend_session with a non-POST request.")
-    return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
-
+    logger.warning("Попытка доступа к extend_session с не-POST запросом.")
+    return JsonResponse({"status": "error", "message": "Разрешён только метод POST."}, status=405)
 
 
 def get_user_details(request, user_id):
@@ -262,6 +259,17 @@ def get_nodes_by_type(request):
                         # Убедимся, что в узле есть поля 'content' и '@rid'
                         if 'content' in node and '@rid' in node:
                             nodes_data.append({'id': node['@rid'], 'name': node['content']})
+
+
+                    custom_order = [
+                        "Организационно-кадровая работа",
+                        "Оказание материальной помощи и оплата труда",
+                        "Обучение, тестирование, практика",
+                        "Вопросы для психологов",
+                        "Образцы заявлений"
+                    ]
+                    nodes_data.sort(
+                        key=lambda x: custom_order.index(x['name']) if x['name'] in custom_order else float('inf'))
 
                     logger.info(f"Found {len(nodes_data)} nodes.")
                     return JsonResponse({'result': nodes_data})
