@@ -21,6 +21,7 @@ from django.db.models import Q
 from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -609,6 +610,50 @@ def archive(request):
 def create_or_edit_content(request):
     return render(request, 'chat_dashboard/edit_content.html')
 
+def filter_dialogs_by_date_range(request):
+    user = request.user
+    start_date = request.GET.get('start')
+    end_date = request.GET.get('end')
+
+    start = timezone.datetime.fromisoformat(start_date)
+    end = timezone.datetime.fromisoformat(end_date)
+    dialogs = Dialog.objects.annotate(
+        has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
+        username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
+        last_message=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]),
+        last_message_timestamp=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]),
+        last_message_sender_id=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]),
+        last_message_username=Case(
+            When(last_message_sender_id=None, then=Value('Bot')),
+            default=Subquery(
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[
+                :1])
+        ),
+    ).filter(has_messages=True, last_message_timestamp__range=(start, end)).order_by('-last_message_timestamp')
+
+    logger.debug(f"Filtered dialogs: {list(dialogs)}")
+
+    # Возвращаем отфильтрованные диалоги в формате JSON
+    dialogs_data = [
+        {
+            'id': dialog.id,
+            'user': {
+                'id': dialog.user.id,
+                'username': dialog.user.username
+            },
+            'last_message': dialog.last_message,
+            'last_message_timestamp': dialog.last_message_timestamp,
+            'last_message_username': dialog.last_message_username
+        }
+        for dialog in dialogs
+    ]
+
+    return JsonResponse(dialogs_data, safe=False)
+
+
 
 @role_required(['admin', 'operator'])
 def filter_dialogs(request, period):
@@ -617,7 +662,8 @@ def filter_dialogs(request, period):
 
     # Определяем дату для фильтрации
     now = timezone.now()
-    if period == 'all':
+
+    if period == 0:
         # Если фильтруем все диалоги, то период не ограничиваем
         dialogs = Dialog.objects.annotate(
             has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
@@ -657,6 +703,44 @@ def filter_dialogs(request, period):
 
     # Логирование для отладки
     logger.debug(f"Filtered dialogs: {list(dialogs)}")
+
+    # Возвращаем отфильтрованные диалоги в формате JSON
+    dialogs_data = [
+        {
+            'id': dialog.id,
+            'user': {
+                'id': dialog.user.id,
+                'username': dialog.user.username
+            },
+            'last_message': dialog.last_message,
+            'last_message_timestamp': dialog.last_message_timestamp,
+            'last_message_username': dialog.last_message_username
+        }
+        for dialog in dialogs
+    ]
+
+    return JsonResponse(dialogs_data, safe=False)
+
+
+def filter_dialogs_by_id(request, user_id):
+    user = request.user
+    logger.info(f"Filtering dialogs by user {user} with user ID {user_id}.")
+
+    dialogs = Dialog.objects.filter(user_id=user_id).annotate(
+        has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
+        username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
+        last_message=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]),
+        last_message_timestamp=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]),
+        last_message_sender_id=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]),
+        last_message_username=Case(
+            When(last_message_sender_id=None, then=Value('Bot')),
+            default=Subquery(
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1])
+        ),
+    ).filter(has_messages=True).order_by('-last_message_timestamp')
 
     # Возвращаем отфильтрованные диалоги в формате JSON
     dialogs_data = [
