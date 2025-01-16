@@ -9,6 +9,8 @@ const newSessionButton = document.getElementById('new-session-btn');
 const extendSessionWindow = document.getElementById('extend-session-wrapper');
 const chatLogin = document.getElementById('chat-login-wrapper');
 const loginForm = document.getElementById("user-info-form");
+const menuButton = document.getElementById("user-menu-button");
+const buttonsContainer = document.querySelector('.menu-buttons');
 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
 const greetings = [
@@ -24,9 +26,43 @@ let started_at;
 let navigationStack = [];
 let sessionExpiryTimeout;
 
+window.addEventListener("beforeunload", async (event) => { 
+    const sessionToken = localStorage.getItem("sessionToken");
+    const eventData = JSON.stringify(event);
+
+    const response = await fetch("/api/close-session/", {
+        method: "POST",
+        headers: {
+            "Authorization": sessionToken,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ event: eventData }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Ошибка сессии:", errorData.message);
+        return { status: "error", message: errorData.message || "Неизвестная ошибка" };
+    }
+});
+
+
 closeChat.addEventListener('click', () => {
     chatWindow.style.display = 'none';
 });
+
+
+menuButton.addEventListener('click', () => {
+    const menuButtons = document.querySelector('.menu-buttons');
+
+    if (menuButtons.style.display === 'none' || menuButtons.style.display === '') {
+        menuButtons.style.display = 'flex';
+    } else {
+        menuButtons.style.display = 'none';
+    }
+});
+
+
 
 const loadMessages = async () => {
     try {
@@ -34,10 +70,21 @@ const loadMessages = async () => {
         const data = await messagesResponse.json();
 
         chatMessages.innerHTML = '';
-        data.messages.forEach(({ sender, content, timestamp }) => {
+        const messages = data.messages;
+        messages.forEach(({ sender, content, timestamp }) => {
             appendMessage(sender, content, timestamp);
         });
         scrollToBottom();
+
+        if (
+            messages[messages.length - 1].sender === 'bot' &&
+            (
+                messages[messages.length - 1].content === 'Задайте свой вопрос или выберите из меню' ||
+                messages[messages.length - 1].content === 'Я всегда рад помочь! Задавайте свои вопросы или выбирайте интересующую вас тему в меню'
+            )
+        ) {
+            await showSectionButtons();
+        }
     } catch (error) {
         console.error('Ошибка загрузки сообщений:', error);
     }
@@ -49,6 +96,7 @@ const scrollToBottom = () => {
 
 async function checkUserSession() {
     const sessionToken = localStorage.getItem("sessionToken");
+    console.log(`session token ${sessionToken}`)
 
     if (!sessionToken) {
         return { status: "login", message: "Сессия отсутствует" };
@@ -73,11 +121,17 @@ async function checkUserSession() {
 
         if (data.status === "success") {
             userID = data["user_id"];
+
+            console.log(`success`)
+
             setSessionExpiryTimer(new Date(data.expires_at));  // Установка таймера для закрытия чата
+
             return { status: "success", data };
         } else if (data.status === "expired") {
+            console.log(`expired`)
             return { status: "expired", message: data.message };
         } else if (data.status === "login") {
+            console.log(`login`)
             return { status: "login", message: data.message };
         } else {
             console.warn("Неизвестный статус ответа:", data);
@@ -168,8 +222,17 @@ extendButton.addEventListener('click', async () => {
 });
 
 newSessionButton.addEventListener('click', async () => {
+    const sessionToken = localStorage.getItem("sessionToken");
+    userID = decodeToken(sessionToken)['user_id'];
     extendSessionWindow.style.display = 'none';
-    chatLogin.style.display = 'flex';
+    dialogID = await createNewDialog(userID);
+    const userData = await getUserDetails(userID);
+    username = `${userData["first_name"]} ${userData["last_name"]}`;
+    chatLogin.style.display = 'none';
+    chatMessages.style.display = 'flex';
+    await showGreetingMessages();
+    await showSectionButtons();
+
 });
 
 loginForm.addEventListener("submit", async function (e) {
@@ -216,7 +279,9 @@ const appendMessage = (sender, content, timestamp) => {
 
     const messageDiv = document.createElement('div');
     messageDiv.className = sender === 'bot' ? 'message bot-message' : 'message user-message';
-    const time = timestamp.split(' ')[1].slice(0, 5);
+    const date = new Date(timestamp);
+    date.setHours(date.getHours() + 3);
+    const time = date.toTimeString().slice(0, 5);
     const timeClass = sender === 'bot' ? 'message-time' : 'message-time user-message-time';
 
     const messageDate = timestamp.split(' ')[0];
@@ -303,6 +368,8 @@ const sendUserMessage = async () => {
     chatInput.value = '';
     try {
         await sendMessageToAPI(dialogID, 'user', message, userMessageTimestamp);
+
+        await userResponseHandler(message);
         await extendSession();  // Обновляем сессию при отправке сообщения
         if (message.endsWith('?')) {
             console.log('question');
@@ -310,6 +377,7 @@ const sendUserMessage = async () => {
         } else {
             userResponseHandler(message);
         }
+
     } catch (error) {
     console.error('Ошибка при отправке сообщения:', error);
     }
@@ -332,6 +400,7 @@ const fetchNodes = async (type) => {
     const encodedType = encodeURIComponent(type);
     try {
         const response = await fetch(`/api/get-nodes-by-type/?type=${encodedType}`, { method: 'GET' });
+        console.log(response);
 
         if (!response.ok) {
             // Выводим статус ошибки и текст ответа для диагностики
@@ -410,6 +479,7 @@ const fetchDocuments = async (answerID) => {
         }
 
         const data = await response.json();
+        console.log(data);
         return data['result'];
     } catch (error) {
         console.error('Error fetching answer:', error.message);
@@ -419,13 +489,14 @@ const fetchDocuments = async (answerID) => {
 
 
 const createButtonsFromNodes = (nodes, onClickHandler) => {
-    let buttonsContainer = document.querySelector('.chat-buttons-container');
+    menuButton.style.display = 'flex';
     if (buttonsContainer) {
         buttonsContainer.innerHTML = '';
-    } else {
-        buttonsContainer = document.createElement('div');
-        buttonsContainer.classList.add('chat-buttons-container');
     }
+//    } else {
+//        buttonsContainer = document.createElement('div');
+//        buttonsContainer.classList.add('chat-buttons-container');
+//    }
 
     nodes.forEach((node) => {
         const button = document.createElement('button');
@@ -444,8 +515,8 @@ const createButtonsFromNodes = (nodes, onClickHandler) => {
         buttonsContainer.appendChild(backButton);
     }
 
-    document.querySelector('.chat-messages').appendChild(buttonsContainer);
-    setTimeout(scrollToBottom, 0);
+//    document.querySelector('.chat-messages').appendChild(buttonsContainer);
+//    setTimeout(scrollToBottom, 0);
 };
 
 const createDocumentBlock = (documents) => {
@@ -460,30 +531,118 @@ const createDocumentBlock = (documents) => {
         const documentBlock = document.createElement('div');
         documentBlock.classList.add('document-block');
 
+        // Создаем иконку
         const icon = document.createElement('i');
-        icon.classList.add('fa', 'fa-file-alt', 'document-icon');
+        if (doc.type === 'link') {
+            icon.classList.add('fa', 'fa-link', 'document-icon');
+        } else if (doc.type === 'document') {
+            icon.classList.add('fa', 'fa-file-alt', 'document-icon');
+        } else {
+            icon.classList.add('fa', 'fa-question-circle', 'document-icon');
+        }
         documentBlock.appendChild(icon);
 
+        // Создаем ссылку
         const link = document.createElement('a');
         link.textContent = doc.name;
-        link.href = doc.content;
-        link.target = '_blank';
+
+        if (doc.type === 'document') {
+            // Формируем путь к документу
+            const fileName = `${doc.name}.docx`; // Добавляем расширение
+            link.href = `documents/${fileName}`; // Путь к папке с документами
+            link.download = fileName; // Атрибут для скачивания
+        } else {
+            // Для ссылок оставляем прямой переход
+            link.href = doc.content;
+            link.target = '_blank'; // Открытие в новой вкладке
+        }
+
         link.classList.add('document-link');
         documentBlock.appendChild(link);
+
+        // Добавляем блок в сообщения
         chatMessages.appendChild(documentBlock);
     });
 
     setTimeout(scrollToBottom, 0);
 };
 
-const userResponseHandler = async (message) => {
-    console.log("User Response Handler");
-    const cleanedMessage = message.trim().replace(/[^\w\sа-яА-ЯёЁ]/g, '').toLowerCase();
 
+
+const userResponseHandler = async (message) => {
+    // Очистка сообщения
+    const cleanedMessage = message
+        .trim()
+        .replace(/[^\w\sа-яА-ЯёЁ]/g, '')
+        .toLowerCase();
+
+    // Проверка на приветствие
     const isGreeting = greetings.some(greeting => cleanedMessage.includes(greeting));
 
     if (isGreeting) {
         showGreetingMessages();
+        return;
+    }
+
+    try {
+        const recognizeResponse = await fetch("/api/recognize-question/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
+            },
+            body: JSON.stringify({ message: cleanedMessage }),
+        });
+
+        if (!recognizeResponse.ok) {
+            throw new Error(`Ошибка: ${recognizeResponse.status} ${recognizeResponse.statusText}`);
+        }
+
+        const data = await recognizeResponse.json();
+        if (data.recognized_question) {
+            console.log(data.recognized_question);
+            const encodedQuestionContent = encodeURIComponent(data.recognized_question);
+            try {
+                const questionIDResponse = await fetch(`/api/get-question-id-by-content/?questionContent=${encodedQuestionContent}`, { method: 'GET' });
+
+                if (!questionIDResponse.ok) {
+                    const errorText = await questionIDResponse.text();
+                    throw new Error(`Error fetching answer: ${questionIDResponse.status} - ${errorText}`);
+                }
+
+                const data = await questionIDResponse.json();
+                const newQuestionID = data['result']['@rid'];
+                await showAnswer(newQuestionID);
+                return
+            } catch (error) {
+                console.error('Error fetching question ID:', error.message);
+                return '';
+            }
+            return
+        } else {
+            let botAnswerMessage = 'Ваш запрос не распознан. Сообщение было отправлено на обучение.'
+            appendMessage('bot', botAnswerMessage, getTimestamp());
+            await sendBotMessage(botAnswerMessage)
+
+            try {
+                const toTrainingResponse = await fetch("/api/create-training-message/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken,
+                    },
+                    body: JSON.stringify({ sender_id: userID, content: message }),
+                });
+
+                if (!toTrainingResponse.ok) {
+                    throw new Error(`Ошибка: ${toTrainingResponse.status} ${toTrainingResponse.statusText}`);
+                }
+            } catch (error) {
+                console.error("Ошибка при распознавании вопроса:", error.message);
+            }
+        }
+    } catch (error) {
+        console.error("Ошибка при распознавании вопроса:", error.message);
     }
 };
 
@@ -499,8 +658,8 @@ const showGreetingMessages = async () => {
     await sendBotMessage(randomResponse);
 
     const greetingOptions = [
-        'Задайте свой вопрос или выберите из списка:',
-        'Я всегда рад помочь! Задавайте свои вопросы или выбирайте интересующую вас тему :)'
+        'Задайте свой вопрос или выберите из меню',
+        'Я всегда рад помочь! Задавайте свои вопросы или выбирайте интересующую вас тему в меню'
     ];
     const randomGreetingOption = greetingOptions[Math.floor(Math.random() * greetingOptions.length)];
     appendMessage('bot', randomGreetingOption, getTimestamp());
@@ -533,6 +692,7 @@ const goBack = async () => {
 
 const showSectionButtons = async () => {
     const nodes = await fetchNodes('Section');
+    console.log(nodes);
     createButtonsFromNodes(nodes, async (selectedNode) => {
         appendMessage('user', selectedNode.name, getTimestamp());
         await sendMessageToAPI(dialogID, 'user', selectedNode.name, getTimestamp());
@@ -562,35 +722,38 @@ const showQuestionsButtons = async (topicName) => {
 };
 
 const showAnswer = async (questionID) => {
-    // Удаляем существующую анимацию, если она есть
+    buttonsContainer.innerHTML = '';
+    buttonsContainer.style.display = 'none';
+    menuButton.style.display = 'none';
+
     let existingTypingAnimation = document.querySelector('.typing-animation');
     if (existingTypingAnimation) {
         existingTypingAnimation.remove();
     }
 
-    // Создаём новую анимацию
     const typingAnimation = document.createElement('div');
     typingAnimation.classList.add('typing-animation');
     chatMessages.appendChild(typingAnimation);
+    setTimeout(scrollToBottom, 0);
 
-    const randomDelay = Math.floor(Math.random() * 2000) + 2000; // 2000-4000 миллисекунд
+    const randomDelay = Math.floor(Math.random() * 2000) + 2000;
     await new Promise(resolve => setTimeout(resolve, randomDelay));
 
     const answer = await fetchAnswer(questionID);
 
-    // Делим ответ по абзацам
-    const answerParts = answer.content.split('\n\n'); // Разделение по двойным переводам строки
+    const answerParts = answer.content.split('\n\n');
 
     for (const part of answerParts) {
-        if (part.trim()) { // Проверяем, что часть не пустая
-            chatMessages.appendChild(typingAnimation); // Перемещаем "Печатает..." в конец
-            await new Promise(resolve => setTimeout(resolve, 3000)); // Задержка между абзацами, 3-4 секунды
+        if (part.trim()) {
+            chatMessages.appendChild(typingAnimation);
+            setTimeout(scrollToBottom, 0);
+            await new Promise(resolve => setTimeout(resolve, 3000));
             appendMessage('bot', part, getTimestamp());
             await sendBotMessage(part);
         }
     }
 
-    typingAnimation.remove(); // Убираем элемент "Печатает..." после завершения ответа
+    typingAnimation.remove();
 
     await showDocuments(answer.id);
 
@@ -710,6 +873,7 @@ async function extendSession() {
         });
 
         const data = await response.json();
+        console.log(data)
         if (response.ok) {
             console.log("Session extended:", data);
             localStorage.setItem("sessionToken", sessionToken);
