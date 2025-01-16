@@ -10,9 +10,12 @@
         <div class="sidebar-header text-center border-b pb-4 mb-6">
             <h3 class="text-2xl font-semibold text-gray-800">Настройки</h3>
         </div>
-
         <div class="status mb-6">
-            <h5 class="text-lg font-medium text-gray-700">Текущий статус авторизации через AD:</h5>
+            <h5 class="text-lg font-medium text-gray-700" data-bs-toggle="tooltip"
+                title="Авторизация через Active Directory позволяет использовать учетные данные AD для аутентификации и авторизации пользователей">
+
+                Текущий статус авторизации через AD:
+            </h5>
             <p class="text-md font-semibold" style="color: {{ settings.ad_enabled|yesno:'green,red' }};">
                 {{ settings.ad_enabled|yesno:'Включена,Отключена' }}
             </p>
@@ -47,27 +50,32 @@
             </div>
 
             <div class="form-group mb-4">
-                <label for="ip_address" class="block text-md font-medium text-gray-600">IP-адрес:</label>
+                <label for="ip_address" class="block text-md font-medium text-gray-600"
+                       data-bs-toggle="tooltip" title="Адрес, который используется для сброса пароля и активации аккаунта(изменяемая часть)">
+                    Адрес:
+                </label>
                 <input type="text" id="ip_address" name="ip_address" value="{{ settings.ip_address }}"
                        class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600">
             </div>
 
+
             <div class="form-group mb-4">
-                <label for="message_retention_months" class="block text-md font-medium text-gray-600">Срок хранения
-                    сообщений (в месяцах):</label>
-                <select id="message_retention_months" name="message_retention_months"
-                        class="form-select mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600">
-                    {% for month in months %}
-                    <option value="{{ month }}" {% if month == current_retention_months %}selected{% endif %}>
-                        {{ month }}
-                    </option>
-                    {% endfor %}
-                </select>
+                <label for="message_retention_months" class="block text-md font-medium text-gray-600"
+                       data-bs-toggle="tooltip" title="Срок хранения на сервере переписки с пользователями">
+                    Срок хранения сообщений (в месяцах):
+                </label>
+                <input type="number" id="message_retention_months" name="message_retention_months"
+                       value="{{ current_retention_months }}"
+                       class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600"
+                       min="1" max="24">
             </div>
 
             <div class="form-group mb-4">
-                <label for="session_duration" class="block text-md font-medium text-gray-600">Длительность сессии (в
-                    минутах):</label>
+                <label for="session_duration" class="block text-md font-medium text-gray-600"
+                       data-bs-toggle="tooltip"
+                       title="Период времени перед сбросом сессии при отсутствии активности пользователя">
+                    Длительность сессии (в минутах):
+                </label>
                 <input type="number" id="session_duration" name="session_duration"
                        value="{{ settings.session_duration }}"
                        class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600"
@@ -85,99 +93,109 @@
 </div>
 
 <script>
-const enableAdCheckbox = document.getElementById('enable_ad');
-const adParameters = document.getElementById('ad-parameters');
-const saveButton = document.getElementById('save-settings');
-const retentionSelect = document.getElementById('message_retention_months');
-const adServerInput = document.getElementById('ad_server');
-const adDomainInput = document.getElementById('ad_domain');
-const sessionDurationInput = document.getElementById('session_duration');
-const ipAddressInput = document.getElementById('ip_address');
-const statusText = document.querySelector('.status p'); // Элемент для статуса AD
+    const enableAdCheckbox = document.getElementById('enable_ad');
+    const adParameters = document.getElementById('ad-parameters');
+    const saveButton = document.getElementById('save-settings');
+    const retentionSelect = document.getElementById('message_retention_months');
+    const adServerInput = document.getElementById('ad_server');
+    const adDomainInput = document.getElementById('ad_domain');
+    const sessionDurationInput = document.getElementById('session_duration');
+    const ipAddressInput = document.getElementById('ip_address');
+    const statusText = document.querySelector('.status p'); // Элемент для статуса AD
 
-// Сохраняем исходные значения формы
-const initialValues = {
-    enableAd: enableAdCheckbox.checked,
-    retentionSelect: retentionSelect.value,
-    adServer: adServerInput.value,
-    adDomain: adDomainInput.value,
-    sessionDuration: sessionDurationInput.value,
-    ipAddress: ipAddressInput.value,
-};
+    // Сохраняем исходные значения формы
+    const initialValues = {
+        enableAd: enableAdCheckbox.checked,
+        retentionSelect: retentionSelect.value,
+        adServer: adServerInput.value,
+        adDomain: adDomainInput.value,
+        sessionDuration: sessionDurationInput.value,
+        ipAddress: ipAddressInput.value,
+    };
 
-// Проверяет, есть ли изменения в форме
-function hasChanges() {
-    return (
-        enableAdCheckbox.checked !== initialValues.enableAd ||
-        retentionSelect.value !== initialValues.retentionSelect ||
-        adServerInput.value !== initialValues.adServer ||
-        adDomainInput.value !== initialValues.adDomain ||
-        sessionDurationInput.value !== initialValues.sessionDuration ||
-        ipAddressInput.value !== initialValues.ipAddress
-    );
-}
+    // Проверяет, есть ли изменения в форме
+    function hasChanges() {
+        return (
+            enableAdCheckbox.checked !== initialValues.enableAd ||
+            retentionSelect.value !== initialValues.retentionSelect ||
+            adServerInput.value !== initialValues.adServer ||
+            adDomainInput.value !== initialValues.adDomain ||
+            sessionDurationInput.value !== initialValues.sessionDuration ||
+            ipAddressInput.value !== initialValues.ipAddress
+        );
+    }
 
-// Показ или скрытие кнопки "Сохранить" в зависимости от изменений
-function toggleSaveButton() {
-    saveButton.style.display = hasChanges() ? 'block' : 'none';
-}
+    // Показ или скрытие кнопки "Сохранить" в зависимости от изменений
+    function toggleSaveButton() {
+        saveButton.style.display = hasChanges() ? 'block' : 'none';
+    }
 
-// Обработчики событий для полей формы
-enableAdCheckbox.addEventListener('change', () => {
-    adParameters.style.display = enableAdCheckbox.checked ? 'block' : 'none';
-    toggleSaveButton();
-});
-retentionSelect.addEventListener('change', toggleSaveButton);
-adServerInput.addEventListener('input', toggleSaveButton);
-ipAddressInput.addEventListener('input', toggleSaveButton);
-adDomainInput.addEventListener('input', toggleSaveButton);
-sessionDurationInput.addEventListener('input', toggleSaveButton);
+    // Обработчики событий для полей формы
+    enableAdCheckbox.addEventListener('change', () => {
+        adParameters.style.display = enableAdCheckbox.checked ? 'block' : 'none';
+        toggleSaveButton();
+    });
+    retentionSelect.addEventListener('change', toggleSaveButton);
+    adServerInput.addEventListener('input', toggleSaveButton);
+    ipAddressInput.addEventListener('input', toggleSaveButton);
+    adDomainInput.addEventListener('input', toggleSaveButton);
+    sessionDurationInput.addEventListener('input', toggleSaveButton);
 
-// Обработчик для кнопки "Сохранить"
-saveButton.addEventListener('click', function () {
-    const formData = new FormData();
-    formData.append('session_duration', sessionDurationInput.value);
-    formData.append('ip_address', ipAddressInput.value);
-    formData.append('ad_server', adServerInput.value);
-    formData.append('ad_domain', adDomainInput.value);
-    formData.append('message_retention_months', retentionSelect.value);
-    formData.append('enable_ad', enableAdCheckbox.checked ? 'on' : 'off'); // Добавлено
+    // Обработчик для кнопки "Сохранить"
+    saveButton.addEventListener('click', function () {
+        const formData = new FormData();
+        formData.append('session_duration', sessionDurationInput.value);
+        formData.append('ip_address', ipAddressInput.value);
+        formData.append('ad_server', adServerInput.value);
+        formData.append('ad_domain', adDomainInput.value);
+        formData.append('message_retention_months', retentionSelect.value);
+        formData.append('enable_ad', enableAdCheckbox.checked ? 'on' : 'off'); // Добавлено
 
-    const csrftoken = document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1];
+        const csrftoken = document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1];
 
-    fetch('/api/update-session/', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrftoken
-        }
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert('Изменения сохранены!');
-                saveButton.style.display = 'none';
-
-                // Обновляем исходные значения после успешного сохранения
-                initialValues.enableAd = enableAdCheckbox.checked;
-                initialValues.retentionSelect = retentionSelect.value;
-                initialValues.adServer = adServerInput.value;
-                initialValues.adDomain = adDomainInput.value;
-                initialValues.sessionDuration = sessionDurationInput.value;
-                initialValues.ipAddress = ipAddressInput.value;
-
-                // Обновляем статус AD на странице
-                statusText.textContent = enableAdCheckbox.checked ? 'Включена' : 'Отключена';
-                statusText.style.color = enableAdCheckbox.checked ? 'green' : 'red';
-            } else {
-                alert('Ошибка при сохранении: ' + data.message);
+        fetch('/api/update-session/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrftoken
             }
         })
-        .catch(error => console.error('Ошибка:', error));
-});
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Изменения сохранены!');
+                    saveButton.style.display = 'none';
 
-// Проверяем начальное состояние формы при загрузке страницы
-toggleSaveButton();
+                    // Обновляем исходные значения после успешного сохранения
+                    initialValues.enableAd = enableAdCheckbox.checked;
+                    initialValues.retentionSelect = retentionSelect.value;
+                    initialValues.adServer = adServerInput.value;
+                    initialValues.adDomain = adDomainInput.value;
+                    initialValues.sessionDuration = sessionDurationInput.value;
+                    initialValues.ipAddress = ipAddressInput.value;
+
+                    // Обновляем статус AD на странице
+                    statusText.textContent = enableAdCheckbox.checked ? 'Включена' : 'Отключена';
+                    statusText.style.color = enableAdCheckbox.checked ? 'green' : 'red';
+                } else {
+                    alert('Ошибка при сохранении: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Ошибка:', error));
+    });
+
+    window.onload = function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                container: 'body',
+                placement: 'bottom' // Устанавливаем позицию тултипа снизу
+            });
+        });
+    };
+
+    // Проверяем начальное состояние формы при загрузке страницы
+    toggleSaveButton();
 </script>
 {% endblock %}

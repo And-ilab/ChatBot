@@ -4,22 +4,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const unreadButton = document.getElementById("btn-unread");
     const ignoredButton = document.getElementById("btn-ignored");
 
-    unreadMessagesContainer.classList.remove("hidden");
-    unreadButton.classList.add("active");
+    unreadMessagesContainer.classList.add("hidden");
+    ignoredMessagesContainer.classList.add("hidden");
 
-    function showContainer(containerToShow, activeButton) {
+    function showContainer(containerToShow) {
         unreadMessagesContainer.classList.add("hidden");
         ignoredMessagesContainer.classList.add("hidden");
         containerToShow.classList.remove("hidden");
-
-        unreadButton.classList.remove("active");
-        ignoredButton.classList.remove("active");
-
-        activeButton.classList.add("active");
     }
 
-    unreadButton.addEventListener("click", () => showContainer(unreadMessagesContainer, unreadButton));
-    ignoredButton.addEventListener("click", () => showContainer(ignoredMessagesContainer, ignoredButton));
+    unreadButton.addEventListener("click", () => showContainer(unreadMessagesContainer));
+    ignoredButton.addEventListener("click", () => showContainer(ignoredMessagesContainer));
 
     function updateMessageActionButtons(messageItem, isIgnored) {
         const messageActions = messageItem.querySelector('.message-actions');
@@ -57,6 +52,7 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("unread-indicator").textContent = data.unread_count;
             document.getElementById("ignored-indicator").textContent = data.ignored_count;
 
+            // Перезагружаем страницу для обновления всех данных
             location.reload();
         })
         .catch(error => {

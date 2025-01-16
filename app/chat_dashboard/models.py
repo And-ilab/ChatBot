@@ -3,6 +3,9 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
 from django.utils import timezone
 
+from chat_user.models import ChatUser
+from numpy.lib.recfunctions import drop_fields
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -34,7 +37,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50, unique=True)
     first_name = models.CharField(max_length=50)  # Новое поле
     last_name = models.CharField(max_length=50, blank=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='operator')
     is_staff = models.BooleanField(default=False)
     last_active = models.DateTimeField(null=True, blank=True)
     is_online = models.BooleanField(default=False)
@@ -43,7 +46,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     activation_token_created = models.DateTimeField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        # Генерация username как первая буква имени + фамилия
         if not self.username:
             self.username = f"{self.first_name[0].upper()}.{self.last_name}"
         super().save(*args, **kwargs)
@@ -75,6 +77,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.username} ({self.role})"
 
+    def get_role_display(self):
+        return dict(self.ROLE_CHOICES).get(self.role, self.role)
+
 
 class Dialog(models.Model):
     user = models.ForeignKey('chat_user.ChatUser', on_delete=models.CASCADE)
@@ -102,7 +107,7 @@ class Message(models.Model):
 
 class TrainingMessage(models.Model):
     sender = models.ForeignKey(
-        'chat_user.ChatUser',
+        'chat_dashboard.User',
         null=True,
         blank=True,
         on_delete=models.SET_NULL

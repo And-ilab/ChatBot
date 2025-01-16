@@ -2,12 +2,9 @@ const sectionSelect = document.getElementById('section');
 const topicSelect = document.getElementById('topic');
 const questionSelect = document.getElementById('question');
 const documentList = document.getElementById('document-list');
-const linkList = document.getElementById('link-list');
 
 let answerID;
 let questionID;
-let questionName;
-let topicID;
 
 const fetchNodes = async (type) => {
     const encodedType = encodeURIComponent(type);
@@ -91,29 +88,15 @@ const updateDocumentList = (documents) => {
         listItem.innerHTML = `
             <span>${doc.name}</span>
             <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-warning">
+                    <i class="bi bi-pencil"></i>
+                </button>
                 <button type="button" class="btn btn-sm btn-outline-danger">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
         `;
         documentList.appendChild(listItem);
-    });
-};
-
-const updateLinkList = (links) => {
-    linkList.innerHTML = '';
-    links.forEach((link) => {
-        const listItem = document.createElement('li');
-        listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-        listItem.innerHTML = `
-            <span>${link.name}</span>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline-danger">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        `;
-        linkList.appendChild(listItem);
     });
 };
 
@@ -129,101 +112,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const saveButton = document.getElementById('save-question');
 
     let isAnswerEditing = false;
-
-    document.getElementById('add-link').addEventListener('click', function() {
-        var myModal = new bootstrap.Modal(document.getElementById('addLinkModal'));
-        myModal.show();
-    });
-
-    document.getElementById('add-document').addEventListener('click', function() {
-        var myModal = new bootstrap.Modal(document.getElementById('addDocumentModal'));
-        myModal.show();
-    });
-
-    document.getElementById('save-link').addEventListener('click', async function () {
-        let title = document.getElementById('link-title').value.trim();
-        let url = document.getElementById('link-url').value.trim();
-        let linkID;
-
-        if (!title || !url) {
-            alert('Пожалуйста, заполните все поля перед добавлением ссылки.');
-            return;
-        }
-
-        try {
-            const createLinkResponse = await fetch('/api/create-node/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: JSON.stringify({
-                    class: 'link',
-                    name: title,
-                    content: url,
-                }),
-            });
-
-            if (createLinkResponse.ok) {
-                const responseData = await createLinkResponse.json();
-                console.log('Node created with ID:', responseData['data'][0]['@rid']);
-                linkID = responseData['data'][0]['@rid'];
-            } else {
-                console.error('Failed to create node:', createLinkResponse.statusText);
-            }
-        } catch (error) {
-            console.error('Error creating entity:', error);
-        }
-
-        try {
-            const response = await fetch('/api/create-relation/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: JSON.stringify({
-                    start_node_id: answerID,
-                    end_node_id: linkID,
-                }),
-            });
-            if (response.status === 201) {
-                alert('Cвязь успешно создана.');
-            }
-            else {
-                console.error('Ошибка при создании связи:', await response.json());
-                alert('Не удалось создать связь.');
-            }
-        } catch (error) {
-            console.error('Ошибка при создании связи:', error);
-        }
-
-        document.getElementById('link-title').value = '';
-        document.getElementById('link-url').value = '';
-        var myModal = bootstrap.Modal.getInstance(document.getElementById('addLinkModal'));
-        myModal.hide();
-    });
-
-    document.getElementById('save-document').addEventListener('click', function () {
-        var title = document.getElementById('document-title').value.trim();
-        var file = document.getElementById('document-file').files[0];
-
-        // Проверка, что все поля заполнены
-        if (!title || !file) {
-            alert('Пожалуйста, заполните все поля перед добавлением документа.');
-            return; // Прерываем выполнение, если есть незаполненные поля
-        }
-
-        // Отправка данных на сервер (реализуйте свою логику AJAX)
-        console.log('Document added:', title, file);
-
-        // Очистка полей и закрытие модального окна
-        document.getElementById('document-title').value = '';
-        document.getElementById('document-file').value = '';
-        var myModal = bootstrap.Modal.getInstance(document.getElementById('addDocumentModal'));
-        myModal.hide();
-    });
-
 
     editAnswerButton.addEventListener('click', async () => {
         if (!isAnswerEditing) {
@@ -331,8 +219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const topics = await fetchNodesWithRelation('Section', selectedSectionName, 'Topic');
                 topics.forEach(topic => {
                     const option = document.createElement('option');
-                    topicID = topic.id;
-                    option.value = topicID;
+                    option.value = topic.id;
                     option.textContent = topic.name;
                     topicSelect.appendChild(option);
                 });
@@ -352,7 +239,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const option = document.createElement('option');
                     option.value = question.id;
                     questionID = question.id;
-                    questionName = question.name;
                     option.textContent = question.name;
                     questionSelect.appendChild(option);
                 });
@@ -367,33 +253,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         const answerTextarea = document.getElementById('answer');
         if (selectedQuestionId) {
             try {
-                const links = [];
-                const documents = [];
                 const answer = await fetchAnswer(selectedQuestionId);
                 answerTextarea.value = answer.content;
                 answerID = answer.id;
-                const documentsAndLinks = await fetchDocuments(answer.id);
-                console.log(documentsAndLinks)
-                documentsAndLinks.forEach(element => {
-                    if (element.type === 'document') {
-                        documents.push(element);
-                    } else if (element.type === 'link') {
-                        links.push(element);
-                    }
-                });
-                console.log(links);
+                const documents = await fetchDocuments(answer.id);
                 updateDocumentList(documents);
-                updateLinkList(links);
             } catch (error) {
                 console.error('Error loading answer and documents:', error);
                 answerTextarea.value = 'Ошибка при загрузке ответа';
                 updateDocumentList([]);
-                updateLinkList([]);
             }
         } else {
             answerTextarea.value = '';
             updateDocumentList([]);
-            updateLinkList([]);
         }
     });
 

@@ -40,7 +40,9 @@
         <div class="header mb-4">
             <div class="d-flex justify-content-between align-items-center">
                 <h1 class="text-dark">Пользователи</h1>
-                <a href="{% url 'chat_dashboard:user_create' %}" class="btn btn-success">Добавить пользователя</a>
+                <div>
+                    <a href="{% url 'chat_dashboard:user_create' %}" class="btn btn-success btn-sm">Добавить пользователя</a>
+                </div>
             </div>
         </div>
 
@@ -74,7 +76,7 @@
                             <td class="text-center text-dark">{{ user.username }}</td>
                             <td class="text-center text-dark">{{ user.email }}</td>
                             <td class="text-center text-dark">{{ user.id }}</td>
-                            <td class="text-center text-dark">{{ user.role }}</td>
+                            <td class="text-center text-dark">{{ user.get_role_display }}</td>
                             <td class="text-center">
                                 <a href="{% url 'chat_dashboard:user_update' user.id %}" class="btn btn-sm btn-outline-info mx-1">Изменить</a>
                                 <button class="btn btn-sm btn-outline-danger mx-1"

@@ -7,6 +7,15 @@
     <div class="form-container"
          style="max-width: 400px; padding: 30px; background-color: rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
         <h2 class="text-center mb-4">Создание нового пользователя</h2>
+
+        {% if messages %}
+            <div class="alert alert-success">
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <form method="post">
             {% csrf_token %}
 
@@ -49,8 +58,7 @@
             </div>
         </form>
         <div class="text-center mt-4">
-            <a href="{% url 'chat_dashboard:user_list' %}" class="btn btn-secondary" style="width: 100%;">Назад к списку
-                пользователей</a>
+            <a href="{% url 'chat_dashboard:user_list' %}" class="btn btn-secondary" style="width: 100%;">Назад к списку пользователей</a>
         </div>
     </div>
 </div>
