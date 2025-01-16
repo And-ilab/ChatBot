@@ -113,6 +113,14 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
+
+        // Скрытие тултипов при клике на кнопку
+        tooltipTriggerList.forEach(function (tooltipEl) {
+            tooltipEl.addEventListener('click', function () {
+                var tooltipInstance = bootstrap.Tooltip.getInstance(tooltipEl);
+                tooltipInstance.hide();
+            });
+        });
     });
 </script>
 {% endblock %}

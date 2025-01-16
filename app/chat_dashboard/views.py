@@ -21,6 +21,7 @@ from django.db.models import Q
 from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -444,11 +445,21 @@ def user_create(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
+            user.is_active = True
             user.save()
             logger.info(f"User created: ID={user.id}, Username={user.username}, Email={user.email}")
-            return redirect('chat_dashboard:user_list')
+
+            # Добавление сообщения об успешном создании пользователя
+            messages.success(request,
+                             "Создана новая учетная запись. Данные для её активации направлены на указанный вами электронный адрес.")
+
+            # Оставляем пользователя на той же странице с сообщением
+            return render(request, 'chat_dashboard/user_create_form.html',
+                          {'form': UserForm(), 'messages': messages.get_messages(request)})
+
     else:
         form = UserForm()
+
     return render(request, 'chat_dashboard/user_create_form.html', {'form': form})
 
 
@@ -594,8 +605,53 @@ def archive(request):
     })
 
 
+@role_required(['admin', 'operator'])
 def create_or_edit_content(request):
     return render(request, 'chat_dashboard/edit_content.html')
+
+def filter_dialogs_by_date_range(request):
+    user = request.user
+    start_date = request.GET.get('start')
+    end_date = request.GET.get('end')
+
+    start = timezone.datetime.fromisoformat(start_date)
+    end = timezone.datetime.fromisoformat(end_date)
+    dialogs = Dialog.objects.annotate(
+        has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
+        username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
+        last_message=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]),
+        last_message_timestamp=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]),
+        last_message_sender_id=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]),
+        last_message_username=Case(
+            When(last_message_sender_id=None, then=Value('Bot')),
+            default=Subquery(
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[
+                :1])
+        ),
+    ).filter(has_messages=True, last_message_timestamp__range=(start, end)).order_by('-last_message_timestamp')
+
+    logger.debug(f"Filtered dialogs: {list(dialogs)}")
+
+    # Возвращаем отфильтрованные диалоги в формате JSON
+    dialogs_data = [
+        {
+            'id': dialog.id,
+            'user': {
+                'id': dialog.user.id,
+                'username': dialog.user.username
+            },
+            'last_message': dialog.last_message,
+            'last_message_timestamp': dialog.last_message_timestamp,
+            'last_message_username': dialog.last_message_username
+        }
+        for dialog in dialogs
+    ]
+
+    return JsonResponse(dialogs_data, safe=False)
+
 
 
 # @role_required(['admin', 'operator'])
@@ -605,7 +661,8 @@ def filter_dialogs(request, period):
 
     # Определяем дату для фильтрации
     now = timezone.now()
-    if period == 'all':
+
+    if period == 0:
         # Если фильтруем все диалоги, то период не ограничиваем
         dialogs = Dialog.objects.annotate(
             has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
@@ -645,6 +702,44 @@ def filter_dialogs(request, period):
 
     # Логирование для отладки
     logger.debug(f"Filtered dialogs: {list(dialogs)}")
+
+    # Возвращаем отфильтрованные диалоги в формате JSON
+    dialogs_data = [
+        {
+            'id': dialog.id,
+            'user': {
+                'id': dialog.user.id,
+                'username': dialog.user.username
+            },
+            'last_message': dialog.last_message,
+            'last_message_timestamp': dialog.last_message_timestamp,
+            'last_message_username': dialog.last_message_username
+        }
+        for dialog in dialogs
+    ]
+
+    return JsonResponse(dialogs_data, safe=False)
+
+
+def filter_dialogs_by_id(request, user_id):
+    user = request.user
+    logger.info(f"Filtering dialogs by user {user} with user ID {user_id}.")
+
+    dialogs = Dialog.objects.filter(user_id=user_id).annotate(
+        has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
+        username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
+        last_message=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]),
+        last_message_timestamp=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]),
+        last_message_sender_id=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]),
+        last_message_username=Case(
+            When(last_message_sender_id=None, then=Value('Bot')),
+            default=Subquery(
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1])
+        ),
+    ).filter(has_messages=True).order_by('-last_message_timestamp')
 
     # Возвращаем отфильтрованные диалоги в формате JSON
     dialogs_data = [
@@ -730,24 +825,6 @@ def settings_view(request):
 
     months = list(range(1, 25))
     current_retention_months = settings.message_retention_days // 30 if settings.message_retention_days else 1
-
-    # if request.method == 'POST':
-    #     enable_ad = request.POST.get('enable_ad') == 'on'
-    #     retention_months = request.POST.get('message_retention_months', current_retention_months)
-    #     ldap_server = request.POST.get('ad_server', settings.ldap_server)
-    #     domain = request.POST.get('ad_domain', settings.domain)
-    #     ip_address = request.POST.get('ip_address', settings.ip_address)
-    #
-    #     settings.ad_enabled = enable_ad
-    #     settings.message_retention_days = int(
-    #         retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
-    #     settings.ldap_server = ldap_server
-    #     settings.domain = domain
-    #     settings.ip_address = ip_address  # Обновление IP
-    #     settings.save()
-    #
-    #     return JsonResponse({'status': 'success', 'ad_enabled': settings.ad_enabled,
-    #                          'message_retention_days': settings.message_retention_days})
 
     return render(request, 'chat_dashboard/settings.html', {
         'settings': settings,

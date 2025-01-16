@@ -23,8 +23,6 @@ class Session(models.Model):
     expires_at = models.DateTimeField()
 
     def is_active(self):
-        """Проверка, активна ли сессия."""
-
         return now() < self.expires_at
 
     def __str__(self):

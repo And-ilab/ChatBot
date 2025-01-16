@@ -19,13 +19,12 @@ const greetings = [
     'салам', 'доброй ночи', 'приветик', 'хаюшки'
 ];
 
-
 let dialogID;
 let userID;
 let username;
 let started_at;
 let navigationStack = [];
-
+let sessionExpiryTimeout;
 
 window.addEventListener("beforeunload", async (event) => { 
     const sessionToken = localStorage.getItem("sessionToken");
@@ -64,8 +63,9 @@ menuButton.addEventListener('click', () => {
 });
 
 
+
 const loadMessages = async () => {
-    try {;
+    try {
         const messagesResponse = await fetch(`/api/messages/${dialogID}/`);
         const data = await messagesResponse.json();
 
@@ -90,11 +90,9 @@ const loadMessages = async () => {
     }
 };
 
-
 const scrollToBottom = () => {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 };
-
 
 async function checkUserSession() {
     const sessionToken = localStorage.getItem("sessionToken");
@@ -123,7 +121,11 @@ async function checkUserSession() {
 
         if (data.status === "success") {
             userID = data["user_id"];
+
             console.log(`success`)
+
+            setSessionExpiryTimer(new Date(data.expires_at));  // Установка таймера для закрытия чата
+
             return { status: "success", data };
         } else if (data.status === "expired") {
             console.log(`expired`)
@@ -141,34 +143,68 @@ async function checkUserSession() {
     }
 }
 
+function setSessionExpiryTimer(expiryDate) {
+    if (sessionExpiryTimeout) {
+        clearTimeout(sessionExpiryTimeout);
+    }
+
+    const now = new Date();
+    const timeDifference = expiryDate - now;
+
+    if (timeDifference > 0) {
+        sessionExpiryTimeout = setTimeout(() => {
+            closeChatWindow();
+        }, timeDifference);
+    } else {
+        closeChatWindow();
+    }
+}
+
+function closeChatWindow() {
+    chatWindow.style.display = 'none';
+}
+
 chatToggle.addEventListener('click', async () => {
-    chatWindow.style.display = 'block';
-    const result = await checkUserSession();
-    console.log(result);
+    // Проверяем текущее состояние окна чата
+    const isChatVisible = chatWindow.style.display === 'block';
 
-    switch (result.status) {
-        case "login":
-            console.log("Сессия отсутствует. Пожалуйста, войдите.");
-            chatLogin.style.display = 'flex';  
-            break;
-        case "success":
-            console.log("Добро пожаловать! Продолжайте работу.");
-            chatMessages.style.display = 'flex';
-            await loadDialogMessages();
-            break;
-        case "expired":
-            console.log("Сессия истекла.");
-            extendSessionWindow.style.display = 'flex';
-            break;
-        case "error":
-            alert(`Ошибка: ${result.message}`);
-            break;
+    if (isChatVisible) {
+        // Если чат уже открыт, закрываем его
+        chatWindow.style.display = 'none';
+    } else {
+        // Если чат закрыт, открываем его и выполняем проверку сессии
+        chatWindow.style.display = 'block';
+        extendSessionWindow.style.display = 'none';
+        chatLogin.style.display = 'none';
+        chatMessages.style.display = 'none';
 
-        default:
-            console.error("Неизвестный статус:", result.status);
+        startSessionCheckInterval();
+
+        const result = await checkUserSession();
+        console.log(result);
+
+        switch (result.status) {
+            case "login":
+                console.log("Сессия отсутствует. Пожалуйста, войдите.");
+                chatLogin.style.display = 'flex';
+                break;
+            case "success":
+                console.log("Добро пожаловать! Продолжайте работу.");
+                chatMessages.style.display = 'flex';
+                await loadDialogMessages();
+                break;
+            case "expired":
+                console.log("Сессия истекла.");
+                extendSessionWindow.style.display = 'flex';
+                break;
+            case "error":
+                alert(`Ошибка: ${result.message}`);
+                break;
+            default:
+                console.error("Неизвестный статус:", result.status);
+        }
     }
 });
-
 
 async function loadDialogMessages() {
     userID = jwt_decode(localStorage.getItem("sessionToken"))["user_id"];
@@ -178,14 +214,12 @@ async function loadDialogMessages() {
     await loadMessages();
 }
 
-
 extendButton.addEventListener('click', async () => {
     await extendSession();
     extendSessionWindow.style.display = 'none';
     chatMessages.style.display = 'flex';
     await loadDialogMessages();
 });
-
 
 newSessionButton.addEventListener('click', async () => {
     const sessionToken = localStorage.getItem("sessionToken");
@@ -198,8 +232,8 @@ newSessionButton.addEventListener('click', async () => {
     chatMessages.style.display = 'flex';
     await showGreetingMessages();
     await showSectionButtons();
-});
 
+});
 
 loginForm.addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -265,7 +299,7 @@ const appendMessage = (sender, content, timestamp) => {
         chatMessages.appendChild(dateWrapper);
     }
 
-    messageDiv.innerHTML = ` 
+    messageDiv.innerHTML = `
         <strong>${sender === 'bot' ? 'Бот' : 'Вы'}:</strong> ${content}
         <div class="${timeClass}">${time}</div>
     `;
@@ -273,7 +307,6 @@ const appendMessage = (sender, content, timestamp) => {
     chatMessages.appendChild(messageDiv);
     setTimeout(scrollToBottom, 0);
 };
-
 
 const sendMessageToAPI = async (dialog_id, senderType, content, timestamp) => {
     await fetch(`/api/send-message/${dialog_id}/`, {
@@ -306,18 +339,61 @@ const sendUserMessage = async () => {
     const message = chatInput.value.trim();
     if (!message) return;
 
+    const userMessageTimestamp = getTimestamp();
+    appendMessage('Вы', message, userMessageTimestamp);
+    chatInput.value = '';
+
+    // Проверка сессии перед отправкой сообщения
+    const sessionCheck = await checkUserSession();
+    if (sessionCheck.status === "expired") {
+        closeChatWindow();
+        return;
+    }
+
+    try {
+        await sendMessageToAPI(dialogID, 'user', message, userMessageTimestamp);
+        await extendSession();  // Обновляем сессию при отправке сообщения
+        if (message.endsWith('?')) {
+            // Обработка вопросов
+        } else {
+            userResponseHandler(message);
+        }const sendUserMessage = async () => {
+    const message = chatInput.value.trim();
+    if (!message) return;
+
     console.log('Отправляемое сообщение:', message);
-    const userMessageTimestamp = getTimestamp()
+    const userMessageTimestamp = getTimestamp();
     appendMessage('Вы', message, userMessageTimestamp);
 
     chatInput.value = '';
     try {
         await sendMessageToAPI(dialogID, 'user', message, userMessageTimestamp);
+
         await userResponseHandler(message);
+        await extendSession();  // Обновляем сессию при отправке сообщения
+        if (message.endsWith('?')) {
+            console.log('question');
+//          await handleQuestion(message);
+        } else {
+            userResponseHandler(message);
+        }
+
     } catch (error) {
     console.error('Ошибка при отправке сообщения:', error);
     }
 };
+
+    } catch (error) {
+        console.error('Ошибка при отправке сообщения:', error);
+    }
+};
+sendMessageButton.addEventListener('click', sendUserMessage);
+chatInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendUserMessage();
+    }
+});
 
 
 const fetchNodes = async (type) => {
@@ -445,7 +521,7 @@ const createButtonsFromNodes = (nodes, onClickHandler) => {
 
 const createDocumentBlock = (documents) => {
     const chatMessages = document.querySelector('.chat-messages');
-    
+
     if (!chatMessages) {
         console.error('Элемент .chat-messages не найден');
         return;
@@ -680,7 +756,7 @@ const showAnswer = async (questionID) => {
     typingAnimation.remove();
 
     await showDocuments(answer.id);
-    
+
 };
 
 
@@ -820,3 +896,12 @@ const getUserDetails = async (userId) => {
         console.error("Error fetching user details:", error);
     }
 };
+
+function startSessionCheckInterval() {
+    setInterval(async () => {
+        const sessionCheck = await checkUserSession();
+        if (sessionCheck.status === "expired") {
+            closeChatWindow(); // Закрываем чат, если сессия истекла
+        }
+    }, 60000); // Проверка сессии каждые 60 секунд
+}

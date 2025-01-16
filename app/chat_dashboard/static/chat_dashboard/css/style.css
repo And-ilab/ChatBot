@@ -9,6 +9,7 @@
     background-color: #343a40;
     color: #fff;
     height: 100vh; /* Растягивается на всю высоту экрана */
+    height: 100vh; /* Растягивается на всю высоту экрана */
     width: 52px; /* Ширина сайдбара */
     padding: 20px 0;
     z-index: 1000; /* Устанавливаем приоритет слоя */
@@ -96,6 +97,7 @@
     margin-left: 50px;
     border-right: 1px solid #ccc;
     background-color: #f8f9fa;
+    min-width: 300px; /* Установите минимальную ширину */
 }
 
 .training-sidebar {
