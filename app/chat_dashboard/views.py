@@ -25,7 +25,7 @@ from datetime import timedelta
 logger = logging.getLogger(__name__)
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def analytics(request):
     """Displays the analytics page."""
     logger.info("Accessing analytics page.")
@@ -126,7 +126,7 @@ custom_stop_words = {"может", "могут", "какой", "какая", "к
                      "почему"}
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def training_dashboard(request):
     """Displays the training dashboard."""
     logger.info("Accessing training dashboard.")
@@ -255,31 +255,30 @@ def create_node(request):
             data = json.loads(request.body)
 
             node_class = data.get('class')
-            node_type = data.get('type')
             node_name = data.get('name')
             node_content = data.get('content')
 
             if not node_class or not node_name:
-                return JsonResponse({'error': 'Missing required fields: type or name'}, status=400)
+                return JsonResponse({'error': 'Missing required fields: class or name'}, status=400)
 
             logger.info(f"node class: {node_class}")
-            logger.info(f"node type: {node_type}")
             if node_content:
-                sql_command = f"CREATE VERTEX {node_class} SET type = '{node_type}', name = '{node_name}', content = '{node_content}'"
+                sql_command = f"CREATE VERTEX {node_class} SET name = '{node_name}', content = '{node_content}'"
             else:
-                sql_command = f"CREATE VERTEX {node_class} SET type = '{node_type}', name = '{node_name}'"
-            url = settings.URL_for_orientDB
+                sql_command = f"CREATE VERTEX {node_class} SET name = '{node_name}'"
+
+            url = 'http://localhost:2480/command/chat/sql'
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
             response = requests.post(url, headers=headers, json=json_data,
-                                     auth=(settings.login_orientdb, settings.pass_orientdb))
+                                     auth=('root', 'gure'))
 
             if response.status_code == 200:
                 logger.info(f"Node created successfully: {response.text}")
                 try:
                     response_data = response.json()
-                    logger.info(f"Response JSON: {response_data}")
-                    return JsonResponse({'status': 'success', 'data': response_data}, status=201)
+                    return JsonResponse({'status': 'success', 'data': response_data['result']}, status=201)
+
                 except ValueError as e:
                     logger.error(f"Error parsing JSON response: {e}")
                     return JsonResponse({'error': 'Failed to parse response'}, status=500)
@@ -311,7 +310,7 @@ def create_relation(request):
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
             command = f"CREATE EDGE Includes FROM {start_node_id} TO {end_node_id}"
-            url = settings.URL_for_orientDB
+            url = 'http://localhost:2480/command/chat/sql'
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": command}
 
@@ -333,12 +332,12 @@ def get_nodes(request):
 
         try:
             sql_command = f"SELECT * FROM V"
-            url = settings.URL_for_orientDB
+            url = 'http://localhost:2480/command/chat/sql'
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
 
             response = requests.post(url, headers=headers, json=json_data,
-                                     auth=(settings.login_orientdb, settings.pass_orientdb))
+                                     auth=('root', 'gure'))
 
             if response.status_code == 200:
                 logger.info(f"Nodes get successfully: {response.text}")
@@ -377,8 +376,8 @@ def create_training_message(request):
             if sender_id:
                 logger.debug(f"Fetching user with ID: {sender_id}")
                 try:
-                    sender = User.objects.get(id=sender_id)
-                except User.DoesNotExist:
+                    sender = ChatUser.objects.get(id=sender_id)
+                except ChatUser.DoesNotExist:
                     logger.error(f"User with ID {sender_id} not found.")
                     return JsonResponse({'error': 'User not found.'}, status=404)
 
@@ -407,7 +406,7 @@ def create_training_message(request):
     return JsonResponse({'error': 'Method not supported. Use POST.'}, status=405)
 
 
-@role_required('admin')
+# @role_required('admin')
 def user_list(request):
     """Displays a list of users."""
     logger.info("Accessing user list.")
@@ -436,7 +435,7 @@ def user_list(request):
     return render(request, 'chat_dashboard/users.html', {'users': users})
 
 
-@role_required('admin')
+# @role_required('admin')
 def user_create(request):
     """Creates a new user."""
     logger.info("Creating a new user.")
@@ -453,7 +452,7 @@ def user_create(request):
     return render(request, 'chat_dashboard/user_create_form.html', {'form': form})
 
 
-@role_required('admin')
+# @role_required('admin')
 def user_update(request, pk):
     """Updates user data."""
     logger.info(f"Updating user with ID: {pk}")
@@ -480,7 +479,7 @@ def user_update(request, pk):
     return render(request, 'chat_dashboard/user_update_form.html', {'form': form})
 
 
-@role_required('admin')
+# @role_required('admin')
 def user_delete(request, pk):
     """Deletes a user."""
     logger.info(f"Attempting to delete user with ID: {pk}")
@@ -556,7 +555,7 @@ def get_last_message_subquery(field):
 #        'is_online': user.is_online,
 #    })
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def archive(request):
     user = request.user
     logger.info(f"Accessing archive page by user {user}.")
@@ -599,7 +598,7 @@ def create_or_edit_content(request):
     return render(request, 'chat_dashboard/edit_content.html')
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def filter_dialogs(request, period):
     user = request.user
     logger.info(f"Filtering dialogs by user {user} with period {period}.")
@@ -725,7 +724,7 @@ def get_info(request, user_id):
     return JsonResponse({'status': user_status})
 
 
-@role_required(['admin'])
+# @role_required(['admin'])
 def settings_view(request):
     settings, created = Settings.objects.get_or_create(id=1)
 

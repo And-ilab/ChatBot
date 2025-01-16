@@ -53,11 +53,16 @@
             </div>
         </div>
         <div class="chat-footer">
+            <button class="btn btn-primary chat-menu-button" id="user-menu-button">
+                <span>Меню</span>
+                <i class="fas fa-bars" style="margin-left: 10px;"></i>
+            </button>
             <input type="text" class="form-control chat-input" placeholder="Ваше сообщение..." id="user-chat-input">
             <button class="btn chat-button" id="user-send-message">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
+        <div class="menu-buttons"></div>
 </div>
     <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
     <script src="{% static 'chat_user/js/chat.js' %}"></script>

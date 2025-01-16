@@ -3,9 +3,6 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
 from django.utils import timezone
 
-from chat_user.models import ChatUser
-from numpy.lib.recfunctions import drop_fields
-
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -105,7 +102,7 @@ class Message(models.Model):
 
 class TrainingMessage(models.Model):
     sender = models.ForeignKey(
-        'chat_dashboard.User',
+        'chat_user.ChatUser',
         null=True,
         blank=True,
         on_delete=models.SET_NULL

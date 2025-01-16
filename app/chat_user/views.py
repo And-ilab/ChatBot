@@ -266,7 +266,7 @@ def get_nodes_by_type(request):
     node_type = urllib.parse.unquote(node_type)
 
     # Формируем URL для запроса
-    url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
+    url = f"http://localhost:2480/query/chat/sql/SELECT FROM {node_type}"
 
     try:
         response = requests.get(url, auth=('root', 'gure'))
@@ -325,7 +325,7 @@ def get_nodes_by_type_with_relation(request):
             logger.info(f"Fetching nodes with type of start node: {start_node_type}")
 
             # Формируем запрос с учётом кавычек вокруг start_node_name
-            url = (f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {finish_node_type} "
+            url = (f"http://localhost:2480/query/chat/sql/SELECT FROM {finish_node_type} "
                    f"WHERE @rid IN (SELECT OUT('Includes') "
                    f"FROM (SELECT FROM {start_node_type} WHERE content = '{start_node_name}'))")
 
@@ -356,6 +356,49 @@ def get_nodes_by_type_with_relation(request):
                 logger.error(f"Error fetching data: {e}")
                 return JsonResponse({"error": "Failed to fetch data"}, status=500)
 
+
+def get_question_id_by_content(request):
+    """Fetch question for a specific question ID."""
+    if request.method == 'GET':
+        question_content = urllib.parse.unquote(request.GET.get('questionContent'))
+
+        if question_content:
+            logger.info(f"Received question content: {question_content}")
+            url = (f"http://localhost:2480/command/chat/sql/")
+            query = f"SELECT @rid FROM Question WHERE content = '{question_content}'"
+            logger.info(f"Sending query: {url}")
+
+            try:
+                response = requests.get(
+                    url,
+                    auth=('root', 'gure'),
+                    headers={"Content-Type": "application/json"},
+                    json={"command": query}
+                )
+
+                logger.info(f"Response status: {response.status_code}.")
+
+
+                if not response.ok:
+                    logger.warning("Question not found for the given ID.")
+                    return JsonResponse({"error": "Question not found"}, status=404)
+                else:
+                    data = response.json()
+                    logger.info(f"Data = {data}")
+
+                    if 'result' in data:
+                        id = data['result'][0]
+
+                    return JsonResponse({'result': id})
+
+            except Exception as e:
+                logger.error(f"Error fetching answer: {e}")
+                return JsonResponse({"error": "Failed to fetch answer"}, status=500)
+        else:
+            logger.error("No questionId provided.")
+            return JsonResponse({"error": "No questionId provided"}, status=400)
+
+
 def get_answer(request):
     """Fetch answer for a specific question ID."""
     if request.method == 'GET':
@@ -365,7 +408,7 @@ def get_answer(request):
         # Проверяем, что параметр questionId передан
         if question_id:
             logger.info(f"Received questionId: {question_id}")
-            url = (f"http://localhost:2480/command/chat-bot-db/sql/")
+            url = (f"http://localhost:2480/command/chat/sql/")
             query = f"SELECT FROM Answer WHERE @rid IN (SELECT OUT('Includes') FROM Question WHERE @rid = '{question_id}')"
             logger.info(f"Sending query: {url}")  # Логируем сформированный запрос
 
@@ -421,7 +464,7 @@ def get_documents(request):
             logger.info(f"Received answerId: {answer_id}")
 
             # Формируем запрос для получения документов
-            url = "http://localhost:2480/command/chat-bot-db/sql/"
+            url = "http://localhost:2480/command/chat/sql/"
             documents_query = f"SELECT FROM document WHERE @rid IN (SELECT OUT('Includes') FROM Answer WHERE @rid = '{answer_id}')"
             logger.info(f"Sending documents query: {documents_query}")
 
@@ -444,7 +487,7 @@ def get_documents(request):
                 if 'result' in documents_data:
                     for node in documents_data['result']:
                         if 'content' in node and '@rid' in node:
-                            nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content']})
+                            nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content'], 'type': 'document'})
                     logger.info(f"Found {len(nodes_data)} documents.")
                     logger.info(nodes_data)
                 else:
@@ -469,7 +512,7 @@ def get_documents(request):
                 if 'result' in links_data:
                     for node in links_data['result']:
                         if 'content' in node and '@rid' in node:
-                            nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content']})
+                            nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content'], 'type': 'link'})
                     logger.info(f"Found {len(nodes_data)} links.")
                     logger.info(nodes_data)
                 else:
@@ -568,7 +611,7 @@ def update_answer(request):
             # Экранирование кавычек и других символов
             escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
             # Формируем запрос
-            url = "http://localhost:2480/command/chat-bot-db/sql/"
+            url = "http://localhost:2480/command/chat/sql/"
             query = f"UPDATE answer SET content = '{escaped_content}' WHERE @rid = '{answer_id}'"
             logger.info(f"Sending query: {query}")
 
@@ -625,7 +668,7 @@ def update_question(request):
             escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
 
             # Формируем запрос
-            url = "http://localhost:2480/command/chat-bot-db/sql/"
+            url = "http://localhost:2480/command/chat/sql/"
             query = f"UPDATE Question SET content = '{escaped_content}' WHERE @rid = '{question_id}'"
             logger.info(f"Sending query: {query}")
 
@@ -656,4 +699,39 @@ def update_question(request):
             logger.error(f"Unexpected error: {e}")
             return JsonResponse({'error': 'Internal server error'}, status=500)
 
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+def recognize_question(request):
+    if request.method == 'POST':
+        try:
+            # Получение тела запроса
+            raw_body = request.body
+            logger.info(f"Raw request body: {raw_body}")
+
+            # Разбор JSON
+            body = json.loads(raw_body.decode('utf-8'))
+            logger.info(f"Parsed body: {body}")
+
+            # Проверка наличия ключа 'message'
+            if 'message' not in body:
+                logger.error("Missing 'message' key in request body")
+                return JsonResponse({'error': "Missing 'message' key in request body"}, status=400)
+
+            message = body['message']
+            logger.info(f"Message to process: {message}")
+
+            # Использование объекта model_handler
+            recognized_question = settings.MODEL_HANDLER.handle_query(message)
+            return JsonResponse({'recognized_question': recognized_question})
+
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return JsonResponse({'error': 'Internal server error'}, status=500)
+
+    logger.warning("Invalid request method")
     return JsonResponse({'error': 'Invalid request method'}, status=400)

@@ -9,3 +9,5 @@ pycache/
 */__pycache__/
 logs
 app/logs/django_debug.log
+.DS_Store
+*/.DS_Store
