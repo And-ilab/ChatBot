@@ -268,11 +268,11 @@ def create_node(request):
             else:
                 sql_command = f"CREATE VERTEX {node_class} SET name = '{node_name}'"
 
-            url = 'http://localhost:2480/command/chat/sql'
+            url = 'http://localhost:2480/command/chat-bot-db/sql'
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
             response = requests.post(url, headers=headers, json=json_data,
-                                     auth=('root', 'gure'))
+                                     auth=('root', 'guregure'))
 
             if response.status_code == 200:
                 logger.info(f"Node created successfully: {response.text}")
@@ -311,7 +311,7 @@ def create_relation(request):
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
             command = f"CREATE EDGE Includes FROM {start_node_id} TO {end_node_id}"
-            url = 'http://localhost:2480/command/chat/sql'
+            url = 'http://localhost:2480/command/chat-bot-db/sql'
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": command}
 
@@ -333,12 +333,12 @@ def get_nodes(request):
 
         try:
             sql_command = f"SELECT * FROM V"
-            url = 'http://localhost:2480/command/chat/sql'
+            url = 'http://localhost:2480/command/chat-bot-db/sql'
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
 
             response = requests.post(url, headers=headers, json=json_data,
-                                     auth=('root', 'gure'))
+                                     auth=('root', 'guregure'))
 
             if response.status_code == 200:
                 logger.info(f"Nodes get successfully: {response.text}")
