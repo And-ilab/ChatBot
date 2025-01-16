@@ -10,24 +10,17 @@
             <h3 class="mb-0">Архив</h3>
         </div>
         <div class="d-flex justify-content-center mb-2">
-            <div class="dropdown" style="position: relative;">
-                <a class="dropdown-item" id="filterDropdown" style="cursor: pointer;">
-                    Фильтр <span class="caret" style="border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid black; display: inline-block; margin-left: 5px;"></span>
-                </a>
-                <div id="filter-menu" class="dropdown-menu" style="display: none; position: absolute; left: 0;">
-                    <a class="dropdown-item" id="filter-by-id" style="cursor: pointer;">По ID пользователя</a>
-                    <a class="dropdown-item" id="filter-by-date" style="cursor: pointer;">По дате <span class="date-caret" style="border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid black; display: inline-block; margin-left: 5px;"></span></a>
-                </div>
-                <div id="date-filter-menu" class="dropdown-menu" style="display: none; position: absolute; left: 100%;">
-                    <a class="dropdown-item" data-period="0">Все сообщения</a>
-                    <a class="dropdown-item" data-period="1">Сегодня</a>
-                    <a class="dropdown-item" data-period="2">Вчера</a>
-                    <a class="dropdown-item" data-period="7">За неделю</a>
-                    <a class="dropdown-item" data-period="30">За месяц</a>
-                    <a class="dropdown-item" data-period="90">За три месяца</a>
-                    <a class="dropdown-item" data-period="365">За год</a>
-                    <a class="dropdown-item" data-period="date-range" id="filter-by-date-range-custom">Выбрать диапазон дат</a>
-                </div>
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    Фильтр сообщений
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                    <li><a class="dropdown-item">Все сообщения</a></li>
+                    <li><a class="dropdown-item">За день</a></li>
+                    <li><a class="dropdown-item">За неделю</a></li>
+                    <li><a class="dropdown-item">За месяц</a></li>
+                    <li><a class="dropdown-item">За год</a></li>
+                </ul>
             </div>
         </div>
         <ul class="chat-list" style="flex-grow: 1; overflow-y: auto; box-sizing: border-box; list-style-type: none; padding-left: 0;">
@@ -74,42 +67,8 @@
         </div>
         <h4 class="mb-2" id="user-info-username"></h4>
         <p class="mb-2" id="user-info-status" style="color: {{ user.is_online|yesno:'green,red' }};"></p>
-        <p class="mb-4" style="font-size: 0.8rem;" id="user-info-last-active"></p>
+        <p class="mb-4" style="font-size: 0.8rem;" id="user-info-last-active">
+        </p>
     </div>
 </div>
-
-
-<div id="date-range-modal" class="modal fade" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Выберите промежуток дат</h5>
-                <button type="button" class="close" id="close-modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="start-date">Начальная дата</label>
-                    <input type="text" id="start-date" class="form-control datepicker" placeholder="Выберите дату">
-                </div>
-                <div class="form-group">
-                    <label for="end-date">Конечная дата</label>
-                    <input type="text" id="end-date" class="form-control datepicker" placeholder="Выберите дату">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" id="submit-date-range">Применить</button>
-                <button type="button" class="btn btn-secondary" id="close-modal">Закрыть</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
-
 {% endblock %}

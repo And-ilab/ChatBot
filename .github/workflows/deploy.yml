@@ -1,9 +1,9 @@
 name: Deploy to VPS
 
-on:
-  push:
-    branches:
-      - main  # Замените на вашу ветку, если необходимо
+#on:
+#  push:
+#    branches:
+#      - main  # Замените на вашу ветку, если необходимо
 #  pull_request:
 #    branches:
 #      - main  # Замените на вашу ветку, если необходимо

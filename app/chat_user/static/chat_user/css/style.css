@@ -93,15 +93,13 @@ body {
     background-color: #007bff;
     color: white;
     border: none;
-    border-radius: 14px;
+    border-radius: 8px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.chat-buttons-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    min-height: 20px;
+.chat-button:hover {
+    color: white;
+    background-color: #0056b3;
 }
 
 .chat-login-wrapper {
@@ -256,4 +254,49 @@ body {
     75% {
         content: "Печатает...";
     }
+}
+
+.chat-menu-button {
+    display: none;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 5px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.chat-menu-button:hover {
+    background-color: #0056b3;
+}
+
+.chat-menu-button {
+    display: none;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: space-between;
+    margin-right: 10px;
+    height: 40px;
+}
+
+.chat-menu-button:hover {
+    background-color: #0056b3;
+}
+
+.menu-buttons {
+    display: none;
+    padding: 10px;
+    max-height: 180px;
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    overflow-y: auto;
 }

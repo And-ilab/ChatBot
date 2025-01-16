@@ -42,6 +42,7 @@ async function loadMessages(dialogId) {
         console.error('Ошибка при загрузке сообщений:', error);
     }
 }
+
 // Загрузка статуса пользователя
 async function loadUserStatus(userId) {
     try {
@@ -86,49 +87,6 @@ function updateUserInfo(username) {
     }
 }
 
-// Функция для загрузки и обновления диалогов
-async function filterDialogs(period) {
-    try {
-        const response = await fetch(`/api/filter_dialogs/${period}/`);
-        const dialogs = await response.json();
-
-        const chatList = document.querySelector('.chat-list');
-        chatList.innerHTML = '';
-
-        dialogs.forEach(dialog => {
-            const listItem = document.createElement('li');
-            listItem.className = 'chat-item border-top border-bottom py-3 px-2';
-            listItem.id = `dialog-${dialog.id}`;
-            listItem.dataset.username = dialog.user.username;
-            listItem.dataset.userid = dialog.user.id;
-            listItem.style.transition = 'background-color 0.3s ease; cursor: pointer';
-            listItem.onclick = () => {
-                loadMessages(dialog.id);
-                setActiveDialog(listItem);
-                updateUserInfo(dialog.user.username);
-                loadUserStatus(dialog.user.id);
-            };
-            listItem.innerHTML = `
-                <div class="chat-item-wrapper d-flex flex-column justify-content-between" style="width: 250px;">
-                    <div class="d-flex w-100 flex-row justify-content-between">
-                        <div class="chat_user w-50" style="overflow-x: hidden; font-weight: bold;">${dialog.user.username}</div>
-                        <div class="chat-time d-flex w-50 justify-content-end text-muted" style="overflow-x: hidden;">
-                            <span class="timestamp">${new Date(dialog.last_message_timestamp).toLocaleString()}</span>
-                        </div>
-                    </div>
-                    <div class="d-flex w-100">
-                        <p><strong>${dialog.last_message_username}:</strong></p>
-                        <p class="dialog-content mb-0">${dialog.last_message.length > 25 ? dialog.last_message.slice(0, 25) + '...' : dialog.last_message}</p>
-                    </div>
-                </div>
-            `;
-            chatList.appendChild(listItem);
-        });
-    } catch (error) {
-        console.error('Ошибка при фильтрации диалогов:', error);
-    }
-}
-
 // Установка обработчиков событий после загрузки страницы
 document.addEventListener('DOMContentLoaded', () => {
     const allDialogs = document.querySelectorAll('.chat-item');
@@ -139,7 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Подгружаем сообщения для первого диалога
         loadMessages(dialogId);
+
+        // Устанавливаем первый диалог как активный
         setActiveDialog(firstDialog);
+
+        // Обновляем информацию о пользователе
         updateUserInfo(firstDialog.dataset.username);
         loadUserStatus(firstDialog.dataset.userid);
     }
@@ -153,212 +115,5 @@ document.addEventListener('DOMContentLoaded', () => {
             updateUserInfo(dialog.dataset.username);
             loadUserStatus(dialog.dataset.userid);
         });
-    });
-
-    // Обработчик кликов для фильтра
-    document.querySelectorAll('.dropdown-item').forEach(item => {
-        item.addEventListener('click', (event) => {
-            const period = event.target.textContent.trim();
-            let days;
-
-            switch (period) {
-                case 'Все сообщения':
-                    days = 0;
-                    break;
-                case 'Сегодня':
-                    days = 1;
-                    break;
-                case 'Вчера':
-                    days = 2;
-                    break;
-                case 'За неделю':
-                    days = 7;
-                    break;
-                case 'За месяц':
-                    days = 30;
-                    break;
-                case 'За три месяца':
-                    days = 90;
-                    break;
-                case 'За год':
-                    days = 365;
-                    break;
-
-                default:
-                    return;
-            }
-
-            // Обновление списка диалогов
-            filterDialogs(days);
-        });
-    });
-});
-    document.addEventListener('DOMContentLoaded', () => {
-        const filterDropdown = document.getElementById('filterDropdown');
-        const filterMenu = document.getElementById('filter-menu');
-        const dateFilterMenu = document.getElementById('date-filter-menu');
-
-        // Показать меню фильтров при наведении
-        filterDropdown.addEventListener('mouseenter', () => {
-            filterMenu.style.display = 'block';
-        });
-
-        // Обработчик для выбора фильтра по дате
-        document.getElementById('filter-by-date').addEventListener('mouseenter', () => {
-            dateFilterMenu.style.display = 'block';
-        });
-
-        // Скрыть меню фильтров при уходе курсора
-        const hideMenus = () => {
-            if (!filterDropdown.matches(':hover') && !filterMenu.matches(':hover') && !dateFilterMenu.matches(':hover')) {
-                filterMenu.style.display = 'none';
-                dateFilterMenu.style.display = 'none';
-            }
-        };
-
-        // Скрыть меню фильтров, когда мышь уходит
-        filterDropdown.addEventListener('mouseleave', hideMenus);
-        filterMenu.addEventListener('mouseleave', hideMenus);
-        dateFilterMenu.addEventListener('mouseleave', hideMenus);
-
-        // Обработчики выбора периода
-        document.querySelectorAll('#date-filter-menu .dropdown-item').forEach(item => {
-            item.addEventListener('click', (event) => {
-                const period = event.target.getAttribute('data-period');
-                console.log(`Выбран период: ${period}`);
-                dateFilterMenu.style.display = 'none'; // Скрыть меню после выбора
-                filterDialogs(period); // Логика фильтрации
-            });
-        });
-
-        // Скрыть меню при нажатии вне
-        document.addEventListener('click', (event) => {
-            if (!filterDropdown.contains(event.target) && !filterMenu.contains(event.target) && !dateFilterMenu.contains(event.target)) {
-                filterMenu.style.display = 'none';
-                dateFilterMenu.style.display = 'none';
-            }
-        });
-    });
-
-
-document.addEventListener('DOMContentLoaded', () => {
-    const filterById = document.getElementById('filter-by-id');
-
-    // Обработчик для фильтрации по ID пользователя
-    filterById.addEventListener('click', () => {
-        const userId = prompt("Введите ID пользователя для фильтрации:");
-        if (userId) {
-            filterDialogsById(userId);
-        }
-    });
-});
-
-
-
-// Функция фильтрации диалогов по ID пользователя
-async function filterDialogsById(userId) {
-    try {
-        const response = await fetch(`/api/filter_dialogs_by_id/${userId}/`);
-        const dialogs = await response.json();
-
-        const chatList = document.querySelector('.chat-list');
-        chatList.innerHTML = '';
-
-        dialogs.forEach(dialog => {
-            const listItem = document.createElement('li');
-            listItem.className = 'chat-item border-top border-bottom py-3 px-2';
-            listItem.id = `dialog-${dialog.id}`;
-            listItem.dataset.username = dialog.user.username;
-            listItem.dataset.userid = dialog.user.id;
-            listItem.style.transition = 'background-color 0.3s ease; cursor: pointer';
-            listItem.onclick = () => {
-                loadMessages(dialog.id);
-                setActiveDialog(listItem);
-                updateUserInfo(dialog.user.username);
-                loadUserStatus(dialog.user.id);
-            };
-            listItem.innerHTML = `
-                <div class="chat-item-wrapper d-flex flex-column justify-content-between" style="width: 250px;">
-                    <div class="d-flex w-100 flex-row justify-content-between">
-                        <div class="chat_user w-50" style="overflow-x: hidden; font-weight: bold;">${dialog.user.username}</div>
-                        <div class="chat-time d-flex w-50 justify-content-end text-muted" style="overflow-x: hidden;">
-                            <span class="timestamp">${new Date(dialog.last_message_timestamp).toLocaleString()}</span>
-                        </div>
-                    </div>
-                    <div class="d-flex w-100">
-                        <p><strong>${dialog.last_message_username}:</strong></p>
-                        <p class="dialog-content mb-0">${dialog.last_message.length > 25 ? dialog.last_message.slice(0, 25) + '...' : dialog.last_message}</p>
-                    </div>
-                </div>
-            `;
-            chatList.appendChild(listItem);
-        });
-    } catch (error) {
-        console.error('Ошибка при фильтрации диалогов:', error);
-    }
-}
-
-document.getElementById('submit-date-range').addEventListener('click', async () => {
-    const startDate = document.getElementById('start-date').value;
-    const endDate = document.getElementById('end-date').value;
-
-    if (startDate && endDate) {
-        await filterDialogsByDateRange(startDate, endDate);
-        $('#date-range-modal').modal('hide'); // Закрытие модального окна
-    } else {
-        alert("Пожалуйста, выберите обе даты.");
-    }
-});
-// Функция фильтрации диалогов по диапазону дат
-async function filterDialogsByDateRange(startDate, endDate) {
-    try {
-        const response = await fetch(`/api/filter_dialogs_by_date_range/?start=${startDate}&end=${endDate}`);
-        const dialogs = await response.json();
-
-        const chatList = document.querySelector('.chat-list');
-        chatList.innerHTML = ''; // Очистка списка перед добавлением новых диалогов
-
-        // Обновление списка диалогов
-        dialogs.forEach(dialog => {
-            const listItem = document.createElement('li');
-            listItem.className = 'chat-item border-top border-bottom py-3 px-2';
-            listItem.id = `dialog-${dialog.id}`;
-            listItem.dataset.username = dialog.user.username;
-            listItem.dataset.userid = dialog.user.id;
-            listItem.onclick = () => {
-                loadMessages(dialog.id);
-                setActiveDialog(listItem);
-                updateUserInfo(dialog.user.username);
-                loadUserStatus(dialog.user.id);
-            };
-            listItem.innerHTML = `
-                <div class="chat-item-wrapper d-flex flex-column justify-content-between" style="width: 250px;">
-                    <div class="d-flex w-100 flex-row justify-content-between">
-                        <div class="chat_user w-50" style="overflow-x: hidden; font-weight: bold;">${dialog.user.username}</div>
-                        <div class="chat-time d-flex w-50 justify-content-end text-muted" style="overflow-x: hidden;">
-                            <span class="timestamp">${new Date(dialog.last_message_timestamp).toLocaleString()}</span>
-                        </div>
-                    </div>
-                    <div class="d-flex w-100">
-                        <p><strong>${dialog.last_message_username}:</strong></p>
-                        <p class="dialog-content mb-0">${dialog.last_message.length > 25 ? dialog.last_message.slice(0, 25) + '...' : dialog.last_message}</p>
-                    </div>
-                </div>
-            `;
-            chatList.appendChild(listItem);
-        });
-    } catch (error) {
-        console.error('Ошибка при фильтрации диалогов:', error);
-    }
-}
-
-document.getElementById('filter-by-date-range-custom').addEventListener('click', () => {
-    // Открытие модального окна
-    $('#date-range-modal').modal('show');
-});
-$(document).ready(function() {
-    $('.datepicker').datepicker({
-        format: 'yyyy-mm-dd',
-        autoclose: true
     });
 });
