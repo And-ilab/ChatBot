@@ -82,7 +82,60 @@
                 <!-- Сюда будут добавляться документы -->
             </ul>
         </div>
+        <div class="mb-4 border p-3 rounded" style="background-color: #f9f9f9; width: 700px; overflow-y: auto;">
+            <h5>Ссылки</h5>
+            <ul class="list-group" id="link-list">
+                <!-- Сюда будут добавляться ссылки -->
+            </ul>
+        </div>
+        <div class="mb-4">
+            <button type="button" class="btn btn-outline-primary" id="add-link">Добавить ссылку</button>
+            <button type="button" class="btn btn-outline-secondary" id="add-document">Добавить документ</button>
+        </div>
     </form>
 </div>
 
+<!-- Modal for adding link -->
+<div class="modal" id="addLinkModal" tabindex="-1" aria-labelledby="addLinkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addLinkModalLabel">Добавить ссылку</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="link-title" class="form-label">Название ссылки</label>
+                <input type="text" class="form-control" id="link-title">
+                <label for="link-url" class="form-label mt-2">Ссылка</label>
+                <input type="url" class="form-control" id="link-url">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" id="save-link">Добавить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for adding document -->
+<div class="modal" id="addDocumentModal" tabindex="-1" aria-labelledby="addDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addDocumentModalLabel">Добавить документ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="document-title" class="form-label">Название документа</label>
+                <input type="text" class="form-control" id="document-title">
+                <label for="document-file" class="form-label mt-2">Загрузить файл</label>
+                <input type="file" class="form-control" id="document-file">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" id="save-document">Добавить</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

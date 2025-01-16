@@ -3,16 +3,15 @@ import jwt
 import logging
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from django.shortcuts import render, get_object_or_404
-from django.utils.timezone import now
+from django.utils.timezone import make_aware, now
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.conf import settings
 from chat_dashboard.models import Dialog, Message, Settings
 from .models import ChatUser, Session
-from chat_dashboard.models import Settings
 from urllib.parse import unquote
 
 logger = logging.getLogger('Chat')
@@ -26,20 +25,16 @@ def user_chat(request):
 def chat_login(request):
     if request.method == "POST":
         try:
-            # Получение данных из тела запроса
             data = json.loads(request.body)
             first_name = data.get("first_name")
             last_name = data.get("last_name")
             email = data.get("email")
-
-            # Логирование полученных данных
             logger.info(f"Received login request: first_name={first_name}, last_name={last_name}, email={email}")
         except KeyError as e:
             logger.error(f"KeyError: Missing key {str(e)} in request data.")
             return JsonResponse({"status": "error", "message": "Invalid data."}, status=400)
 
         try:
-            # Получение или создание пользователя
             user, created = ChatUser.objects.get_or_create(email=email, defaults={
                 "first_name": first_name,
                 "last_name": last_name
@@ -50,23 +45,18 @@ def chat_login(request):
             else:
                 logger.info(f"Existing user logged in with email {email}.")
 
-            # Получаем длительность сессии из таблицы settings
-            session_duration_minutes = Settings.objects.first().session_duration  # предполагается, что есть хотя бы одна запись в settings
+            session_duration_minutes = Settings.objects.first().session_duration
             logger.info(f"Session duration set to {session_duration_minutes} minutes.")
 
-            # Создание JWT
             payload = {
                 "user_id": user.id,
                 "email": user.email,
-                "exp": datetime.utcnow() + timedelta(minutes=session_duration_minutes),  # Время истечения токена
+                "exp": datetime.now(timezone.utc) + timedelta(minutes=session_duration_minutes),
             }
             session_token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-
-            # Логирование успешного создания токена
             logger.info(f"JWT created for user {user.email} with token {session_token}.")
 
-            # Создание записи сессии в базе данных
-            expires_at = datetime.utcnow() + timedelta(minutes=session_duration_minutes)
+            expires_at = datetime.now(timezone.utc) + timedelta(minutes=session_duration_minutes)
             session = Session.objects.create(
                 user=user,
                 session_token=session_token,
@@ -84,7 +74,6 @@ def chat_login(request):
             logger.error(f"Error occurred while creating session: {str(e)}")
             return JsonResponse({"status": "error", "message": "Internal server error."}, status=500)
 
-    # Логирование при попытке использовать не-POST запрос
     logger.warning("Attempted to access chat_login with a non-POST request.")
     return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
 
@@ -115,7 +104,7 @@ def check_session(request):
                     "expires_at": session.expires_at,
                 }, status=200)
             else:
-                logger.warning(f"Session for user {session.user.email} is expired.")
+                logger.warning(f"Session for user {session.user.email} need be expired or create a new one.")
                 return JsonResponse({
                     "status": "expired",
                     "message": "Сессия истекла. Необходимо создать новую."
@@ -135,55 +124,98 @@ def check_session(request):
 
 @csrf_exempt
 def extend_session(request):
-    """Функция для продления сессии."""
-    if request.method == "POST":
-        session_token = request.headers.get("Authorization")
+    if request.method != "POST":
+        logger.warning("Attempted to access extend_session with a non-POST request.")
+        return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
 
-        if not session_token:
-            logger.warning("Session token not provided.")
-            return JsonResponse({"status": "error", "message": "Токен сессии обязателен."}, status=400)
+    session_token = request.headers.get("Authorization")
+    if not session_token:
+        logger.info("Session token not provided.")
+        return JsonResponse({"status": "error", "message": "Session token is required."}, status=400)
 
-        try:
-            # Поиск сессии в базе данных
-            session = Session.objects.get(session_token=session_token)
-            logger.info(f"Сессия найдена для пользователя: {session.user.email} с токеном: {session_token}")
+    try:
+        session = Session.objects.get(session_token=session_token)
+        logger.info(f"Session found for user: {session.user.email} with token: {session_token}")
 
-            # Получаем продолжительность сессии из настроек
-            try:
-                session_duration_minutes = Settings.objects.first().session_duration
-            except Settings.DoesNotExist:
-                logger.error("Настройки не найдены, используем значение по умолчанию в 30 минут.")
-                session_duration_minutes = 30  # Значение по умолчанию
+        if session.expires_at > now():
+            logger.error(f"Session for user {session.user.email} has already expired.")
+            return JsonResponse({"status": "error", "message": "Session has already expired."}, status=401)
 
-            # Обновляем время истечения сессии
-            new_expires_at = now() + timedelta(minutes=session_duration_minutes)
-            session.expires_at = new_expires_at
-            session.save()
+        session_duration_minutes = (
+            Settings.objects.first().session_duration
+            if Settings.objects.exists() and Settings.objects.first().session_duration
+            else 5
+        )
 
-            logger.info(f"Сессия для пользователя {session.user.email} продлена. Новое время истечения: {new_expires_at}")
+        new_expires_at = now() + timedelta(minutes=session_duration_minutes)
+        session.expires_at = new_expires_at
+        session.save()
 
-            return JsonResponse({
-                "status": "success",
-                "message": "Сессия успешно продлена.",
-                "expires_at": new_expires_at,
-            })
+        logger.info(f"Session for user {session.user.email} extended. New expiration: {new_expires_at}")
 
-        except Session.DoesNotExist:
-            logger.error("Сессия не найдена с предоставленным токеном.")
-            return JsonResponse({
-                "status": "error",
-                "message": "Сессия не найдена. Пожалуйста, войдите снова."
-            }, status=404)
+        return JsonResponse({
+            "status": "success",
+            "message": "Session extended successfully.",
+            "new_expires_at": new_expires_at,
+        })
 
-        except Exception as e:
-            logger.error(f"Неожиданная ошибка: {str(e)}", exc_info=True)
-            return JsonResponse({
-                "status": "error",
-                "message": "Произошла неожиданная ошибка."
-            }, status=500)
+    except Session.DoesNotExist:
+        logger.error("Session not found with provided token.")
+        return JsonResponse({
+            "status": "error",
+            "message": "Session not found. Please log in again."
+        }, status=404)
 
-    logger.warning("Попытка доступа к extend_session с не-POST запросом.")
-    return JsonResponse({"status": "error", "message": "Разрешён только метод POST."}, status=405)
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        return JsonResponse({
+            "status": "error",
+            "message": "An unexpected error occurred."
+        }, status=500)
+
+
+@csrf_exempt
+def close_session(request):
+    """
+    Устанавливает expires_at на текущее время для закрытия сессии.
+    """
+    if request.method != "POST":
+        logger.warning("Attempted to access close_session with a non-POST request.")
+        return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
+
+    session_token = request.headers.get("Authorization")
+    if not session_token:
+        logger.info("Session token not provided.")
+        return JsonResponse({"status": "error", "message": "Session token is required."}, status=400)
+
+    try:
+        session = Session.objects.get(session_token=session_token)
+        logger.info(f"Session found for user: {session.user.email} with token: {session_token}")
+
+        session.expires_at = now()
+        session.save()
+
+        logger.info(f"Session for user {session.user.email} marked as closed.")
+
+        return JsonResponse({
+            "status": "success",
+            "message": "Session closed successfully.",
+        })
+
+    except Session.DoesNotExist:
+        logger.error("Session not found with provided token.")
+        return JsonResponse({
+            "status": "error",
+            "message": "Session not found."
+        }, status=404)
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        return JsonResponse({
+            "status": "error",
+            "message": "An unexpected error occurred."
+        }, status=500)
+
 
 
 def get_user_details(request, user_id):
@@ -223,24 +255,21 @@ def process_keywords(request):
 def get_nodes_by_type(request):
     """Fetch nodes of a specific type from the OrientDB database."""
 
-    # Получаем параметр 'type' из запроса
     node_type = request.GET.get('type')
+    logger.info(f"Fetching nodes of type: {node_type}")
 
-    # Проверяем, был ли предоставлен параметр 'type'
     if not node_type:
         logger.warning("Node type not provided.")
         return JsonResponse({"status": "error", "message": "Node type is required."}, status=400)
 
     logger.info(f"Fetching nodes of type: {node_type}")
-
-    # Декодируем параметр 'type' из URL формата
     node_type = urllib.parse.unquote(node_type)
 
     # Формируем URL для запроса
-    url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
+    url = f"http://localhost:2480/query/chat/sql/SELECT FROM {node_type}"
 
     try:
-        response = requests.get(url, auth=('root', 'guregure'))
+        response = requests.get(url, auth=('root', 'gure'))
 
         if response.status_code == 200:
             logger.info(f"Successfully fetched data for type: {node_type}")
@@ -259,17 +288,6 @@ def get_nodes_by_type(request):
                         # Убедимся, что в узле есть поля 'content' и '@rid'
                         if 'content' in node and '@rid' in node:
                             nodes_data.append({'id': node['@rid'], 'name': node['content']})
-
-
-                    custom_order = [
-                        "Организационно-кадровая работа",
-                        "Оказание материальной помощи и оплата труда",
-                        "Обучение, тестирование, практика",
-                        "Вопросы для психологов",
-                        "Образцы заявлений"
-                    ]
-                    nodes_data.sort(
-                        key=lambda x: custom_order.index(x['name']) if x['name'] in custom_order else float('inf'))
 
                     logger.info(f"Found {len(nodes_data)} nodes.")
                     return JsonResponse({'result': nodes_data})
@@ -307,12 +325,12 @@ def get_nodes_by_type_with_relation(request):
             logger.info(f"Fetching nodes with type of start node: {start_node_type}")
 
             # Формируем запрос с учётом кавычек вокруг start_node_name
-            url = (f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {finish_node_type} "
+            url = (f"http://localhost:2480/query/chat/sql/SELECT FROM {finish_node_type} "
                    f"WHERE @rid IN (SELECT OUT('Includes') "
                    f"FROM (SELECT FROM {start_node_type} WHERE content = '{start_node_name}'))")
 
             try:
-                response = requests.get(url, auth=('root', 'guregure'))
+                response = requests.get(url, auth=('root', 'gure'))
 
                 # Проверка на успешность ответа
                 if not response.ok:
@@ -338,6 +356,49 @@ def get_nodes_by_type_with_relation(request):
                 logger.error(f"Error fetching data: {e}")
                 return JsonResponse({"error": "Failed to fetch data"}, status=500)
 
+
+def get_question_id_by_content(request):
+    """Fetch question for a specific question ID."""
+    if request.method == 'GET':
+        question_content = urllib.parse.unquote(request.GET.get('questionContent'))
+
+        if question_content:
+            logger.info(f"Received question content: {question_content}")
+            url = (f"http://localhost:2480/command/chat/sql/")
+            query = f"SELECT @rid FROM Question WHERE content = '{question_content}'"
+            logger.info(f"Sending query: {url}")
+
+            try:
+                response = requests.get(
+                    url,
+                    auth=('root', 'gure'),
+                    headers={"Content-Type": "application/json"},
+                    json={"command": query}
+                )
+
+                logger.info(f"Response status: {response.status_code}.")
+
+
+                if not response.ok:
+                    logger.warning("Question not found for the given ID.")
+                    return JsonResponse({"error": "Question not found"}, status=404)
+                else:
+                    data = response.json()
+                    logger.info(f"Data = {data}")
+
+                    if 'result' in data:
+                        id = data['result'][0]
+
+                    return JsonResponse({'result': id})
+
+            except Exception as e:
+                logger.error(f"Error fetching answer: {e}")
+                return JsonResponse({"error": "Failed to fetch answer"}, status=500)
+        else:
+            logger.error("No questionId provided.")
+            return JsonResponse({"error": "No questionId provided"}, status=400)
+
+
 def get_answer(request):
     """Fetch answer for a specific question ID."""
     if request.method == 'GET':
@@ -347,7 +408,7 @@ def get_answer(request):
         # Проверяем, что параметр questionId передан
         if question_id:
             logger.info(f"Received questionId: {question_id}")
-            url = (f"http://localhost:2480/command/chat-bot-db/sql/")
+            url = (f"http://localhost:2480/command/chat/sql/")
             query = f"SELECT FROM Answer WHERE @rid IN (SELECT OUT('Includes') FROM Question WHERE @rid = '{question_id}')"
             logger.info(f"Sending query: {url}")  # Логируем сформированный запрос
 
@@ -355,7 +416,7 @@ def get_answer(request):
                 # Отправляем запрос к базе данных для получения ответа на вопрос
                 response = requests.get(
                     url,
-                    auth=('root', 'guregure'),
+                    auth=('root', 'gure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": query}
                 )
@@ -403,7 +464,7 @@ def get_documents(request):
             logger.info(f"Received answerId: {answer_id}")
 
             # Формируем запрос для получения документов
-            url = "http://localhost:2480/command/chat-bot-db/sql/"
+            url = "http://localhost:2480/command/chat/sql/"
             documents_query = f"SELECT FROM document WHERE @rid IN (SELECT OUT('Includes') FROM Answer WHERE @rid = '{answer_id}')"
             logger.info(f"Sending documents query: {documents_query}")
 
@@ -415,7 +476,7 @@ def get_documents(request):
                 # Получаем данные документов
                 response = requests.get(
                     url,
-                    auth=('root', 'guregure'),
+                    auth=('root', 'gure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": documents_query}
                 )
@@ -426,7 +487,7 @@ def get_documents(request):
                 if 'result' in documents_data:
                     for node in documents_data['result']:
                         if 'content' in node and '@rid' in node:
-                            nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content']})
+                            nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content'], 'type': 'document'})
                     logger.info(f"Found {len(nodes_data)} documents.")
                     logger.info(nodes_data)
                 else:
@@ -440,7 +501,7 @@ def get_documents(request):
                 # Получаем данные ссылок
                 response = requests.get(
                     url,
-                    auth=('root', 'guregure'),
+                    auth=('root', 'gure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": links_query}
                 )
@@ -451,7 +512,7 @@ def get_documents(request):
                 if 'result' in links_data:
                     for node in links_data['result']:
                         if 'content' in node and '@rid' in node:
-                            nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content']})
+                            nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content'], 'type': 'link'})
                     logger.info(f"Found {len(nodes_data)} links.")
                     logger.info(nodes_data)
                 else:
@@ -550,14 +611,14 @@ def update_answer(request):
             # Экранирование кавычек и других символов
             escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
             # Формируем запрос
-            url = "http://localhost:2480/command/chat-bot-db/sql/"
+            url = "http://localhost:2480/command/chat/sql/"
             query = f"UPDATE answer SET content = '{escaped_content}' WHERE @rid = '{answer_id}'"
             logger.info(f"Sending query: {query}")
 
             # Отправка запроса
             response = requests.get(
                 url,
-                auth=('root', 'guregure'),
+                auth=('root', 'gure'),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
@@ -607,14 +668,14 @@ def update_question(request):
             escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
 
             # Формируем запрос
-            url = "http://localhost:2480/command/chat-bot-db/sql/"
+            url = "http://localhost:2480/command/chat/sql/"
             query = f"UPDATE Question SET content = '{escaped_content}' WHERE @rid = '{question_id}'"
             logger.info(f"Sending query: {query}")
 
             # Отправляем запрос
             response = requests.get(
                 url,
-                auth=('root', 'guregure'),
+                auth=('root', 'gure'),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
@@ -638,4 +699,39 @@ def update_question(request):
             logger.error(f"Unexpected error: {e}")
             return JsonResponse({'error': 'Internal server error'}, status=500)
 
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+def recognize_question(request):
+    if request.method == 'POST':
+        try:
+            # Получение тела запроса
+            raw_body = request.body
+            logger.info(f"Raw request body: {raw_body}")
+
+            # Разбор JSON
+            body = json.loads(raw_body.decode('utf-8'))
+            logger.info(f"Parsed body: {body}")
+
+            # Проверка наличия ключа 'message'
+            if 'message' not in body:
+                logger.error("Missing 'message' key in request body")
+                return JsonResponse({'error': "Missing 'message' key in request body"}, status=400)
+
+            message = body['message']
+            logger.info(f"Message to process: {message}")
+
+            # Использование объекта model_handler
+            recognized_question = settings.MODEL_HANDLER.handle_query(message)
+            return JsonResponse({'recognized_question': recognized_question})
+
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return JsonResponse({'error': 'Internal server error'}, status=500)
+
+    logger.warning("Invalid request method")
     return JsonResponse({'error': 'Invalid request method'}, status=400)

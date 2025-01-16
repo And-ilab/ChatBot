@@ -1,4 +1,5 @@
 {% extends 'base/layout.html' %}
+{% load custom_filters %}
 
 {% block title %}Обучение{% endblock %}
 
@@ -19,22 +20,22 @@
             </button>
         </div>
         <div class="d-flex flex-column gap-2 mt-4">
-            <button id="btn-unread" class="btn custom-btn d-flex justify-content-between align-items-center"
-                    data-bs-toggle="tooltip" data-bs-placement="right" title="Вопросы пользователей, оставшиеся без ответа">
-                <span class="d-flex align-items-center gap-2">
-                    <i class="bi bi-envelope"></i>
-                    Неотвеченные сообщения
-                </span>
-                <span id="unread-indicator" class="indicator {% if unread_messages|length == 0 %}hidden{% endif %}">{{ unread_messages|length }}</span>
-            </button>
-            <button id="btn-ignored" class="btn custom-btn d-flex justify-content-between align-items-center"
-                    data-bs-toggle="tooltip" data-bs-placement="right" title="Проигнорированные вопросы пользователей">
-                <span class="d-flex align-items-center gap-2">
-                    <i class="bi bi-slash-circle"></i>
-                    Игнорируемые сообщения
-                </span>
-                <span id="ignored-indicator" class="indicator {% if ignored_messages|length == 0 %}hidden{% endif %}">{{ ignored_messages|length }}</span>
-            </button>
+            <button id="btn-unread" class="btn custom-btn d-flex justify-content-between align-items-center active"
+                data-bs-toggle="tooltip" data-bs-placement="right" title="Вопросы пользователей, оставшиеся без ответа">
+            <span class="d-flex align-items-center gap-2">
+                <i class="bi bi-envelope"></i>
+                Неотвеченные сообщения
+            </span>
+            <span id="unread-indicator" class="indicator {% if unread_messages|length == 0 %}hidden{% endif %}">{{ unread_messages|length }}</span>
+        </button>
+        <button id="btn-ignored" class="btn custom-btn d-flex justify-content-between align-items-center"
+                data-bs-toggle="tooltip" data-bs-placement="right" title="Проигнорированные вопросы пользователей">
+            <span class="d-flex align-items-center gap-2">
+                <i class="bi bi-slash-circle"></i>
+                Игнорируемые сообщения
+            </span>
+            <span id="ignored-indicator" class="indicator {% if ignored_messages|length == 0 %}hidden{% endif %}">{{ ignored_messages|length }}</span>
+        </button>
         </div>
     </div>
     <div class="chat-container d-flex flex-column flex-grow-1">
@@ -46,12 +47,12 @@
                 <div class="message-item d-flex align-items-center border p-2 mb-2 rounded">
                     <div class="flex-grow-1">
                         <p class="mb-0">{{ message.content }}</p>
-                        <div>
-                            <a href="#" class="text-decoration-none">Подробнее</a>
-                        </div>
+<!--                        <div>-->
+<!--                            <a href="#" class="text-decoration-none">Подробнее</a>-->
+<!--                        </div>-->
                     </div>
                     <div class="text-center me-5">
-                        <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
+                        <small class="text-muted">{{ message.created_at|add_hours:3|date:"Y-m-d H:i:s" }}</small>
                     </div>
                     <div class="message-actions d-flex gap-2">
                         <button class="btn btn-outline-success btn-sm" title="Обучить">
@@ -71,7 +72,9 @@
                     </div>
                 </div>
             {% empty %}
-                <p class="d-flex justify-content-center">Нет непрочитанных сообщений</p>
+                <div class="empty-container d-flex justify-content-center">
+                  <p>Извините, в системе отсутствуют <br> <strong> Неотвеченные сообщения </strong></p>
+                </div>
             {% endfor %}
         </div>
         <div id="ignored-messages" class="chat-messages flex-grow-1 p-3 border-start border-end hidden">
@@ -96,7 +99,9 @@
                     </div>
                 </div>
             {% empty %}
-                <p class="d-flex justify-content-center">Нет игнорируемых сообщений</p>
+                <div class="empty-container d-flex justify-content-center">
+                  <p>Извините, в системе отсутствуют <br> <strong> Игнорируемые сообщения </strong></p>
+                </div>
             {% endfor %}
         </div>
     </div>
@@ -107,14 +112,6 @@
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-
-        // Скрытие тултипов при клике на кнопку
-        tooltipTriggerList.forEach(function (tooltipEl) {
-            tooltipEl.addEventListener('click', function () {
-                var tooltipInstance = bootstrap.Tooltip.getInstance(tooltipEl);
-                tooltipInstance.hide();
-            });
         });
     });
 </script>

@@ -63,15 +63,19 @@ document.addEventListener('DOMContentLoaded', async function () {
                     const data = await nodesResponse.json();
                     console.log(data);
                     const nodes = data["data"]["result"];
-                    console.log(nodes);
-                    // Очистка и заполнение селектов
                     startNodeSelect.innerHTML = '';
                     endNodeSelect.innerHTML = '';
                     console.log(nodes);
                     nodes.forEach(node => {
                         const option = document.createElement('option');
                         option.value = node["@rid"];
-                        option.textContent = `${node.type}: ${node.name}`;
+                        const nodeClass = node["@class"];
+                        if (nodeClass === 'Section' || nodeClass === 'Topic' || nodeClass === 'Question') {
+                            option.textContent = `${nodeClass}: ${node.content}`;
+                        } else {
+                            option.textContent = `${nodeClass}: ${node.content.slice(0, 50)}`;
+                        }
+
                         startNodeSelect.appendChild(option.cloneNode(true));
                         endNodeSelect.appendChild(option);
                     });
@@ -120,11 +124,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     document.getElementById('create-node-btn').addEventListener('click', async function () {
         nodeTypeEl = document.getElementById('node-type');
         const nodeClass = nodeTypeEl.value;
-        const nodeType = nodeTypeEl.options[nodeTypeEl.selectedIndex].textContent;
         const nodeName = document.getElementById('node-name').value;
         const nodeContent = document.getElementById('node-content').value;
 
-        if (!nodeType || !nodeName) {
+        if (!nodeName) {
             alert('Пожалуйста, заполните все поля.');
             return;
         }
@@ -138,7 +141,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 },
                 body: JSON.stringify({
                     class: nodeClass,
-                    type: nodeType,
                     name: nodeName,
                     content: nodeContent,
                 }),

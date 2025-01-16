@@ -201,12 +201,11 @@ class CustomPasswordResetView(View):
     def post(self, request, *args, **kwargs):
         email = request.POST.get('email')
         user = User.objects.filter(email=email).first()
-        address = Settings.objects.get(id=1)
-        address = address.ip_address
+
         if user:
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-            reset_link = f"http://{address}/authentication/reset/{uid}/{token}/"  # Замените на ваш домен
+            reset_link = f"http://{settings.SITE_URL}/authentication/reset/{uid}/{token}/"  # Замените на ваш домен
 
             subject = "Сброс пароля"
             message = render_to_string('authentication/password_reset_email.html', {
