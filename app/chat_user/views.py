@@ -266,10 +266,10 @@ def get_nodes_by_type(request):
     node_type = urllib.parse.unquote(node_type)
 
     # Формируем URL для запроса
-    url = f"http://localhost:2480/query/chat/sql/SELECT FROM {node_type}"
+    url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
 
     try:
-        response = requests.get(url, auth=('root', 'gure'))
+        response = requests.get(url, auth=('root', 'guregure'))
 
         if response.status_code == 200:
             logger.info(f"Successfully fetched data for type: {node_type}")
@@ -325,12 +325,12 @@ def get_nodes_by_type_with_relation(request):
             logger.info(f"Fetching nodes with type of start node: {start_node_type}")
 
             # Формируем запрос с учётом кавычек вокруг start_node_name
-            url = (f"http://localhost:2480/query/chat/sql/SELECT FROM {finish_node_type} "
+            url = (f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {finish_node_type} "
                    f"WHERE @rid IN (SELECT OUT('Includes') "
                    f"FROM (SELECT FROM {start_node_type} WHERE content = '{start_node_name}'))")
 
             try:
-                response = requests.get(url, auth=('root', 'gure'))
+                response = requests.get(url, auth=('root', 'guregure'))
 
                 # Проверка на успешность ответа
                 if not response.ok:
@@ -364,14 +364,14 @@ def get_question_id_by_content(request):
 
         if question_content:
             logger.info(f"Received question content: {question_content}")
-            url = (f"http://localhost:2480/command/chat/sql/")
+            url = (f"http://localhost:2480/command/chat-bot-db/sql/")
             query = f"SELECT @rid FROM Question WHERE content = '{question_content}'"
             logger.info(f"Sending query: {url}")
 
             try:
                 response = requests.get(
                     url,
-                    auth=('root', 'gure'),
+                    auth=('root', 'guregure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": query}
                 )
@@ -408,7 +408,7 @@ def get_answer(request):
         # Проверяем, что параметр questionId передан
         if question_id:
             logger.info(f"Received questionId: {question_id}")
-            url = (f"http://localhost:2480/command/chat/sql/")
+            url = (f"http://localhost:2480/command/chat-bot-db/sql/")
             query = f"SELECT FROM Answer WHERE @rid IN (SELECT OUT('Includes') FROM Question WHERE @rid = '{question_id}')"
             logger.info(f"Sending query: {url}")  # Логируем сформированный запрос
 
@@ -416,7 +416,7 @@ def get_answer(request):
                 # Отправляем запрос к базе данных для получения ответа на вопрос
                 response = requests.get(
                     url,
-                    auth=('root', 'gure'),
+                    auth=('root', 'guregure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": query}
                 )
@@ -464,7 +464,7 @@ def get_documents(request):
             logger.info(f"Received answerId: {answer_id}")
 
             # Формируем запрос для получения документов
-            url = "http://localhost:2480/command/chat/sql/"
+            url = "http://localhost:2480/command/chat-bot-db/sql/"
             documents_query = f"SELECT FROM document WHERE @rid IN (SELECT OUT('Includes') FROM Answer WHERE @rid = '{answer_id}')"
             logger.info(f"Sending documents query: {documents_query}")
 
@@ -476,7 +476,7 @@ def get_documents(request):
                 # Получаем данные документов
                 response = requests.get(
                     url,
-                    auth=('root', 'gure'),
+                    auth=('root', 'guregure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": documents_query}
                 )
@@ -501,7 +501,7 @@ def get_documents(request):
                 # Получаем данные ссылок
                 response = requests.get(
                     url,
-                    auth=('root', 'gure'),
+                    auth=('root', 'guregure'),
                     headers={"Content-Type": "application/json"},
                     json={"command": links_query}
                 )
@@ -611,14 +611,14 @@ def update_answer(request):
             # Экранирование кавычек и других символов
             escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
             # Формируем запрос
-            url = "http://localhost:2480/command/chat/sql/"
+            url = "http://localhost:2480/command/chat-bot-db/sql/"
             query = f"UPDATE answer SET content = '{escaped_content}' WHERE @rid = '{answer_id}'"
             logger.info(f"Sending query: {query}")
 
             # Отправка запроса
             response = requests.get(
                 url,
-                auth=('root', 'gure'),
+                auth=('root', 'guregure'),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
@@ -668,14 +668,14 @@ def update_question(request):
             escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
 
             # Формируем запрос
-            url = "http://localhost:2480/command/chat/sql/"
+            url = "http://localhost:2480/command/chat-bot-db/sql/"
             query = f"UPDATE Question SET content = '{escaped_content}' WHERE @rid = '{question_id}'"
             logger.info(f"Sending query: {query}")
 
             # Отправляем запрос
             response = requests.get(
                 url,
-                auth=('root', 'gure'),
+                auth=('root', 'guregure'),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
