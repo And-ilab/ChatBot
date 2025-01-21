@@ -1,10 +1,10 @@
 from ldap3 import ALL, Server, Connection
 from ldap3.core.exceptions import LDAPException
-from config import settings
+from config import config_settings
 
-LDAP_SERVER = settings.LDAP_SERVER
-DOMAIN = settings.DOMAIN
-BASE_DN = settings.base_dn
+LDAP_SERVER = config_settings.LDAP_SERVER
+DOMAIN = config_settings.DOMAIN
+BASE_DN = config_settings.base_dn
 
 
 def validate_user_credentials(username, password):

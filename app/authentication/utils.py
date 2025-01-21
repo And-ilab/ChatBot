@@ -1,5 +1,5 @@
 import jwt
-from config import settings
+from config import config_settings
 from django.shortcuts import redirect
 from django.utils import timezone
 from datetime import timedelta
@@ -12,12 +12,12 @@ def generate_jwt(user):
         'exp': timezone.now() + timedelta(days=1),
         'iat': timezone.now()
     }
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+    return jwt.encode(payload, config_settings.SECRET_KEY, algorithm='HS256')
 
 
 def decode_jwt(token):
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+        payload = jwt.decode(token, config_settings.SECRET_KEY, algorithms=['HS256'])
         return payload
     except jwt.ExpiredSignatureError:
         return None  # Токен истек
@@ -27,7 +27,7 @@ def decode_jwt(token):
 
 def get_role_by_token(token):
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+        payload = jwt.decode(token, config_settings.SECRET_KEY, algorithms=['HS256'])
         role = payload.get('role')
         return role
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):

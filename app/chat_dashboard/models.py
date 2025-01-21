@@ -92,14 +92,22 @@ class Message(models.Model):
         ('bot', 'Bot'),
     ]
 
+    MESSAGE_TYPE_CHOICES = [
+        ('message', 'Message'),
+        ('document', 'Document'),
+        ('link', 'Link'),
+    ]
+
     dialog = models.ForeignKey(Dialog, on_delete=models.CASCADE, related_name="messages")
     sender_type = models.CharField(max_length=4, choices=SENDER_CHOICES, default="bot")
     sender = models.ForeignKey('chat_user.ChatUser', null=True, blank=True, on_delete=models.SET_NULL)
     content = models.TextField()
+    message_type = models.CharField(max_length=8, choices=MESSAGE_TYPE_CHOICES, default="message")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.get_sender_type_display()} - {self.content[:20]}"
+        return f"{self.get_sender_type_display()} ({self.get_message_type_display()}) - {self.content[:20]}"
+
 
 
 class TrainingMessage(models.Model):

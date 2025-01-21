@@ -3,7 +3,7 @@ import logging
 from chat_dashboard.models import User
 from django.db.models.signals import post_save
 from django.core.mail import send_mail
-from config import settings
+from config import config_settings
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.urls import reverse

@@ -76,6 +76,7 @@ const fetchDocuments = async (answerID) => {
         }
 
         const data = await response.json();
+        console.log(data);
         return data.result || [];
     } catch (error) {
         console.error('Error fetching documents:', error.message);
@@ -85,41 +86,121 @@ const fetchDocuments = async (answerID) => {
 
 const updateDocumentList = (documents) => {
     documentList.innerHTML = '';
+    console.log(documents);
+
     documents.forEach((doc) => {
         const listItem = document.createElement('li');
         listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+
         listItem.innerHTML = `
             <span>${doc.name}</span>
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline-danger">
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger delete-doc-btn"
+                    data-id="${doc.id}">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
         `;
+
         documentList.appendChild(listItem);
+    });
+
+    const deleteButtons = document.querySelectorAll('.delete-doc-btn');
+    deleteButtons.forEach((button) => {
+        button.addEventListener('click', async (event) => {
+            const documentId = button.getAttribute('data-id');
+            try {
+                const response = await fetch(`/api/delete-node/`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        node_id: documentId
+                    }),
+                });
+
+                if (response.ok) {
+                    console.log(`Документ с ID ${documentId} удалён.`);
+                    await updateArtifacts(answerID);
+                } else {
+                    console.error(`Ошибка при удалении документа с ID ${documentId}`);
+                }
+            } catch (error) {
+                console.error(`Ошибка при попытке удалить документ с ID ${documentId}:`, error);
+            }
+        });
     });
 };
 
+
+
+
 const updateLinkList = (links) => {
     linkList.innerHTML = '';
+    console.log(links);
+
     links.forEach((link) => {
         const listItem = document.createElement('li');
         listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
         listItem.innerHTML = `
             <span>${link.name}</span>
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline-danger">
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger delete-link-btn"
+                    data-id="${link.id}">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
         `;
         linkList.appendChild(listItem);
     });
+
+    const deleteButtons = document.querySelectorAll('.delete-link-btn');
+    deleteButtons.forEach((button) => {
+        button.addEventListener('click', async (event) => {
+            const linkId = button.getAttribute('data-id');
+            try {
+                const response = await fetch(`/api/delete-node/`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        node_id: linkId
+                    }),
+                });
+
+                if (response.ok) {
+                    console.log(`Ссылка с ID ${linkId} удалена.`);
+                    await updateArtifacts(answerID);
+                } else {
+                    console.error(`Ошибка при удалении ссылки с ID ${linkId}`);
+                }
+            } catch (error) {
+                console.error(`Ошибка при попытке удалить ссылку с ID ${linkId}:`, error);
+            }
+        });
+    });
 };
+
+const updateArtifacts = async (answer_id) => {
+    const links = [];
+    const documents = [];
+    const documentsAndLinks = await fetchDocuments(answer_id);
+    documentsAndLinks.forEach(element => {
+        if (element.type === 'document') {
+            documents.push(element);
+        } else if (element.type === 'link') {
+            links.push(element);
+        }
+    });
+    updateDocumentList(documents);
+    updateLinkList(links);
+};
+
 
 document.addEventListener('DOMContentLoaded', async () => {
     const answerTextarea = document.getElementById('answer');
     const editAnswerButton = document.getElementById('edit-answer');
+    const deleteAnswerButton = document.getElementById('delete-answer');
     const sectionSelect = document.getElementById('section');
     const topicSelect = document.getElementById('topic');
     const editQuestionButton = document.getElementById('edit-question');
@@ -127,6 +208,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modal = new bootstrap.Modal(document.getElementById('editQuestionModal'));
     const questionInput = document.getElementById('question-input');
     const saveButton = document.getElementById('save-question');
+    const addDocumentButton = document.getElementById('save-document');
+    const documentButton = document.getElementById('add-document');
+    const linkButton = document.getElementById('add-link');
 
     let isAnswerEditing = false;
 
@@ -139,6 +223,86 @@ document.addEventListener('DOMContentLoaded', async () => {
         var myModal = new bootstrap.Modal(document.getElementById('addDocumentModal'));
         myModal.show();
     });
+
+    addDocumentButton.addEventListener("click", async (e) => {
+        const formData = new FormData();
+        const fileTitle = document.getElementById("document-title").value;
+        const file = document.getElementById("document-file").files[0];
+        const fileName = file.name;
+        let documentID;
+
+
+        formData.append("title", fileTitle);
+        formData.append("file", file);
+
+        try {
+            const response = await fetch("/api/upload-document/", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log(result.message);
+
+                try {
+                    const createDocumentResponse = await fetch('/api/create-node/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken'),
+                        },
+                        body: JSON.stringify({
+                            class: 'document',
+                            name: fileTitle,
+                            content: '',
+                        }),
+                    });
+
+                    const responseData = await createDocumentResponse.json();
+                    console.log('Node created with ID:', responseData['data'][0]['@rid']);
+                    documentID = responseData['data'][0]['@rid'];
+
+                    console.log(answerID, documentID);
+
+                    try {
+                        const createRelationResponse = await fetch('/api/create-relation/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCookie('csrftoken'),
+                            },
+                            body: JSON.stringify({
+                                start_node_id: answerID,
+                                end_node_id: documentID,
+                            }),
+                        });
+                        if (createRelationResponse.status === 201) {
+                            await updateArtifacts(answerID);
+                        }
+                        else {
+                            console.error('Ошибка при создании связи:', await createRelationResponse.json());
+                            alert('Не удалось создать связь.');
+                        }
+                    } catch (error) {
+                        console.error('Ошибка при создании связи:', error);
+                    }
+                } catch (error) {
+                    console.error('Error creating entity:', error);
+                }
+
+                const modal = bootstrap.Modal.getInstance(document.getElementById("addDocumentModal"));
+                document.getElementById("document-title").value= '';
+                document.getElementById("document-file").value = '';
+                modal.hide();
+            } else {
+                console.error("Ошибка при загрузке файла.");
+            }
+        } catch (error) {
+            console.error("Произошла ошибка:", error);
+        }
+    });
+
 
     document.getElementById('save-link').addEventListener('click', async function () {
         let title = document.getElementById('link-title').value.trim();
@@ -188,7 +352,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }),
             });
             if (response.status === 201) {
-                alert('Cвязь успешно создана.');
+                await updateArtifacts(answerID);
             }
             else {
                 console.error('Ошибка при создании связи:', await response.json());
@@ -204,24 +368,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         myModal.hide();
     });
 
-    document.getElementById('save-document').addEventListener('click', function () {
-        var title = document.getElementById('document-title').value.trim();
-        var file = document.getElementById('document-file').files[0];
-
-        // Проверка, что все поля заполнены
-        if (!title || !file) {
-            alert('Пожалуйста, заполните все поля перед добавлением документа.');
-            return; // Прерываем выполнение, если есть незаполненные поля
+    deleteAnswerButton.addEventListener('click', async () => {
+        try {
+            const response = await fetch(`/api/update-answer/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    answerID: answerID,
+                    content: '',
+                }),
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Error updating answer: ${response.status} - ${errorText}`);
+            }
+            answerTextarea.value = '';
+        } catch (error) {
+            console.error('Error updating answer:', error.message);
+            alert('Ошибка при обновлении ответа. Проверьте подключение к серверу.');
         }
-
-        // Отправка данных на сервер (реализуйте свою логику AJAX)
-        console.log('Document added:', title, file);
-
-        // Очистка полей и закрытие модального окна
-        document.getElementById('document-title').value = '';
-        document.getElementById('document-file').value = '';
-        var myModal = bootstrap.Modal.getInstance(document.getElementById('addDocumentModal'));
-        myModal.hide();
     });
 
 
@@ -367,23 +534,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const answerTextarea = document.getElementById('answer');
         if (selectedQuestionId) {
             try {
-                const links = [];
-                const documents = [];
                 const answer = await fetchAnswer(selectedQuestionId);
                 answerTextarea.value = answer.content;
                 answerID = answer.id;
-                const documentsAndLinks = await fetchDocuments(answer.id);
-                console.log(documentsAndLinks)
-                documentsAndLinks.forEach(element => {
-                    if (element.type === 'document') {
-                        documents.push(element);
-                    } else if (element.type === 'link') {
-                        links.push(element);
-                    }
-                });
-                console.log(links);
-                updateDocumentList(documents);
-                updateLinkList(links);
+                await updateArtifacts(answerID);
+
             } catch (error) {
                 console.error('Error loading answer and documents:', error);
                 answerTextarea.value = 'Ошибка при загрузке ответа';
@@ -402,15 +557,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isAllSelected()) {
                 editAnswerButton.removeAttribute('disabled');
                 editQuestionButton.removeAttribute('disabled');
+                documentButton.removeAttribute('disabled');
+                linkButton.removeAttribute('disabled');
+                deleteAnswerButton.removeAttribute('disabled');
             } else {
                 editAnswerButton.setAttribute('disabled', 'true');
                 editQuestionButton.setAttribute('disabled', 'true');
+                documentButton.setAttribute('disabled', 'true');
+                linkButton.setAttribute('disabled', 'true');
+                deleteAnswerButton.setAttribute('disabled', 'true');
             }
         });
     });
 
     editAnswerButton.setAttribute('disabled', 'true');
+    deleteAnswerButton.setAttribute('disabled', 'true');
     editQuestionButton.setAttribute('disabled', 'true');
+    documentButton.setAttribute('disabled', 'true');
+    linkButton.setAttribute('disabled', 'true');
     try {
         const sections = await fetchNodes('Section');
         sectionSelect.innerHTML = '<option value="" disabled selected>Выберите раздел</option>';
