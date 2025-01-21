@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from config import settings
+from config import config_settings
 
 load_dotenv()
 
@@ -24,12 +24,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = settings.SECRET_KEY_django
+SECRET_KEY = config_settings.SECRET_KEY_django
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 SESSION_DURATION_MINUTES = 30
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 ALLOWED_HOSTS = [
     '134.17.17.131',
@@ -94,11 +97,11 @@ WSGI_APPLICATION = 'app.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': settings.DB_NAME,
-        'USER': settings.DB_USER,
-        'PASSWORD': settings.DB_PASS,
-        'HOST': settings.DB_HOST,
-        'PORT': settings.DB_PORT
+        'NAME': config_settings.DB_NAME,
+        'USER': config_settings.DB_USER,
+        'PASSWORD': config_settings.DB_PASS,
+        'HOST': config_settings.DB_HOST,
+        'PORT': config_settings.DB_PORT
     }
 }
 
@@ -145,9 +148,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'chat_dashboard.User'
 
-LDAP_SERVER = settings.LDAP_SERVER
-DOMAIN = settings.DOMAIN
-BASE_DN = settings.base_dn
+LDAP_SERVER = config_settings.LDAP_SERVER
+DOMAIN = config_settings.DOMAIN
+BASE_DN = config_settings.base_dn
 
 AUTHENTICATION_BACKENDS = (
     'authentication.backends.CustomAuthBackend',
@@ -173,11 +176,11 @@ def authenticate(username, password):
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = settings.EMAIL_HOST
-EMAIL_PORT = settings.EMAIL_PORT
+EMAIL_HOST = config_settings.EMAIL_HOST
+EMAIL_PORT = config_settings.EMAIL_PORT
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = settings.EMAIL_HOST_USER
-EMAIL_HOST_PASSWORD = settings.EMAIL_HOST_PASSWORD
+EMAIL_HOST_USER = config_settings.EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = config_settings.EMAIL_HOST_PASSWORD
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 SITE_URL = 'http://localhost:8000'
