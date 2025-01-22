@@ -44,6 +44,7 @@ def user_activity_data(request):
     logger.debug(f"User activity data retrieved: {list(data)}")
     return JsonResponse(list(data), safe=False)
 
+
 @csrf_exempt
 def send_message(request, dialog_id):
     """Sends a message in the specified dialog."""
@@ -57,11 +58,10 @@ def send_message(request, dialog_id):
             timestamp = data.get('timestamp')
             message_type = data.get('message_type')
 
-            logger.debug(f"Message data: content={content}, sender_type={sender_type}, sender_id={sender_id}, timestamp={timestamp}")
-
+            logger.debug(
+                f"Message data: content={content}, sender_type={sender_type}, sender_id={sender_id}, timestamp={timestamp}")
 
             if content and sender_type and timestamp and message_type:
-
                 dialog = Dialog.objects.get(id=dialog_id)
                 Message.objects.create(
                     dialog=dialog,
@@ -81,7 +81,6 @@ def send_message(request, dialog_id):
 
     logger.warning("Invalid method: only POST is supported.")
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
-
 
 
 def messages_count_data(request):
@@ -466,8 +465,19 @@ def user_list(request):
 def user_create(request):
     """Creates a new user."""
     logger.info("Creating a new user.")
+    form = UserForm(request.POST or None)
+
     if request.method == 'POST':
-        form = UserForm(request.POST)
+        email = request.POST.get('email')
+        if User.objects.filter(email=email).exists():
+            logger.error(f"Attempt to create user failed: Email already registered - {email}")
+            # Возвращаем информацию о том, что email уже зарегистрирован
+            return render(request, 'chat_dashboard/user_create_form.html', {
+                'form': form,
+                'email_exists': True,
+                'email': email
+            })
+
         if form.is_valid():
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
@@ -475,19 +485,10 @@ def user_create(request):
             user.save()
             logger.info(f"User created: ID={user.id}, Username={user.username}, Email={user.email}")
 
-            # Добавление сообщения об успешном создании пользователя
-            messages.success(request,
-                             "Создана новая учетная запись. Данные для её активации направлены на указанный вами электронный адрес.")
-
-            # Оставляем пользователя на той же странице с сообщением
-            return render(request, 'chat_dashboard/user_create_form.html',
-                          {'form': UserForm(), 'messages': messages.get_messages(request)})
-
-    else:
-        form = UserForm()
+            messages.success(request, "Создана новая учетная запись. Данные для её активации направлены на указанный вами электронный адрес.")
+            return redirect('chat_dashboard:user_list')  # Перенаправляем на список пользователей
 
     return render(request, 'chat_dashboard/user_create_form.html', {'form': form})
-
 
 # @role_required('admin')
 def user_update(request, pk):
@@ -533,7 +534,6 @@ def get_last_message_subquery(field):
     return Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values(field)[:1]
 
 
-
 # @role_required(['admin', 'operator'])
 def archive(request):
     user = request.user
@@ -577,6 +577,7 @@ def archive(request):
 def create_or_edit_content(request):
     return render(request, 'chat_dashboard/edit_content.html')
 
+
 def filter_dialogs_by_date_range(request):
     user = request.user
     start_date = request.GET.get('start')
@@ -619,7 +620,6 @@ def filter_dialogs_by_date_range(request):
     ]
 
     return JsonResponse(dialogs_data, safe=False)
-
 
 
 # @role_required(['admin', 'operator'])
@@ -865,4 +865,3 @@ def get_document_link_by_name(request, file_name):
 
     # Если файл не найден
     return JsonResponse({'error': 'Файл не найден'}, status=404)
-

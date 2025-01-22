@@ -84,9 +84,10 @@ def login_view(request):
                     logger.debug(f"JWT generated for user {username}: {token}")
 
                     try:
+                        payload = jwt.decode(token, config_settings.SECRET_KEY, algorithms=['HS256'])
+
                         logger.info(f"JWT payload for user {username}: {payload}")
 
-                        payload = jwt.decode(token, config_settings.SECRET_KEY, algorithms=['HS256'])
                         role = payload.get('role')
 
                         if role in ['admin', 'operator']:
