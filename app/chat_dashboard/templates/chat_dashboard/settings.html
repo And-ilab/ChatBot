@@ -51,11 +51,12 @@
 
             <div class="form-group mb-4">
                 <label for="ip_address" class="block text-md font-medium text-gray-600"
-                       data-bs-toggle="tooltip" title="Адрес, который используется для сброса пароля и активации аккаунта(изменяемая часть)">
+                       data-bs-toggle="tooltip" title="IP адрес сервера регистраций ">
                     Адрес:
                 </label>
                 <input type="text" id="ip_address" name="ip_address" value="{{ settings.ip_address }}"
-                       class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600">
+                       class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600"
+                       data-bs-toggle="tooltip" title="Статическая часть IP адреса сервера регистраций новых пользователей">
             </div>
 
 
