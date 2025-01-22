@@ -193,12 +193,14 @@ chatToggle.addEventListener('click', async () => {
                 break;
             case "success":
                 console.log("Добро пожаловать! Продолжайте работу.");
+                chatInput.disabled = false;
                 await loadDialogMessages();
                 chatMessages.style.display = 'flex';
                 break;
             case "expired":
                 console.log("Сессия истекла.");
                 extendSessionWindow.style.display = 'flex';
+                chatInput.disabled = true;
                 break;
             case "error":
                 alert(`Ошибка: ${result.message}`);
@@ -224,6 +226,7 @@ extendButton.addEventListener('click', async () => {
     await extendSession();
     extendSessionWindow.style.display = 'none';
     chatMessages.style.display = 'flex';
+    chatInput.disabled = false;
     await loadDialogMessages();
 });
 
@@ -237,6 +240,7 @@ newSessionButton.addEventListener('click', async () => {
     await extendSession();
     extendSessionWindow.style.display = 'none';
     chatMessages.style.display = 'flex';
+    chatInput.disabled = false;
     await showGreetingMessages();
     await showSectionButtons();
 });
