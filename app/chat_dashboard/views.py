@@ -46,7 +46,6 @@ def user_activity_data(request):
     logger.debug(f"User activity data retrieved: {list(data)}")
     return JsonResponse(list(data), safe=False)
 
-
 @csrf_exempt
 def send_message(request, dialog_id):
     """Sends a message in the specified dialog."""
@@ -58,6 +57,8 @@ def send_message(request, dialog_id):
             sender_type = data.get('sender_type')
             sender_id = data.get('sender_id')
             timestamp = data.get('timestamp')
+
+            logger.debug(f"Message data: content={content}, sender_type={sender_type}, sender_id={sender_id}, timestamp={timestamp}")
 
             if content and sender_type and timestamp:
                 dialog = Dialog.objects.get(id=dialog_id)
@@ -78,6 +79,7 @@ def send_message(request, dialog_id):
 
     logger.warning("Invalid method: only POST is supported.")
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
 
 
 def messages_count_data(request):
@@ -507,64 +509,6 @@ def get_last_message_subquery(field):
     return Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values(field)[:1]
 
 
-# @role_required(['admin', 'operator'])
-# def archive(request):
-#    """Displays the archive of dialogs with the last messages."""
-#    logger.info("Accessing archive page.")
-# delete_old_messages()
-#    user = request.user
-
-# Подзапросы для получения активности пользователей
-#    latest_session_query = Session.objects.filter(user=OuterRef('user_id')).order_by('-expires_at')
-#    user_last_active = latest_session_query.values('expires_at')[:1]
-#    user_is_online = Case(
-#        When(expires_at__gt=Value(now()), then=Value(True)),
-#        default=Value(False),
-#        output_field=models.BooleanField()
-#    )
-
-#    dialogs = Dialog.objects.annotate(
-#        has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
-#        username=Concat(
-#            F('user__first_name'),
-#            Value(' '),
-#            F('user__last_name')
-#        ),
-#        last_message=Subquery(
-#            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]
-#        ),
-#        last_message_timestamp=Subquery(
-#            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]
-#        ),
-#        last_message_sender_id=Subquery(
-#            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]
-#        ),
-#        last_message_username=Case(
-#            When(last_message_sender_id=None, then=Value('Bot')),
-#            default=Subquery(
-#                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1]
-#            )
-#        ),
-#        last_active=Subquery(user_last_active),
-#        is_online=Subquery(latest_session_query.annotate(is_active=user_is_online).values('is_active')[:1]),
-#    ).filter(has_messages=True).order_by('-last_message_timestamp')
-
-# Статусы активности для рендеринга
-#    user_statuses = {
-#        dialog.user.id: {
-#            'last_active': dialog.last_active,
-#            'is_online': dialog.is_online
-#        } for dialog in dialogs
-#    }
-#
-#    logger.debug(f"Dialogs retrieved: {list(dialogs)}")
-#    return render(request, 'chat_dashboard/archive.html', {
-#        'dialogs': dialogs,
-#        'user': user,
-#        'user_statuses': user_statuses,
-#        'last_active': user.last_active,
-#        'is_online': user.is_online,
-#    })
 
 # @role_required(['admin', 'operator'])
 def archive(request):

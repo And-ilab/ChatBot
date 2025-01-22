@@ -190,12 +190,14 @@ chatToggle.addEventListener('click', async () => {
                 break;
             case "success":
                 console.log("Добро пожаловать! Продолжайте работу.");
+                chatInput.disabled = false;
                 chatMessages.style.display = 'flex';
                 await loadDialogMessages();
                 break;
             case "expired":
                 console.log("Сессия истекла.");
                 extendSessionWindow.style.display = 'flex';
+                chatInput.disabled = true;
                 break;
             case "error":
                 alert(`Ошибка: ${result.message}`);
@@ -218,6 +220,7 @@ extendButton.addEventListener('click', async () => {
     await extendSession();
     extendSessionWindow.style.display = 'none';
     chatMessages.style.display = 'flex';
+    chatInput.disabled = false;
     await loadDialogMessages();
 });
 
@@ -230,6 +233,7 @@ newSessionButton.addEventListener('click', async () => {
     username = `${userData["first_name"]} ${userData["last_name"]}`;
     chatLogin.style.display = 'none';
     chatMessages.style.display = 'flex';
+    chatInput.disabled = false;
     await showGreetingMessages();
     await showSectionButtons();
 
@@ -371,13 +375,6 @@ const sendUserMessage = async () => {
 
         await userResponseHandler(message);
         await extendSession();  // Обновляем сессию при отправке сообщения
-        if (message.endsWith('?')) {
-            console.log('question');
-//          await handleQuestion(message);
-        } else {
-            userResponseHandler(message);
-        }
-
     } catch (error) {
     console.error('Ошибка при отправке сообщения:', error);
     }
