@@ -13,7 +13,10 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+from logging.handlers import TimedRotatingFileHandler
 from config import config_settings
+
 
 load_dotenv()
 
@@ -185,6 +188,8 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 SITE_URL = 'http://localhost:8000'
 
+from logging.handlers import TimedRotatingFileHandler
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -201,14 +206,74 @@ LOGGING = {
     'handlers': {
         'django_file': {
             'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django_debug.log'),
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django_%Y-%m-%d.log'),  # Файл с датой
+            'when': 'D',  # Ротация каждый день
+            'interval': 1,  # Интервал в 1 день
+            'backupCount': 365,  # Хранить логи за 365 дней
             'formatter': 'verbose',
         },
         'app_file': {
             'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'app_logs.log'),
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'app_%Y-%m-%d.log'),  # Файл с датой
+            'when': 'D',
+            'interval': 1,
+            'backupCount': 365,
+            'formatter': 'verbose',
+        },
+        'chat_user': {
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'chat_user_%Y-%m-%d.log'),  # Файл с датой
+            'when': 'D',
+            'interval': 1,
+            'backupCount': 365,
+            'formatter': 'verbose',
+        },
+        'chat_dashboard': {
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'chat_dashboard_%Y-%m-%d.log'),  # Файл с датой
+            'when': 'D',
+            'interval': 1,
+            'backupCount': 365,
+            'formatter': 'verbose',
+        },
+        'authentication': {
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'authentication_%Y-%m-%d.log'),  # Файл с датой
+            'when': 'D',
+            'interval': 1,
+            'backupCount': 365,
+            'formatter': 'verbose',
+        },
+        'chat_dashboard_error': {
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'chat_dashboard_error_%Y-%m-%d.log'),  # Файл с датой
+            'when': 'D',
+            'interval': 1,
+            'backupCount': 365,
+            'formatter': 'verbose',
+        },
+        'chat_user_error': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'chat_user_error_%Y-%m-%d.log'),  # Файл с датой
+            'when': 'D',
+            'interval': 1,
+            'backupCount': 365,
+            'formatter': 'verbose',
+        },
+        'authentication_error': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'authentication_error_%Y-%m-%d.log'),  # Файл с датой
+            'when': 'D',
+            'interval': 1,
+            'backupCount': 365,
             'formatter': 'verbose',
         },
     },
@@ -219,19 +284,34 @@ LOGGING = {
             'propagate': True,
         },
         'chat_user': {
-            'handlers': ['app_file'],
+            'handlers': ['chat_user'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
         'chat_dashboard': {
-            'handlers': ['app_file'],
+            'handlers': ['chat_dashboard'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
         'authentication': {
-            'handlers': ['app_file'],
+            'handlers': ['authentication'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
+        },
+        'chat_user_error': {
+            'handlers': ['chat_user_error'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'chat_dashboard_error': {
+            'handlers': ['chat_dashboard_error'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'authentication_error': {
+            'handlers': ['authentication_error'],
+            'level': 'ERROR',
+            'propagate': False,
         },
         'django.db.backends': {
             'level': 'DEBUG',
