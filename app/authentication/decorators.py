@@ -3,7 +3,7 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.contrib import messages
 import jwt
-from config import settings
+from config import config_settings
 
 def role_required(required_roles):
     def decorator(view_func):

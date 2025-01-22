@@ -2,10 +2,8 @@ import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, F, Count, Max
+from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, F, Count
 from django.db.models.functions import TruncDate, Concat
-from authentication.decorators import role_required
-from django.db import models
 from django.utils.timezone import now
 from .models import Dialog, Message, User, TrainingMessage, Settings
 from chat_user.models import ChatUser, Session
@@ -13,15 +11,15 @@ from .forms import UserForm, UserFormUpdate
 import json
 import re
 import spacy
+import os
 import pymorphy3
-from config import settings
+from config import config_settings
+from django.conf import settings
 import requests
-from requests.auth import HTTPBasicAuth
 from django.db.models import Q
 from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -57,15 +55,19 @@ def send_message(request, dialog_id):
             sender_type = data.get('sender_type')
             sender_id = data.get('sender_id')
             timestamp = data.get('timestamp')
+            message_type = data.get('message_type')
 
             logger.debug(f"Message data: content={content}, sender_type={sender_type}, sender_id={sender_id}, timestamp={timestamp}")
 
-            if content and sender_type and timestamp:
+
+            if content and sender_type and timestamp and message_type:
+
                 dialog = Dialog.objects.get(id=dialog_id)
                 Message.objects.create(
                     dialog=dialog,
                     sender_type=sender_type,
                     sender_id=sender_id if sender_type == 'user' else None,
+                    message_type=message_type,
                     content=content,
                     created_at=timestamp
                 )
@@ -270,11 +272,10 @@ def create_node(request):
             else:
                 sql_command = f"CREATE VERTEX {node_class} SET name = '{node_name}'"
 
-            url = 'http://localhost:2480/command/chat-bot-db/sql'
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
-            response = requests.post(url, headers=headers, json=json_data,
-                                     auth=('root', 'guregure'))
+            response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
+                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
 
             if response.status_code == 200:
                 logger.info(f"Node created successfully: {response.text}")
@@ -313,15 +314,39 @@ def create_relation(request):
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
             command = f"CREATE EDGE Includes FROM {start_node_id} TO {end_node_id}"
-            url = 'http://localhost:2480/command/chat-bot-db/sql'
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": command}
 
-            response = requests.post(url, headers=headers, json=json_data,
-                                     auth=(settings.login_orientdb, settings.pass_orientdb))
+            response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
+                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
 
             logger.info(f"Relation created between nodes {start_node_id} and {end_node_id}.")
             return JsonResponse({'message': 'Relation successfully created'}, status=201)
+        except Exception as e:
+            logger.exception("An error occurred while creating a relation.")
+            return JsonResponse({'error': str(e)}, status=400)
+
+
+@csrf_exempt
+def delete_node(request):
+    """Creates a relation between two nodes."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            node_id_to_delete = data.get('node_id')
+
+            if not node_id_to_delete:
+                logger.warning("Missing required fields for relation creation.")
+                return JsonResponse({'error': 'Missing required fields'}, status=400)
+
+            command = f"DELETE VERTEX {node_id_to_delete}"
+            headers = {'Content-Type': 'application/json'}
+            json_data = {"command": command}
+
+            response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
+                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
+
+            return JsonResponse({'message': 'Node successfully deleted'}, status=201)
         except Exception as e:
             logger.exception("An error occurred while creating a relation.")
             return JsonResponse({'error': str(e)}, status=400)
@@ -335,12 +360,11 @@ def get_nodes(request):
 
         try:
             sql_command = f"SELECT * FROM V"
-            url = 'http://localhost:2480/command/chat-bot-db/sql'
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
 
-            response = requests.post(url, headers=headers, json=json_data,
-                                     auth=('root', 'guregure'))
+            response = requests.post(config_settings.ORIENT_QUERY_URL, headers=headers, json=json_data,
+                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
 
             if response.status_code == 200:
                 logger.info(f"Nodes get successfully: {response.text}")
@@ -549,7 +573,7 @@ def archive(request):
     })
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def create_or_edit_content(request):
     return render(request, 'chat_dashboard/edit_content.html')
 
@@ -723,6 +747,7 @@ def get_messages(request, dialog_id):
                     if message.sender and message.sender_type == 'user'
                     else 'bot'
                 ),
+                'message_type': message.message_type,
                 'content': message.content,
                 'timestamp': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
             }
@@ -804,3 +829,40 @@ def update_session_duration(request):
             return JsonResponse({'status': 'error', 'message': str(e)})
 
     return JsonResponse({'status': 'error', 'message': 'Неверный запрос'})
+
+
+@csrf_exempt
+def upload_document(request):
+    if request.method == 'POST' and request.FILES.get('file'):
+        uploaded_file = request.FILES['file']
+        file_name = uploaded_file.name
+        file_path = os.path.join(settings.MEDIA_ROOT, 'documents', file_name)
+
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, 'wb+') as destination:
+            for chunk in uploaded_file.chunks():
+                destination.write(chunk)
+
+        return JsonResponse({'message': 'Файл успешно загружен!', 'file_name': file_name}, status=200)
+
+    return JsonResponse({'message': 'Файл не загружен!'}, status=400)
+
+
+import os
+from django.conf import settings
+from django.http import JsonResponse
+
+
+def get_document_link_by_name(request, file_name):
+    documents_path = os.path.join(settings.MEDIA_ROOT, 'documents')
+    available_files = os.listdir(documents_path)
+
+    for file in available_files:
+        print(f"file = ss{file_name.strip()}ss, compare = ss{file.split('.docx')[0].strip()}ss")
+        if file_name.strip() == file.split('.')[0]:
+            file_url = f"{settings.MEDIA_URL}documents/{file}"
+            return JsonResponse({'file_url': file_url}, status=200)
+
+    # Если файл не найден
+    return JsonResponse({'error': 'Файл не найден'}, status=404)
+

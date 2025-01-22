@@ -29,7 +29,7 @@ from django.views.generic import View
 from django.http import JsonResponse
 from django.core.mail import send_mail
 from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetCompleteView
-from config import settings
+from config import config_settings
 
 
 logger = logging.getLogger(__name__)
@@ -84,8 +84,9 @@ def login_view(request):
                     logger.debug(f"JWT generated for user {username}: {token}")
 
                     try:
-                        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
                         logger.info(f"JWT payload for user {username}: {payload}")
+
+                        payload = jwt.decode(token, config_settings.SECRET_KEY, algorithms=['HS256'])
                         role = payload.get('role')
 
                         if role in ['admin', 'operator']:

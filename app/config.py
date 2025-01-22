@@ -1,11 +1,8 @@
 import os
 from dotenv import load_dotenv
 
-# Загружаем переменные окружения из .env файла
 load_dotenv()
 
-
-# Настройки
 class Settings:
     DB_HOST = os.getenv("DB_HOST")
     DB_USER = os.getenv("DB_USER")
@@ -28,9 +25,10 @@ class Settings:
     EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS")
     EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")
     SITE_URL = os.getenv("SITE_URL")
-    URL_for_orientDB = os.getenv("URL_for_orientDB")
-    login_orientdb = os.getenv("login_orientdb")
-    pass_orientdb = os.getenv("pass_orientdb")
+    ORIENT_QUERY_URL = os.getenv("ORIENT_QUERY_URL")
+    ORIENT_COMMAND_URL = os.getenv("ORIENT_COMMAND_URL")
+    ORIENT_LOGIN = os.getenv("ORIENT_LOGIN")
+    ORIENT_PASS = os.getenv("ORIENT_PASS")
 
 
-settings = Settings()
+config_settings = Settings()

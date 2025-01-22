@@ -14,6 +14,7 @@ from chat_dashboard.models import Dialog, Message, Settings
 from .models import ChatUser, Session
 from chat_dashboard.models import Settings
 from urllib.parse import unquote
+from config import config_settings
 
 logger = logging.getLogger('Chat')
 
@@ -317,10 +318,10 @@ def get_nodes_by_type(request):
     node_type = urllib.parse.unquote(node_type)
 
     # Формируем URL для запроса
-    url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
+    url = f"http://localhost:2480/query/chat/sql/SELECT FROM {node_type}"
 
     try:
-        response = requests.get(url, auth=('root', 'guregure'))
+        response = requests.get(url, auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
 
         if response.status_code == 200:
             logger.info(f"Successfully fetched data for type: {node_type}")
@@ -387,12 +388,12 @@ def get_nodes_by_type_with_relation(request):
             logger.info(f"Fetching nodes with type of start node: {start_node_type}")
 
             # Формируем запрос с учётом кавычек вокруг start_node_name
-            url = (f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {finish_node_type} "
+            url = (f"{config_settings.ORIENT_QUERY_URL}/SELECT FROM {finish_node_type} "
                    f"WHERE @rid IN (SELECT OUT('Includes') "
                    f"FROM (SELECT FROM {start_node_type} WHERE content = '{start_node_name}'))")
 
             try:
-                response = requests.get(url, auth=('root', 'guregure'))
+                response = requests.get(url, auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
 
                 # Проверка на успешность ответа
                 if not response.ok:
@@ -423,17 +424,16 @@ def get_question_id_by_content(request):
     """Fetch question for a specific question ID."""
     if request.method == 'GET':
         question_content = urllib.parse.unquote(request.GET.get('questionContent'))
+        print(question_content)
 
         if question_content:
             logger.info(f"Received question content: {question_content}")
-            url = (f"http://localhost:2480/command/chat-bot-db/sql/")
             query = f"SELECT @rid FROM Question WHERE content = '{question_content}'"
-            logger.info(f"Sending query: {url}")
 
             try:
                 response = requests.get(
-                    url,
-                    auth=('root', 'guregure'),
+                    config_settings.ORIENT_COMMAND_URL,
+                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                     headers={"Content-Type": "application/json"},
                     json={"command": query}
                 )
@@ -464,40 +464,30 @@ def get_question_id_by_content(request):
 def get_answer(request):
     """Fetch answer for a specific question ID."""
     if request.method == 'GET':
-        # Получаем параметр questionId из запроса
         question_id = urllib.parse.unquote(request.GET.get('questionId'))
 
-        # Проверяем, что параметр questionId передан
         if question_id:
             logger.info(f"Received questionId: {question_id}")
-            url = (f"http://localhost:2480/command/chat-bot-db/sql/")
             query = f"SELECT FROM Answer WHERE @rid IN (SELECT OUT('Includes') FROM Question WHERE @rid = '{question_id}')"
-            logger.info(f"Sending query: {url}")  # Логируем сформированный запрос
-
             try:
-                # Отправляем запрос к базе данных для получения ответа на вопрос
                 response = requests.get(
-                    url,
-                    auth=('root', 'guregure'),
+                    config_settings.ORIENT_COMMAND_URL,
+                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                     headers={"Content-Type": "application/json"},
                     json={"command": query}
                 )
-
                 logger.info(f"Response status: {response.status_code}.")
 
-                # Если ответ неудачен, возвращаем ошибку
                 if not response.ok:
                     logger.warning("Answer not found for the given answer ID.")
                     return JsonResponse({"error": "Answer not found"}, status=404)
                 else:
-                    # Пытаемся распарсить JSON ответ
                     data = response.json()
                     logger.info(f"Data = {data}")
 
                     if 'result' in data:
                         nodes_data = []
                         for node in data['result']:
-                            # Проверяем, есть ли в узле необходимые поля
                             if 'content' in node and '@rid' in node:
                                 nodes_data.append({'id': node['@rid'], 'content': node['content']})
 
@@ -526,7 +516,6 @@ def get_documents(request):
             logger.info(f"Received answerId: {answer_id}")
 
             # Формируем запрос для получения документов
-            url = "http://localhost:2480/command/chat-bot-db/sql/"
             documents_query = f"SELECT FROM document WHERE @rid IN (SELECT OUT('Includes') FROM Answer WHERE @rid = '{answer_id}')"
             logger.info(f"Sending documents query: {documents_query}")
 
@@ -537,8 +526,8 @@ def get_documents(request):
             try:
                 # Получаем данные документов
                 response = requests.get(
-                    url,
-                    auth=('root', 'guregure'),
+                    config_settings.ORIENT_COMMAND_URL,
+                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                     headers={"Content-Type": "application/json"},
                     json={"command": documents_query}
                 )
@@ -548,8 +537,11 @@ def get_documents(request):
 
                 if 'result' in documents_data:
                     for node in documents_data['result']:
-                        if 'content' in node and '@rid' in node:
-                            nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content'], 'type': 'document'})
+                        if '@rid' in node:
+                            if 'content' in node:
+                                nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content'], 'type': 'document'})
+                            else:
+                                nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': '', 'type': 'document'})
                     logger.info(f"Found {len(nodes_data)} documents.")
                     logger.info(nodes_data)
                 else:
@@ -562,8 +554,8 @@ def get_documents(request):
             try:
                 # Получаем данные ссылок
                 response = requests.get(
-                    url,
-                    auth=('root', 'guregure'),
+                    config_settings.ORIENT_COMMAND_URL,
+                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                     headers={"Content-Type": "application/json"},
                     json={"command": links_query}
                 )
@@ -589,6 +581,34 @@ def get_documents(request):
         else:
             logger.error("No answerID provided.")
             return JsonResponse({"error": "No answerID provided"}, status=400)
+
+def get_artifact_by_id(request):
+    if request.method == 'GET':
+        artifact_type = urllib.parse.unquote(request.GET.get('artifactType'))
+        artifact_id = urllib.parse.unquote(request.GET.get('artifactID'))
+
+        if artifact_type == 'link':
+            query = f"SELECT FROM link WHERE @rid = '{artifact_id}'"
+        else:
+            query = f"SELECT FROM document WHERE @rid = '{artifact_id}'"
+
+        try:
+            response = requests.get(
+                config_settings.ORIENT_COMMAND_URL,
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+                headers={"Content-Type": "application/json"},
+                json={"command": query}
+            )
+
+            data = response.json()
+
+            if 'result' in data:
+                node = data['result'][0]
+                return JsonResponse({'status': 200, 'result': {'id': node['@rid'], 'name': node['name'], 'content': node['content'], 'type': artifact_type}})
+
+        except Exception as e:
+            logger.error(f"Error fetching documents: {e}")
+            return JsonResponse({"error": "Failed to fetch documents"}, status=500)
 
 
 @require_http_methods(["GET"])
@@ -673,14 +693,12 @@ def update_answer(request):
             # Экранирование кавычек и других символов
             escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
             # Формируем запрос
-            url = "http://localhost:2480/command/chat-bot-db/sql/"
             query = f"UPDATE answer SET content = '{escaped_content}' WHERE @rid = '{answer_id}'"
-            logger.info(f"Sending query: {query}")
 
             # Отправка запроса
             response = requests.get(
-                url,
-                auth=('root', 'gure'),
+                config_settings.ORIENT_COMMAND_URL,
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
@@ -730,13 +748,11 @@ def update_question(request):
             escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
 
             # Формируем запрос
-            url = "http://localhost:2480/command/chat-bot-db/sql/"
             query = f"UPDATE Question SET content = '{escaped_content}' WHERE @rid = '{question_id}'"
-            logger.info(f"Sending query: {query}")
 
             # Отправляем запрос
             response = requests.get(
-                url,
+                config_settings.ORIENT_COMMAND_URL,
                 auth=('root', 'guregure'),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},

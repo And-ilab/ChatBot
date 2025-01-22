@@ -23,10 +23,8 @@ from django.conf.urls.static import static
 import chat_dashboard.views as dashboard_views
 import chat_user.views as chat_views
 import authentication.views as authentication_views
-from django.contrib.auth import views as auth_views
 
 urlpatterns = [
-
     path('admin/', admin.site.urls),
     path('chat_user/', include('chat_user.urls', namespace='chat_user')),
     path('chat_dashboard/', include('chat_dashboard.urls', namespace='chat_dashboard')),
@@ -61,9 +59,16 @@ urlpatterns = [
     path('api/get-answer/', chat_views.get_answer, name='get_answer'),
     path('api/get-question-id-by-content/', chat_views.get_question_id_by_content, name='get_question_id_by_content'),
     path('api/get-documents/', chat_views.get_documents, name='get_documents'),
+    path('api/delete-node/', dashboard_views.delete_node, name='delete_node'),
+    path('api/get-artifact-by-id/', chat_views.get_artifact_by_id, name='get_artifact_by_id'),
     path('api/create-training-message/', dashboard_views.create_training_message, name='create_training_message'),
     path("api/user-activity/", dashboard_views.user_activity_data, name="user_activity_data"),
     path("api/messages-count-data/", dashboard_views.messages_count_data, name="messages_count_data"),
     path("api/daily-messages/", dashboard_views.daily_messages_data, name="daily_messages_data"),
     path("api/recognize-question/", chat_views.recognize_question, name="recognize_question"),
+    path('api/upload-document/', dashboard_views.upload_document, name='upload_document'),
+    path('api/get-document-link-by-name/<str:file_name>/', dashboard_views.get_document_link_by_name, name='get_document_link_by_name'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
