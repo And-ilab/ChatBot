@@ -1,3 +1,4 @@
+
 """
 Django settings for app project.
 
@@ -11,9 +12,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 from pathlib import Path
-
+import logging
 from dotenv import load_dotenv
-from logging_handlers import CustomTimedRotatingFileHandler
+#from logging_handlers import CustomTimedRotatingFileHandler
 from logging.handlers import TimedRotatingFileHandler
 
 from config import config_settings
@@ -189,7 +190,18 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 SITE_URL = 'http://localhost:8000'
 
-LOG_DATE_FORMAT = datetime.now().strftime('%Y-%m-%d')  # Формат даты
+def get_file_handler(log_name, level, formatter):
+    now = datetime.now().strftime('%Y-%m-%d')
+    log_file = os.path.join(BASE_DIR, 'logs', f'{log_name}_{now}.log')
+    handler = logging.handlers.TimedRotatingFileHandler(
+        filename=log_file,
+        when='midnight',
+        interval=1,
+        backupCount=30
+    )
+    handler.setLevel(level)
+    handler.setFormatter(formatter)
+    return handler
 
 LOGGING = {
     'version': 1,
@@ -206,79 +218,36 @@ LOGGING = {
     },
     'handlers': {
         'django_file': {
-            'level': 'DEBUG',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
-            'when': 'midnight',  # Ротация каждые 24 часа
-            'interval': 1,
-            'backupCount': 30,  # Хранить логи за 30 дней
-            'formatter': 'verbose',
+            '()': lambda: get_file_handler('django', logging.DEBUG, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
         },
         'app_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'app.log'),
-            'when': 'midnight',
-            'interval': 1,
-            'backupCount': 30,
-            'formatter': 'verbose',
+            '()': lambda: get_file_handler('app', logging.INFO, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
         },
         'chat_user': {
-            'level': 'INFO',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'chat_user.log'),
-            'when': 'midnight',
-            'interval': 1,
-            'backupCount': 30,
-            'formatter': 'verbose',
+            '()': lambda: get_file_handler('chat_user', logging.INFO, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
         },
         'chat_dashboard': {
-            'level': 'INFO',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'chat_dashboard.log'),
-            'when': 'midnight',
-            'interval': 1,
-            'backupCount': 30,
-            'formatter': 'verbose',
+            '()': lambda: get_file_handler('chat_dashboard', logging.INFO, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
         },
         'authentication': {
-            'level': 'INFO',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, f'logs/authentication_{LOG_DATE_FORMAT}.log'),
-            'when': 'midnight',
-            'interval': 1,
-            'backupCount': 30,
-            'formatter': 'verbose',
+            '()': lambda: get_file_handler('authentication', logging.INFO, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
         },
         'chat_dashboard_error': {
-            'level': 'INFO',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'chat_dashboard_error.log'),
-            'when': 'midnight',
-            'interval': 1,
-            'backupCount': 30,
-            'formatter': 'verbose',
+            '()': lambda: get_file_handler('chat_dashboard_error', logging.ERROR, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
         },
         'chat_user_error': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'chat_user_error.log'),
-            'when': 'midnight',
-            'interval': 1,
-            'backupCount': 30,
-            'formatter': 'verbose',
+            '()': lambda: get_file_handler('chat_user_error', logging.ERROR, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
         },
         'authentication_error': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'authentication_error.log'),
-            'when': 'midnight',
-            'interval': 1,
-            'backupCount': 30,
-            'formatter': 'verbose',
+            '()': lambda: get_file_handler('authentication_error', logging.ERROR, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
         },
     },
     'loggers': {
+        'app': {
+            'handlers': ['app_file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
         'django': {
             'handlers': ['django_file'],
             'level': 'DEBUG',
@@ -330,5 +299,4 @@ LOGGING = {
             'propagate': False,
         },
     },
-
 }

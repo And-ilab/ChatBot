@@ -32,7 +32,7 @@ from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetCom
 from config import config_settings
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('authentication')
 
 
 def register_view(request):
