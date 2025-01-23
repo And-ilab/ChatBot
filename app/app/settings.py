@@ -189,7 +189,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 SITE_URL = 'http://localhost:8000'
 
-LOG_DATE_FORMAT = datetime.now().strftime('%Y-%m-%d')  # Ф
+LOG_DATE_FORMAT = datetime.now().strftime('%Y-%m-%d')  # Формат даты
 
 LOGGING = {
     'version': 1,
@@ -207,7 +207,7 @@ LOGGING = {
     'handlers': {
         'django_file': {
             'level': 'DEBUG',
-            'class': CustomTimedRotatingFileHandler,
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
             'when': 'midnight',  # Ротация каждые 24 часа
             'interval': 1,
@@ -216,7 +216,7 @@ LOGGING = {
         },
         'app_file': {
             'level': 'INFO',
-            'class': CustomTimedRotatingFileHandler,
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'app.log'),
             'when': 'midnight',
             'interval': 1,
@@ -225,7 +225,7 @@ LOGGING = {
         },
         'chat_user': {
             'level': 'INFO',
-            'class': CustomTimedRotatingFileHandler,
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'chat_user.log'),
             'when': 'midnight',
             'interval': 1,
@@ -234,7 +234,7 @@ LOGGING = {
         },
         'chat_dashboard': {
             'level': 'INFO',
-            'class': CustomTimedRotatingFileHandler,
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'chat_dashboard.log'),
             'when': 'midnight',
             'interval': 1,
@@ -243,8 +243,8 @@ LOGGING = {
         },
         'authentication': {
             'level': 'INFO',
-            'class': CustomTimedRotatingFileHandler,
-            'filename': os.path.join(BASE_DIR, 'logs', 'authentication.log'),
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, f'logs/authentication_{LOG_DATE_FORMAT}.log'),
             'when': 'midnight',
             'interval': 1,
             'backupCount': 30,
@@ -252,7 +252,7 @@ LOGGING = {
         },
         'chat_dashboard_error': {
             'level': 'INFO',
-            'class': CustomTimedRotatingFileHandler,
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'chat_dashboard_error.log'),
             'when': 'midnight',
             'interval': 1,
@@ -261,7 +261,7 @@ LOGGING = {
         },
         'chat_user_error': {
             'level': 'ERROR',
-            'class': CustomTimedRotatingFileHandler,
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'chat_user_error.log'),
             'when': 'midnight',
             'interval': 1,
@@ -270,7 +270,7 @@ LOGGING = {
         },
         'authentication_error': {
             'level': 'ERROR',
-            'class': CustomTimedRotatingFileHandler,
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'authentication_error.log'),
             'when': 'midnight',
             'interval': 1,
@@ -330,4 +330,5 @@ LOGGING = {
             'propagate': False,
         },
     },
+
 }
