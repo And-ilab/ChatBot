@@ -13,8 +13,9 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-
+from logging_handlers import CustomTimedRotatingFileHandler
 from logging.handlers import TimedRotatingFileHandler
+
 from config import config_settings
 from datetime import datetime
 
@@ -187,18 +188,6 @@ EMAIL_HOST_PASSWORD = config_settings.EMAIL_HOST_PASSWORD
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 SITE_URL = 'http://localhost:8000'
-
-
-class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
-    def __init__(self, filename, *args, **kwargs):
-        base_filename, file_extension = os.path.splitext(filename)
-        self.base_filename = base_filename
-        self.file_extension = file_extension
-        super().__init__(filename, *args, **kwargs)
-
-    def _open(self):
-        self.baseFilename = f"{self.base_filename}_{datetime.now().strftime('%Y-%m-%d')}{self.file_extension}"
-        return super()._open()
 
 LOG_DATE_FORMAT = datetime.now().strftime('%Y-%m-%d')  # Ф
 
