@@ -21,7 +21,7 @@ from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('chat_dashboard')
 
 
 # @role_required(['admin', 'operator'])

@@ -16,7 +16,7 @@ from chat_dashboard.models import Settings
 from urllib.parse import unquote
 from config import config_settings
 
-logger = logging.getLogger('Chat')
+logger = logging.getLogger('chat_user')
 
 
 def user_chat(request):

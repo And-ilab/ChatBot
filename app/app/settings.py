@@ -220,9 +220,6 @@ LOGGING = {
         'django_file': {
             '()': lambda: get_file_handler('django', logging.DEBUG, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
         },
-        'app_file': {
-            '()': lambda: get_file_handler('app', logging.INFO, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
-        },
         'chat_user': {
             '()': lambda: get_file_handler('chat_user', logging.INFO, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
         },
@@ -243,11 +240,6 @@ LOGGING = {
         },
     },
     'loggers': {
-        'app': {
-            'handlers': ['app_file'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
         'django': {
             'handlers': ['django_file'],
             'level': 'DEBUG',
