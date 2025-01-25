@@ -61,14 +61,18 @@ menuButton.addEventListener('click', () => {
 
     if (menuButtons.style.display === 'none' || menuButtons.style.display === '') {
         menuButtons.style.display = 'flex';
+        chatMessages.style.height = '370px';
+        setTimeout(scrollToBottom, 0);
     } else {
         menuButtons.style.display = 'none';
+        chatMessages.style.height = '550px';
     }
 });
 
 
 const loadMessages = async () => {
     try {
+        chatMessages.style.height = '550px';
         const messagesResponse = await fetch(`/api/messages/${dialogID}/`);
         const data = await messagesResponse.json();
         chatMessages.innerHTML = '';
@@ -85,12 +89,14 @@ const loadMessages = async () => {
         }
 
         const lastMessage = data.messages[data.messages.length - 1];
+        console.log(lastMessage);
         if (
-            lastMessage.sender === 'bot' &&
-            (
-                lastMessage.content === 'Задайте свой вопрос или выберите из меню' ||
-                lastMessage.content === 'Я всегда рад помочь! Задавайте свои вопросы или выбирайте интересующую вас тему в меню'
-            )
+            (lastMessage.sender === 'bot' &&
+                (
+                    lastMessage.content === 'Задайте свой вопрос или выберите из меню' ||
+                    lastMessage.content === 'Я всегда рад помочь! Задавайте свои вопросы или выбирайте интересующую вас тему в меню'
+                )
+            ) || (lastMessage.content === 'Меню' || lastMessage.content === 'меню')
         ) {
             await showSectionButtons();
         }
@@ -286,6 +292,7 @@ const appendMessage = (sender, content, timestamp) => {
     const buttonsContainer = document.querySelector('.chat-buttons-container');
     if (buttonsContainer) {
         buttonsContainer.remove();
+        chatMessages.style.height = '550px';
     }
 
     const messageDiv = document.createElement('div');
@@ -550,6 +557,7 @@ const userResponseHandler = async (message) => {
 
     try {
         buttonsContainer.style.display = 'none';
+        chatMessages.style.height = '550px';
         menuButton.style.display = 'none';
         const recognizeResponse = await fetch("/api/recognize-question/", {
             method: "POST",
@@ -656,6 +664,8 @@ const goBack = async () => {
 
 
 const showSectionButtons = async () => {
+    chatMessages.style.height = '370px';
+    setTimeout(scrollToBottom, 0);
     const nodes = await fetchNodes('Section');
     buttonsContainer.style.display = 'flex';
     createButtonsFromNodes(nodes, async (selectedNode) => {
@@ -687,6 +697,7 @@ const showQuestionsButtons = async (topicName) => {
 };
 
 const showAnswer = async (questionID) => {
+    chatMessages.style.height = '550px';
     buttonsContainer.innerHTML = '';
     buttonsContainer.style.display = 'none';
     menuButton.style.display = 'none';
