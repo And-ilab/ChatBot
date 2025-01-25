@@ -16,23 +16,12 @@ class ModelHandler:
 
     def handle_query(self, query):
         query = query.lower()
-
-        if "транспорт" in query or "маршрутка" in query:
-            query = "Какими маршрутками можно ездить в командировку?"
-        elif "заявка" in query and "командировка" in query:
-            query = "Как оформить заявку на командирование?"
-        elif "суточные" in query:
-            query = "Какой размер суточных при командировании?"
-        elif "оплата" in query or "расходы" in query:
-            query = "Порядок оплаты командировочных расходов."
-            return f"Это вопрос: {query}"
-
         query_embedding = self.model.encode([query])
         similarities = cosine_similarity(query_embedding, self.embeddings)
         max_idx = np.argmax(similarities)
         max_similarity = similarities[0][max_idx]
 
-        if max_similarity > 0.7:
+        if max_similarity > 0.75:
             main_question = self.mapping[self.questions[max_idx]]
             return main_question
         else:
