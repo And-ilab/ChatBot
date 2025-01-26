@@ -3,15 +3,17 @@ name: Deploy to VPS
 on:
   push:
     branches:
-      - main  # Замените на вашу ветку, если необходимо
+      - main
   pull_request:
     branches:
-      - main  # Замените на вашу ветку, если необходимо
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    env:
+      BOT_TOKEN: "7280342095:AAGtXBg1kX09Zy9h_FD-dI10djipnWRkkhU"
+      CHAT_ID: "955812129"
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -34,14 +36,55 @@ jobs:
     - name: Run deployment commands
       run: |
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no daniil@${{ secrets.SERVER_IP }} << 'EOF'
+          set -e
+          function handle_error {
+              curl -s -X POST "https://api.telegram.org/bot${{ env.BOT_TOKEN }}/sendMessage" \
+              -d "chat_id=${{ env.CHAT_ID }}" \
+              -d "text=Error occurred during deployment on VPS at $(date)"
+              exit 1
+          }
+          trap 'handle_error' ERR
+
           source project/ChatBot/myprojectenv/bin/activate
           cd project/ChatBot
           git pull origin main
-          cd app
-          echo "yes" python manage.py collectstatic --noinput
+          pip install -r requirements.txt
+          yes | python manage.py collectstatic --noinput
           python manage.py makemigrations
           python manage.py migrate --noinput
-          echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart gunicorn
-          echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart nginx
+
+          if systemctl is-active --quiet gunicorn; then
+              echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart gunicorn
+          fi
+
+          if systemctl is-active --quiet nginx; then
+              echo "${{ secrets.PASSWORD }}" | sudo -S systemctl restart nginx
+          fi
+
           echo "${{ secrets.PASSWORD }}" | sudo -S systemctl daemon-reload
         EOF
+
+    - name: Send success message
+      run: |
+        curl -s -X POST "https://api.telegram.org/bot${{ env.BOT_TOKEN }}/sendMessage" \
+        -d "chat_id=${{ env.CHAT_ID }}" \
+        -d "text=Deployment was successful on VPS at $(date)"
+
+    - name: Check server status
+      run: |
+        if ! ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no daniil@${{ secrets.SERVER_IP }} "systemctl is-active --quiet nginx"; then
+          curl -s -X POST "https://api.telegram.org/bot${{ env.BOT_TOKEN }}/sendMessage" \
+          -d "chat_id=${{ env.CHAT_ID }}" \
+          -d "text=Server is down at $(date)"
+        else
+          curl -s -X POST "https://api.telegram.org/bot${{ env.BOT_TOKEN }}/sendMessage" \
+          -d "chat_id=${{ env.CHAT_ID }}" \
+          -d "text=Application is running smoothly on VPS at $(date)"
+        fi
+
+    - name: Send push notification
+      if: github.actor != 'github-actions[bot]'  # Проверяем, что это не бот
+      run: |
+        curl -s -X POST "https://api.telegram.org/bot${{ env.BOT_TOKEN }}/sendMessage" \
+        -d "chat_id=${{ env.CHAT_ID }}" \
+        -d "text=Push from ${{ github.actor }} at $(date)"
