@@ -12,7 +12,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      BOT_TOKEN: "7280342095:AAGtXBg1kX09Zy9h_FD-dI10djipnWRkkhU"
+      BOT_TOKEN: "8146147086:AAGq-gKIhRbAQ2ZMzwPrUIZGA2Uj_S3z_fU"
       CHAT_ID: "955812129"
     steps:
     - name: Checkout code
