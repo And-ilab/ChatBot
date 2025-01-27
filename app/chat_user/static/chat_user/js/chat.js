@@ -189,8 +189,8 @@ chatToggle.addEventListener('click', async () => {
         switch (result.status) {
             case "login":
                 console.log("Сессия отсутствует. Пожалуйста, войдите.");
-                chatInput.disabled = true;
                 chatLogin.style.display = 'flex';
+                chatInput.disabled = true;
                 break;
             case "success":
                 console.log("Добро пожаловать! Продолжайте работу.");
@@ -271,6 +271,7 @@ loginForm.addEventListener("submit", async function (e) {
         const userData = await getUserDetails(userID);
         username = `${userData["first_name"]} ${userData["last_name"]}`;
         chatLogin.style.display = 'none';
+        chatInput.disabled = false;
         chatMessages.style.display = 'flex';
         await showGreetingMessages();
         await showSectionButtons();
