@@ -189,6 +189,7 @@ chatToggle.addEventListener('click', async () => {
         switch (result.status) {
             case "login":
                 console.log("Сессия отсутствует. Пожалуйста, войдите.");
+                chatInput.disabled = true;
                 chatLogin.style.display = 'flex';
                 break;
             case "success":
