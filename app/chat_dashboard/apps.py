@@ -1,5 +1,5 @@
 from django.apps import AppConfig
-from scheduler import start_scheduler
+from scheduler_new import start_scheduler
 
 class ChatAdministrationConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
