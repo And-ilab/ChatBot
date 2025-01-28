@@ -70,6 +70,16 @@
                        class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600"
                        min="1" max="24">
             </div>
+                        <div class="form-group mb-4">
+                <label for="logs_backup" class="block text-md font-medium text-gray-600"
+                       data-bs-toggle="tooltip" title="Срок хранения на логов на сервере">
+                    Срок хранения логов (в днях):
+                </label>
+                <input type="number" id="logs_backup" name="logs_backup"
+                       value="{{ logs_backup }}"
+                       class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm foc   us:ring-2 focus:ring-blue-600"
+                       min="1" max="100">
+            </div>
 
             <div class="form-group mb-4">
                 <label for="session_duration" class="block text-md font-medium text-gray-600"
@@ -98,6 +108,7 @@
     const adParameters = document.getElementById('ad-parameters');
     const saveButton = document.getElementById('save-settings');
     const retentionSelect = document.getElementById('message_retention_months');
+    const logsBackupSelect = document.getElementById('logs_backup');
     const adServerInput = document.getElementById('ad_server');
     const adDomainInput = document.getElementById('ad_domain');
     const sessionDurationInput = document.getElementById('session_duration');
@@ -108,6 +119,7 @@
     const initialValues = {
         enableAd: enableAdCheckbox.checked,
         retentionSelect: retentionSelect.value,
+        logsBackupSelect: logsBackupSelect.value,
         adServer: adServerInput.value,
         adDomain: adDomainInput.value,
         sessionDuration: sessionDurationInput.value,
@@ -119,6 +131,7 @@
         return (
             enableAdCheckbox.checked !== initialValues.enableAd ||
             retentionSelect.value !== initialValues.retentionSelect ||
+            logsBackupSelect.value!== initialValues.logsBackupSelect ||
             adServerInput.value !== initialValues.adServer ||
             adDomainInput.value !== initialValues.adDomain ||
             sessionDurationInput.value !== initialValues.sessionDuration ||
@@ -137,6 +150,7 @@
         toggleSaveButton();
     });
     retentionSelect.addEventListener('change', toggleSaveButton);
+    logsBackupSelect.addEventListener('change', toggleSaveButton);
     adServerInput.addEventListener('input', toggleSaveButton);
     ipAddressInput.addEventListener('input', toggleSaveButton);
     adDomainInput.addEventListener('input', toggleSaveButton);
@@ -150,6 +164,7 @@
         formData.append('ad_server', adServerInput.value);
         formData.append('ad_domain', adDomainInput.value);
         formData.append('message_retention_months', retentionSelect.value);
+        formData.append('logs_backup', logsBackupSelect.value); // Добавлено
         formData.append('enable_ad', enableAdCheckbox.checked ? 'on' : 'off'); // Добавлено
 
         const csrftoken = document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1];
@@ -171,6 +186,7 @@
                     // Обновляем исходные значения после успешного сохранения
                     initialValues.enableAd = enableAdCheckbox.checked;
                     initialValues.retentionSelect = retentionSelect.value;
+                    initialValues.logsBackupSelect = logsBackupSelect.value;
                     initialValues.adServer = adServerInput.value;
                     initialValues.adDomain = adDomainInput.value;
                     initialValues.sessionDuration = sessionDurationInput.value;

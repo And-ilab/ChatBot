@@ -20,6 +20,7 @@ from django.db.models import Q
 from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
+import time
 
 logger = logging.getLogger('chat_dashboard')
 
@@ -485,10 +486,12 @@ def user_create(request):
             user.save()
             logger.info(f"User created: ID={user.id}, Username={user.username}, Email={user.email}")
 
-            messages.success(request, "Создана новая учетная запись. Данные для её активации направлены на указанный вами электронный адрес.")
+            messages.success(request,
+                             "Создана новая учетная запись. Данные для её активации направлены на указанный вами электронный адрес.")
             return redirect('chat_dashboard:user_list')  # Перенаправляем на список пользователей
 
     return render(request, 'chat_dashboard/user_create_form.html', {'form': form})
+
 
 # @role_required('admin')
 def user_update(request, pk):
@@ -799,7 +802,8 @@ def settings_view(request):
         'settings': settings,
         'months': months,
         'current_retention_months': current_retention_months,
-        'ip_address': settings.ip_address
+        'ip_address': settings.ip_address,
+        'logs_backup': settings.logs_backup
     })
 
 
@@ -812,10 +816,12 @@ def update_session_duration(request):
             ldap_server = request.POST.get('ad_server')
             domain = request.POST.get('ad_domain')
             retention_months = request.POST.get('message_retention_months')
+            logs_backup = request.POST.get('logs_backup')
 
             settings = Settings.objects.first()
             settings.session_duration = session_duration
             settings.ip_address = ip_address
+            settings.logs_backup = logs_backup
             settings.ad_enabled = enable_ad  # Обновляем значение AD
             settings.ldap_server = ldap_server
             settings.domain = domain
@@ -830,6 +836,8 @@ def update_session_duration(request):
 
     return JsonResponse({'status': 'error', 'message': 'Неверный запрос'})
 
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Корневая директория проекта
 
 @csrf_exempt
 def upload_document(request):

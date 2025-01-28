@@ -12,14 +12,12 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 from pathlib import Path
-import logging
 from dotenv import load_dotenv
-#from logging_handlers import CustomTimedRotatingFileHandler
-from logging.handlers import TimedRotatingFileHandler
-
+#from .logging_handlers import CustomTimedRotatingFileHandler
 from config import config_settings
-from datetime import datetime
 
+
+from log.logging_config import LOGGING
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -189,106 +187,3 @@ EMAIL_HOST_PASSWORD = config_settings.EMAIL_HOST_PASSWORD
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 SITE_URL = 'http://localhost:8000'
-
-def get_file_handler(log_name, level, formatter):
-    now = datetime.now().strftime('%Y-%m-%d')
-    log_file = os.path.join(BASE_DIR, 'logs', f'{log_name}_{now}.log')
-    handler = logging.handlers.TimedRotatingFileHandler(
-        filename=log_file,
-        when='midnight',
-        interval=1,
-        backupCount=30
-    )
-    handler.setLevel(level)
-    handler.setFormatter(formatter)
-    return handler
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'django_file': {
-            '()': lambda: get_file_handler('django', logging.DEBUG, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
-        },
-        'chat_user': {
-            '()': lambda: get_file_handler('chat_user', logging.INFO, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
-        },
-        'chat_dashboard': {
-            '()': lambda: get_file_handler('chat_dashboard', logging.INFO, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
-        },
-        'authentication': {
-            '()': lambda: get_file_handler('authentication', logging.INFO, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
-        },
-        'chat_dashboard_error': {
-            '()': lambda: get_file_handler('chat_dashboard_error', logging.ERROR, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
-        },
-        'chat_user_error': {
-            '()': lambda: get_file_handler('chat_user_error', logging.ERROR, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
-        },
-        'authentication_error': {
-            '()': lambda: get_file_handler('authentication_error', logging.ERROR, logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['django_file'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-        'chat_user': {
-            'handlers': ['chat_user'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'chat_dashboard': {
-            'handlers': ['chat_dashboard'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'authentication': {
-            'handlers': ['authentication'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'chat_user_error': {
-            'handlers': ['chat_user_error'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'chat_dashboard_error': {
-            'handlers': ['chat_dashboard_error'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'authentication_error': {
-            'handlers': ['authentication_error'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'django.db.backends': {
-            'level': 'DEBUG',
-            'handlers': ['django_file'],
-            'propagate': False,
-        },
-        'django.request': {
-            'level': 'DEBUG',
-            'handlers': ['django_file'],
-            'propagate': False,
-        },
-        'django.server': {
-            'level': 'DEBUG',
-            'handlers': ['django_file'],
-            'propagate': False,
-        },
-    },
-}

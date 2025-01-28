@@ -133,6 +133,7 @@ class Settings(models.Model):
     domain = models.CharField(max_length=50, default='COMPANY')
     session_duration = models.PositiveIntegerField(default=30)
     ip_address = models.GenericIPAddressField(blank=True, null=True)
+    logs_backup = models.PositiveIntegerField(default=30)
 
     def __str__(self):
 
