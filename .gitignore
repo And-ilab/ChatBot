@@ -1,6 +1,6 @@
 venv
 .idea
-.env
+app/.env
 __pycache__/
 *.pyc
 migrations/

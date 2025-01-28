@@ -248,3 +248,7 @@
 .empty-container p {
     margin: 0;
 }
+
+#btn-searched {
+    display: none;
+}
