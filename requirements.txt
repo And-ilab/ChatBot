@@ -96,6 +96,7 @@ requests==2.32.3
 rich==13.9.4
 ru_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/ru_core_news_sm-3.8.0/ru_core_news_sm-3.8.0-py3-none-any.whl#sha256=69978d47b43e2c4f329bebdb155e8e9d3861bba1a58ba25551419dae7d7e07fc
 safetensors==0.5.2
+scheduler==0.8.8
 scikit-learn==1.6.1
 scipy==1.15.1
 sentence-transformers==3.3.1
@@ -120,6 +121,7 @@ torch==2.2.2
 tqdm==4.67.1
 transformers==4.48.0
 triton==2.2.0
+typeguard==4.4.1
 typer==0.15.1
 typing_extensions==4.12.2
 tzdata==2024.2
