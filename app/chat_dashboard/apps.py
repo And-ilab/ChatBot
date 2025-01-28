@@ -1,12 +1,10 @@
 from django.apps import AppConfig
-import scheduler
+from scheduler import start_scheduler
 
 class ChatAdministrationConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'chat_dashboard'
 
     def ready(self):
-        scheduler.start_scheduler()
+        start_scheduler()
 
-
-#
