@@ -142,6 +142,7 @@ def training_dashboard(request):
     )
 
     context = {
+        'all_messages': list(unread_messages) + list(ignored_messages),
         'unread_messages': list(unread_messages),
         'ignored_messages': list(ignored_messages),
     }
