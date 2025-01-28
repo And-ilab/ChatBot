@@ -7,3 +7,6 @@ class ChatAdministrationConfig(AppConfig):
 
     def ready(self):
         start_scheduler()
+
+
+#
