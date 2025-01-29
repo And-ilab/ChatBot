@@ -704,21 +704,29 @@ const showAnswer = async (questionID) => {
     buttonsContainer.style.display = 'none';
     menuButton.style.display = 'none';
 
-    const answer = await fetchAnswer(questionID);
-    if (answer) {
-        typingBlock.style.display = 'flex';
-        const randomDelay = Math.floor(Math.random() * 2000) + 2000;
-        await new Promise(resolve => setTimeout(resolve, randomDelay));
-        const answerParts = answer.content.split('\n\n');
+const answer = await fetchAnswer(questionID);
+if (answer) {
+    typingBlock.style.display = 'flex';
+    const randomDelay = Math.floor(Math.random() * 2000) + 2000;
+    await new Promise(resolve => setTimeout(resolve, randomDelay));
 
-        for (const part of answerParts) {
-            if (part.trim()) {
-                setTimeout(scrollToBottom, 0);
-                await new Promise(resolve => setTimeout(resolve, 3000));
-                appendMessage('bot', part, getTimestamp());
-                await sendBotMessage(part);
-            }
+    // Разделяем ответ на основные блоки по двойному переносу строки
+    const answerParts = answer.content.split(/\n{2,}/);
+
+    for (const part of answerParts) {
+        if (part.trim()) {
+            setTimeout(scrollToBottom, 0);
+
+            // Добавляем задержку между блоками
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // Сохраняем оригинальные переносы строк внутри блока
+            const formattedPart = part.replace(/\n/g, '<br>');
+            appendMessage('bot', formattedPart, getTimestamp());
+            await sendBotMessage(formattedPart);
         }
+    }
+
 
         typingBlock.style.display = 'none';
         await showDocuments(answer.id);
