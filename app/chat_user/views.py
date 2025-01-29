@@ -318,10 +318,10 @@ def get_nodes_by_type(request):
     node_type = urllib.parse.unquote(node_type)
 
     # Формируем URL для запроса
-    url = f"http://localhost:2480/query/chat/sql/SELECT FROM {node_type}"
+    url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
 
     try:
-        response = requests.get(url, auth=('root','gure'))
+        response = requests.get(url, auth=('root','guregure'))
 
         if response.status_code == 200:
             logger.info(f"Successfully fetched data for type: {node_type}")
@@ -391,6 +391,7 @@ def get_nodes_by_type_with_relation(request):
             url = (f"{config_settings.ORIENT_QUERY_URL}/SELECT FROM {finish_node_type} "
                    f"WHERE @rid IN (SELECT OUT('Includes') "
                    f"FROM (SELECT FROM {start_node_type} WHERE content = '{start_node_name}'))")
+
 
             try:
                 response = requests.get(url, auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
@@ -753,7 +754,7 @@ def update_question(request):
             # Отправляем запрос
             response = requests.get(
                 config_settings.ORIENT_COMMAND_URL,
-                auth=('root', 'gure'),
+                auth=('root', 'guregure'),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
