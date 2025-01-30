@@ -91,6 +91,9 @@ body {
 
 .chat-button {
     background-color: #007bff;
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
     color: white;
     border: none;
     border-radius: 8px;
@@ -284,6 +287,7 @@ body {
     font-size: 12px;
     cursor: pointer;
     align-items: center;
+    text-align: left;
     justify-content: space-between;
     margin-right: 10px;
     height: 40px;
