@@ -27,14 +27,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
         ('admin', 'Администратор'),
         ('operator', 'Оператор'),
+        ('user', 'Пользователь'),
     ]
 
     id = models.AutoField(primary_key=True)
     email = models.EmailField(unique=True)
-    username = models.CharField(max_length=50, unique=True)
+    username = models.CharField(max_length=50)
     first_name = models.CharField(max_length=50)  # Новое поле
     last_name = models.CharField(max_length=50, blank=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='operator')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
     is_staff = models.BooleanField(default=False)
     last_active = models.DateTimeField(null=True, blank=True)
     is_online = models.BooleanField(default=False)

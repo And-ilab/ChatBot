@@ -22,8 +22,8 @@ def user_postsave(sender, instance, created, **kwargs):
         instance.save()
         s = Settings.objects.get(id=1)
         ip = s.ip_address
+
         activation_link =  'https://chatbot.digitranslab.com'
-        # Генерация ссылки активации
         activation_link = f"{activation_link}{reverse('authentication:activate_account', args=[token])}"
 
         subject = 'Подтверждение регистрации на платформе HelpDeskBot'

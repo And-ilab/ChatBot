@@ -1,6 +1,8 @@
 import logging
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, F, Count
 from django.db.models.functions import TruncDate, Concat
@@ -21,6 +23,7 @@ from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
 import time
+from chat_user.models import ChatUser
 
 logger = logging.getLogger('chat_dashboard')
 
@@ -435,34 +438,104 @@ def create_training_message(request):
 
 
 # @role_required('admin')
+# def user_list(request):
+#     """Displays a list of users."""
+#     logger.info("Accessing user list.")
+#
+#     search_query = request.GET.get('search', '')
+#     sort_column = request.GET.get('sort', 'username')  # По умолчанию сортировка по username
+#
+#     users = User.objects.all()
+#
+#     # Фильтрация по поисковому запросу
+#     if search_query:
+#         users = users.filter(
+#             Q(first_name__icontains=search_query) |
+#             Q(last_name__icontains=search_query) |
+#             Q(username__icontains=search_query) |
+#             Q(email__icontains=search_query)
+#         )
+#
+#     # Сортировка
+#     if sort_column.startswith('-'):
+#         users = users.order_by(sort_column[1:]).reverse()
+#     else:
+#         users = users.order_by(sort_column)
+#
+#     logger.debug(f"Users retrieved: {list(users)}")
+#     return render(request, 'chat_dashboard/users.html', {'users': users})
+#
+
+
 def user_list(request):
-    """Displays a list of users."""
+    """Displays a combined list of User and ChatUser."""
     logger.info("Accessing user list.")
 
     search_query = request.GET.get('search', '')
-    sort_column = request.GET.get('sort', 'username')  # По умолчанию сортировка по username
+    sort_column = request.GET.get('sort', 'username')
+    page_number = request.GET.get('page', 1)
 
+    # Получаем данные из обеих моделей
     users = User.objects.all()
+    chat_users = ChatUser.objects.all()
+
+    # Объединяем данные в список словарей с общими полями
+    combined_users = []
+    for user in users:
+        combined_users.append({
+            'type': 'admin',
+            'id': user.id,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'username': user.username,
+            'email': user.email,
+            'role': user.get_role_display(),
+        })
+
+    for chat_user in chat_users:
+        combined_users.append({
+            'type': 'Chat',
+            'id': chat_user.id,
+            'first_name': chat_user.first_name,
+            'last_name': chat_user.last_name,
+            'username': chat_user.username,  # Используем свойство @property
+            'email': chat_user.email,
+            'role': chat_user.get_role_display(),
+        })
 
     # Фильтрация по поисковому запросу
     if search_query:
-        users = users.filter(
-            Q(first_name__icontains=search_query) |
-            Q(last_name__icontains=search_query) |
-            Q(username__icontains=search_query) |
-            Q(email__icontains=search_query)
-        )
+        combined_users = [
+            u for u in combined_users
+            if (search_query.lower() in u['first_name'].lower() or
+                search_query.lower() in u['last_name'].lower() or
+                search_query.lower() in u['email'].lower() or
+                search_query.lower() in u['username'].lower())
+        ]
 
     # Сортировка
-    if sort_column.startswith('-'):
-        users = users.order_by(sort_column[1:]).reverse()
-    else:
-        users = users.order_by(sort_column)
+    reverse_sort = sort_column.startswith('-')
+    sort_key = sort_column.lstrip('-') if reverse_sort else sort_column
 
-    logger.debug(f"Users retrieved: {list(users)}")
-    return render(request, 'chat_dashboard/users.html', {'users': users})
+    combined_users.sort(
+        key=lambda x: str(x.get(sort_key, '')).lower(),
+        reverse=reverse_sort
+    )
 
+    paginator = Paginator(combined_users, 10)  # 10 элементов на странице
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
 
+    return render(request, 'chat_dashboard/users.html', {
+        #'users': combined_users,
+        'page_obj': page_obj,
+        'sort_column': sort_column,
+        'search_query': search_query
+    })
 # @role_required('admin')
 def user_create(request):
     """Creates a new user."""
@@ -483,7 +556,7 @@ def user_create(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
-            user.is_active = True
+            #user.is_active = True
             user.save()
             logger.info(f"User created: ID={user.id}, Username={user.username}, Email={user.email}")
 
@@ -493,44 +566,89 @@ def user_create(request):
 
     return render(request, 'chat_dashboard/user_create_form.html', {'form': form})
 
+def get_user_model_by_type(user_type):
+    if user_type == 'admin':
+        return get_user_model()
+    elif user_type == 'chat':
+        return ChatUser
+    raise Http404("Invalid user type")
 
 # @role_required('admin')
-def user_update(request, pk):
-    """Updates user data."""
-    logger.info(f"Updating user with ID: {pk}")
-    user = get_object_or_404(User, pk=pk)
+# def user_update(request, pk):
+#     """Updates user data."""
+#     logger.info(f"Updating user with ID: {pk}")
+#     user = get_object_or_404(User, pk=pk)
+#     if request.method == 'POST':
+#         form = UserFormUpdate(request.POST, instance=user)
+#         if form.is_valid():
+#             old_data = {
+#                 'username': user.username,
+#                 'email': user.email,
+#             }
+#             user = form.save(commit=False)
+#             user.set_password(form.cleaned_data['password']) if form.cleaned_data.get('password') else None
+#             user.save()
+#
+#             changed_data = {
+#                 'username': user.username,
+#                 'email': user.email,
+#             }
+#             logger.info(f"User updated: ID={pk}, Changed Data: {old_data} -> {changed_data}")
+#             return redirect('chat_dashboard:user_list')
+#     else:
+#         form = UserFormUpdate(instance=user)
+#     return render(request, 'chat_dashboard/user_update_form.html', {'form': form})
+
+def user_update(request, user_type, pk):
+    """Updates user data for both User and ChatUser models."""
+    logger.info(f"Updating {user_type} user with ID: {pk}")
+    model = get_user_model_by_type(user_type)
+    user = get_object_or_404(model, pk=pk)
+
     if request.method == 'POST':
         form = UserFormUpdate(request.POST, instance=user)
         if form.is_valid():
-            old_data = {
-                'username': user.username,
-                'email': user.email,
-            }
             user = form.save(commit=False)
-            user.set_password(form.cleaned_data['password']) if form.cleaned_data.get('password') else None
+            if user_type == 'admin' and form.cleaned_data.get('password'):
+                user.set_password(form.cleaned_data['password'])
             user.save()
-
-            changed_data = {
-                'username': user.username,
-                'email': user.email,
-            }
-            logger.info(f"User updated: ID={pk}, Changed Data: {old_data} -> {changed_data}")
+            logger.info(f"{user_type.capitalize()} user updated: ID={pk}")
             return redirect('chat_dashboard:user_list')
     else:
         form = UserFormUpdate(instance=user)
-    return render(request, 'chat_dashboard/user_update_form.html', {'form': form})
+
+    return render(request, 'chat_dashboard/user_update_form.html', {
+        'form': form,
+        'user_type': user_type
+    })
 
 
 # @role_required('admin')
-def user_delete(request, pk):
-    """Deletes a user."""
-    logger.info(f"Attempting to delete user with ID: {pk}")
-    user = get_object_or_404(User, pk=pk)
+# def user_delete(request, pk):
+#     """Deletes a user."""
+#     logger.info(f"Attempting to delete user with ID: {pk}")
+#     user = get_object_or_404(User, pk=pk)
+#     if request.method == 'POST':
+#         user.delete()
+#         logger.info(f"User deleted with ID: {pk}")
+#         return redirect('chat_dashboard:user_list')
+#     return render(request, 'chat_dashboard/user_delete_form.html', {'user': user})
+
+def user_delete(request, user_type, pk):
+    """Deletes a user from specified model."""
+    logger.info(f"Attempting to delete {user_type} user with ID: {pk}")
+    model = get_user_model_by_type(user_type)
+    user = get_object_or_404(model, pk=pk)
+
     if request.method == 'POST':
         user.delete()
-        logger.info(f"User deleted with ID: {pk}")
+        logger.info(f"{user_type.capitalize()} user deleted: ID={pk}")
         return redirect('chat_dashboard:user_list')
-    return render(request, 'chat_dashboard/user_delete_form.html', {'user': user})
+
+    return render(request, 'chat_dashboard/user_delete_form.html', {
+        'user': user,
+        'user_type': user_type
+    })
 
 
 def get_last_message_subquery(field):
