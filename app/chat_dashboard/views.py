@@ -494,7 +494,7 @@ def user_list(request):
 
     for chat_user in chat_users:
         combined_users.append({
-            'type': 'Chat',
+            'type': 'chat',
             'id': chat_user.id,
             'first_name': chat_user.first_name,
             'last_name': chat_user.last_name,
