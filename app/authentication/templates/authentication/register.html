@@ -1,68 +1,72 @@
 {% extends "base/layout.html" %}
-{% load custom_tags %}
+{% load static %}
+
 {% block title %}Регистрация{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
-        <div class="form-container" style="width: 400px; padding: 30px; background-color: rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
-            <h2 class="text-center mb-4">Регистрация</h2>
-            <form method="post">
-                {% csrf_token %}
-                <div class="form-group mb-3">
-                    <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label }}</label>
-                    {{ form.username|add_class:"form-control" }}
-                </div>
-                <div class="form-group mb-3">
-                    <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
-                    {{ form.email|add_class:"form-control" }}
-                </div>
-                <div class="form-group mb-3">
-                    <label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label }}</label>
-                    <div class="input-group">
-                        {{ form.password|add_class:"form-control" }}
-                        <span class="input-group-text" id="togglePassword" style="cursor: pointer;">
-                            <i class="fa fa-eye" id="eyeIcon"></i>
-                        </span>
-                    </div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="{{ form.password_confirm.id_for_label }}" class="form-label">{{ form.password_confirm.label }}</label>
-                    <div class="input-group">
-                        {{ form.password_confirm|add_class:"form-control" }}
-                        <span class="input-group-text" id="togglePasswordConfirm" style="cursor: pointer;">
-                            <i class="fa fa-eye" id="eyeIconConfirm"></i>
-                        </span>
-                    </div>
-                </div>
-                <div class="text-center">
-                    <button type="submit" class="btn btn-primary mt-3" style="width: 100%;">Зарегистрироваться</button>
-                </div>
-            </form>
-            <div class="text-center mt-4">
-                <p>Уже есть аккаунт? <a href="{% url 'authentication:login' %}" class="text-decoration-none">Войти</a></p>
+<div class="d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="form-container" style="width: 400px; padding: 30px; background-color: rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);">
+        <h2 class="text-center mb-4">Регистрация</h2>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group mb-3">
+                <label for="id_first_name" class="form-label">Имя пользователя</label>
+                <input type="text" name="first_name" id="id_first_name" class="form-control" required>
             </div>
+            <div class="form-group mb-3">
+                <label for="id_last_name" class="form-label">Фамилия пользователя</label>
+                <input type="text" name="last_name" id="id_last_name" class="form-control">
+            </div>
+            <div class="form-group mb-3">
+                <label for="id_email" class="form-label">Электронная почта</label>
+                <input type="email" name="email" id="id_email" class="form-control" required>
+            </div>
+            <div class="form-group mb-3">
+                <label for="id_password" class="form-label">Пароль</label>
+                <div class="input-group">
+                    <input type="password" name="password" id="id_password" class="form-control" required>
+                    <span class="input-group-text toggle-password" style="cursor: pointer;">
+                        <i class="fa fa-eye"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="form-group mb-4">
+                <label for="id_password_confirm" class="form-label">Подтверждение пароля</label>
+                <div class="input-group">
+                    <input type="password" name="password_confirm" id="id_password_confirm" class="form-control" required>
+                    <span class="input-group-text toggle-password" style="cursor: pointer;">
+                        <i class="fa fa-eye"></i>
+                    </span>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
+        </form>
+        <div class="text-center mt-4">
+            <p>Уже есть аккаунт? <a href="{% url 'authentication:login' %}" class="text-decoration-none">Войти</a></p>
         </div>
     </div>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const togglePassword = document.getElementById('togglePassword');
-            const passwordInput = document.getElementById('{{ form.password.id_for_label }}');
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработчик событий для всех кнопок переключения пароля
+    document.querySelectorAll('.toggle-password').forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            const input = this.previousElementSibling; // Получаем предыдущее поле ввода (input)
+            const icon = this.querySelector('i'); // Получаем иконку внутри кнопки
 
-            togglePassword.addEventListener('click', function() {
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-                this.querySelector('i').classList.toggle('fa-eye-slash');
-            });
-
-            const togglePasswordConfirm = document.getElementById('togglePasswordConfirm');
-            const passwordConfirmInput = document.getElementById('{{ form.password_confirm.id_for_label }}');
-
-            togglePasswordConfirm.addEventListener('click', function() {
-                const type = passwordConfirmInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordConfirmInput.setAttribute('type', type);
-                this.querySelector('i').classList.toggle('fa-eye-slash');
-            });
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            } else {
+                input.type = "password";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            }
         });
-    </script>
+    });
+});
+</script>
 {% endblock %}

@@ -57,7 +57,7 @@ def register_view(request):
 
 
 def get_ad_authentication_enabled():
-    settings_obj, created = Settings.objects.get_or_create(ad_enabled=False)
+    settings_obj = Settings.objects.first()
     return settings_obj.ad_enabled
 
 

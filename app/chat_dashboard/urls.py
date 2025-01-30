@@ -12,8 +12,10 @@ urlpatterns = [
     path('training/', views.training_dashboard, name='training'),
     path('training/train/<int:message_id>/', views.train_message, name='train'),
     path('user/create/', views.user_create, name='user_create'),
-    path('user/update/<int:pk>/', views.user_update, name='user_update'),
-    path('user/delete/<int:pk>/', views.user_delete, name='user_delete'),
+    #path('user/update/<int:pk>/', views.user_update, name='user_update'),
+    #path('user/delete/<int:pk>/', views.user_delete, name='user_delete'),
+    path('users/update/<str:user_type>/<int:pk>/', views.user_update, name='user_update'),
+    path('users/delete/<str:user_type>/<int:pk>/', views.user_delete, name='user_delete'),
     path('settings/', views.settings_view, name='settings'),
 
 ]
