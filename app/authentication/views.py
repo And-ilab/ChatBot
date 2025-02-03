@@ -35,25 +35,25 @@ from config import config_settings
 logger = logging.getLogger('authentication')
 
 
-def register_view(request):
-    logger.info("User registration page accessed.")
-    if request.method == 'POST':
-        logger.debug("POST request received for registration.")
-        form = UserRegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.set_password(form.cleaned_data['password'])
-            user.save()
-            logger.info(f"User registered successfully: Username={user.username}, Email={user.email}")
-            messages.success(request, 'Поздравляем, вы успешно зарегистрированы!')
-            return render(request, 'authentication/login_after_register.html')
-        else:
-            logger.warning(f"Registration failed. Errors: {form.errors}")
-    else:
-        logger.debug("GET request received for registration page.")
-        form = UserRegistrationForm()
-
-    return render(request, 'authentication/register.html', {'form': form})
+# def register_view(request):
+#     logger.info("User registration page accessed.")
+#     if request.method == 'POST':
+#         logger.debug("POST request received for registration.")
+#         form = UserRegistrationForm(request.POST)
+#         if form.is_valid():
+#             user = form.save(commit=False)
+#             user.set_password(form.cleaned_data['password'])
+#             user.save()
+#             logger.info(f"User registered successfully: Username={user.username}, Email={user.email}")
+#             messages.success(request, 'Поздравляем, вы успешно зарегистрированы!')
+#             return render(request, 'authentication/login_after_register.html')
+#         else:
+#             logger.warning(f"Registration failed. Errors: {form.errors}")
+#     else:
+#         logger.debug("GET request received for registration page.")
+#         form = UserRegistrationForm()
+#
+#     return render(request, 'authentication/register.html', {'form': form})
 
 
 def get_ad_authentication_enabled():
@@ -225,7 +225,7 @@ class CustomPasswordResetView(View):
         if user:
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-            reset_link = f"http://{address}/authentication/reset/{uid}/{token}/"
+            reset_link = f"http://{config_settings.SITE_URL}/authentication/reset/{uid}/{token}/"
 
             logger.info(f"Generated password reset link for user: {email}, ResetLink: {reset_link}")
 

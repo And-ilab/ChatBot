@@ -37,7 +37,7 @@ def analytics(request):
 
 def user_activity_data(request):
     """Returns user login activity data."""
-    logger.info("Fetching user activity data.")
+    logger.info("Fetching user a ctivity data.")
     data = (
         User.objects.filter(last_login__isnull=False)
         .annotate(login_date=TruncDate('last_login'))
