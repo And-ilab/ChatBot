@@ -44,6 +44,10 @@ LOGGING = {
             'format': '{levelname} {message}',
             'style': '{',
         },
+        'user_action': {
+            'format': '{levelname} {asctime} {user_id} {user_name} {action_type} {time} {module} {details}',
+            'style': '{',
+        },
     },
     'handlers': {
         'django_file': {
@@ -73,6 +77,13 @@ LOGGING = {
         'authentication_error': {
             '()': lambda: get_file_handler('authentication_error', logging.ERROR,
                                            logging.Formatter('{levelname} {asctime} {module} {message}', style='{')),
+        },
+        'user_actions': {
+            '()': lambda: get_file_handler('user_actions', logging.INFO,
+                                           logging.Formatter(
+                                               '{levelname} {asctime} {module} {user_id} {user_name} {action_type} {time} {details}',
+                                               style='{'
+                                           )),
         },
     },
     'loggers': {
@@ -124,6 +135,11 @@ LOGGING = {
         'django.server': {
             'level': 'DEBUG',
             'handlers': ['django_file'],
+            'propagate': False,
+        },
+        'user_actions': {
+            'handlers': ['user_actions'],
+            'level': 'INFO',
             'propagate': False,
         },
     },

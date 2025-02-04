@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from click import pause
 from django.shortcuts import render, redirect
@@ -33,27 +34,28 @@ from config import config_settings
 
 
 logger = logging.getLogger('authentication')
+user_action = logging.getLogger('user_actions')
 
 
-# def register_view(request):
-#     logger.info("User registration page accessed.")
-#     if request.method == 'POST':
-#         logger.debug("POST request received for registration.")
-#         form = UserRegistrationForm(request.POST)
-#         if form.is_valid():
-#             user = form.save(commit=False)
-#             user.set_password(form.cleaned_data['password'])
-#             user.save()
-#             logger.info(f"User registered successfully: Username={user.username}, Email={user.email}")
-#             messages.success(request, 'Поздравляем, вы успешно зарегистрированы!')
-#             return render(request, 'authentication/login_after_register.html')
-#         else:
-#             logger.warning(f"Registration failed. Errors: {form.errors}")
-#     else:
-#         logger.debug("GET request received for registration page.")
-#         form = UserRegistrationForm()
-#
-#     return render(request, 'authentication/register.html', {'form': form})
+def register_view(request):
+    logger.info("User registration page accessed.")
+    if request.method == 'POST':
+        logger.debug("POST request received for registration.")
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])
+            user.save()
+            logger.info(f"User registered successfully: Username={user.username}, Email={user.email}")
+            messages.success(request, 'Поздравляем, вы успешно зарегистрированы!')
+            return render(request, 'authentication/login_after_register.html')
+        else:
+            logger.warning(f"Registration failed. Errors: {form.errors}")
+    else:
+        logger.debug("GET request received for registration page.")
+        form = UserRegistrationForm()
+
+    return render(request, 'authentication/register.html', {'form': form})
 
 
 def get_ad_authentication_enabled():
@@ -79,6 +81,19 @@ def login_view(request):
                 if user:
                     logger.info(f"User authenticated: Username={username}")
                     login(request, user)
+                    user_action.info(
+                        'login_success',
+                        extra={
+                            'user_id': user.id,
+                            'user_name': user.first_name + ' ' + user.last_name,
+                            'action_type': 'login_success',
+                            'time' : datetime.now(),
+                            'details': json.dumps({
+                                'status': f"{user.first_name} {user.last_name}' logged in successfully",
+                            })
+
+                        }
+                    )
                     token = generate_jwt(user)
                     request.session['token'] = token
                     logger.debug(f"JWT generated for user {username}: {token}")
@@ -101,7 +116,18 @@ def login_view(request):
                         logger.error(f"Invalid JWT token for user {username}.")
                         return JsonResponse({'error': 'Недействительный токен.'}, status=400)
                 else:
-                    logger.warning(f"Invalid credentials for Username={username}.")
+                    user_action.warning(
+                        'login_unsuccess',
+                        extra={
+                            'user_id': user.id,
+                            'action_type': 'login_unsuccess',
+                            'user_name': user.first_name + '' + user.last_name,
+                            'time': datetime.now(),
+                            'details': json.dumps({
+                                'status': 'Login or password uncorrect',
+                            })
+                        }
+                    )
                     return JsonResponse({'error': 'Неправильный логин или пароль.'}, status=400)
             elif ad_enabled:
                 user_entry = validate_user_credentials(username, password)
@@ -130,6 +156,18 @@ def logout_view(request):
     user.is_online = False
     user.save()
     logout(request)
+    user_action.info(
+        'logout_success',
+        extra={
+            'user_id': user.id,
+            'action_type': 'logout_success',
+            'user_name': user.first_name + '' + user.last_name,
+            'time': datetime.now(),
+            'details': json.dumps({
+                'status': f'{user.first_name} {user.last_name} logout in successfully',
+            })
+        }
+    )
     logger.debug(f"User {user.username} logged out successfully.")
     return redirect('authentication:login')
 
@@ -225,7 +263,7 @@ class CustomPasswordResetView(View):
         if user:
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-            reset_link = f"http://{config_settings.SITE_URL}/authentication/reset/{uid}/{token}/"
+            reset_link = f"http://{config_settings.SIRE_URL}/authentication/reset/{uid}/{token}/"
 
             logger.info(f"Generated password reset link for user: {email}, ResetLink: {reset_link}")
 
