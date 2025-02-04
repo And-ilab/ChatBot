@@ -84,12 +84,12 @@ def login_view(request):
                     user_action.info(
                         'login_success',
                         extra={
-                            'user_id': user.id,
-                            'user_name': user.first_name + ' ' + user.last_name,
+                            'user_id': request.user.id,
+                            'user_name': request.user.first_name + ' ' + request.user.last_name,
                             'action_type': 'login_success',
                             'time' : datetime.now(),
                             'details': json.dumps({
-                                'status': f"{user.first_name} {user.last_name}' logged in successfully",
+                                'status': f"{request.user.first_name} {request.user.last_name}' logged in successfully",
                             })
 
                         }
@@ -119,9 +119,9 @@ def login_view(request):
                     user_action.warning(
                         'login_unsuccess',
                         extra={
-                            'user_id': user.id,
+                            'user_id': request.user.id,
                             'action_type': 'login_unsuccess',
-                            'user_name': user.first_name + '' + user.last_name,
+                            'user_name': request.user.first_name + '' + request.user.last_name,
                             'time': datetime.now(),
                             'details': json.dumps({
                                 'status': 'Login or password uncorrect',
