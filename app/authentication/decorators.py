@@ -13,7 +13,7 @@ def role_required(required_roles):
             if token:
                 try:
                     # Декодирование токена
-                    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+                    payload = jwt.decode(token, config_settings.SECRET_KEY, algorithms=['HS256'])
                     user_role = payload.get('role')
 
 
@@ -21,8 +21,8 @@ def role_required(required_roles):
                     if user_role in required_roles:  # Проверяем, находится ли роль в списке разрешенных
                         return view_func(request, *args, **kwargs)
                     else:
-                        messages.error(request, "Недостаточно прав для доступа к данной странице.")  # Сообщение о недостаточности прав
-                        return HttpResponseForbidden("Недостаточно прав.")  # Или можно вернуть 403
+                        messages.error(request, "Недостаточно прав для доступа к данной странице.")
+                        return redirect(request.META.get('HTTP_REFERER', '/chat_dashboard/archive'))
 
                 except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
                     return redirect('authentication:login')  # Перенаправление на страницу логина

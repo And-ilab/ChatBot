@@ -67,6 +67,7 @@ urlpatterns = [
     path("api/daily-messages/", dashboard_views.daily_messages_data, name="daily_messages_data"),
     path("api/recognize-question/", chat_views.recognize_question, name="recognize_question"),
     path('api/upload-document/', dashboard_views.upload_document, name='upload_document'),
+    path('api/mark-trained/', dashboard_views.mark_question_trained, name='mark_question_trained'),
     path('api/get-document-link-by-name/<str:file_name>/', dashboard_views.get_document_link_by_name, name='get_document_link_by_name'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 

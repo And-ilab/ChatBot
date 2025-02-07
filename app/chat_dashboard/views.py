@@ -23,13 +23,16 @@ from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta, datetime
 from chat_user.models import ChatUser
+from django.core.mail import send_mail
+from authentication.decorators import role_required
+import random
 
 logger = logging.getLogger('chat_dashboard')
 user_action = logging.getLogger('user_actions')
 
 
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def analytics(request):
     user = request.user
     user_action.info(
@@ -149,7 +152,7 @@ custom_stop_words = {"может", "могут", "какой", "какая", "к
                      "почему"}
 
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def training_dashboard(request):
     """Displays the training dashboard."""
     logger.info("Accessing training dashboard.")
@@ -183,6 +186,92 @@ def training_dashboard(request):
     return render(request, 'chat_dashboard/training.html', context)
 
 
+
+
+@csrf_exempt
+def mark_question_trained(request):
+    try:
+        data = json.loads(request.body)
+        message_id = data.get('message_id')
+        sender = data.get('sender_id')
+
+        if not message_id:
+            return JsonResponse({'error': 'Не передан идентификатор сообщения.'}, status=400)
+
+        training_message = TrainingMessage.objects.get(id=message_id)
+        sender = ChatUser.objects.get(id=sender)
+        answer = get_answer(training_message.content)
+        last_dialog = Dialog.objects.filter(user=sender).order_by('-started_at').first()
+
+        greetings = ["Привет! Спасибо за ваше терпение. Вот ответ на ваш вопрос от нашего оператора. Надеюсь, он будет полезен! 😊",
+                     "Здравствуйте! Ваш вопрос обработан, и вот ответ от нашего специалиста. Если что-то непонятно, дайте знать — я всегда готов помочь! 🚀",
+                     "Приветствую! Вот ответ на ваш вопрос. Спасибо, что обратились к нам. Если остались вопросы, задавайте — я здесь, чтобы помочь! 📩",
+                     "Добрый день! Ваш вопрос рассмотрен, и вот ответ от оператора. Надеюсь, он решит вашу задачу. Если что-то ещё нужно, просто спросите! 😄",
+                     "Привет! Вот ответ на ваш вопрос. Спасибо за обращение! Если нужно что-то уточнить, я всегда на связи. 🛎️",
+                     "Здравствуйте! Ваш вопрос обработан, и вот ответ от нашего специалиста. Надеюсь, он будет полезен. Если есть ещё вопросы, задавайте! 📨",
+                     "Привет! Вот ответ на ваш вопрос. Спасибо за терпение! Если что-то непонятно или нужно уточнить, дайте знать — я готов помочь. 🕒",
+                     "Добрый день! Ваш вопрос рассмотрен, и вот ответ от оператора. Надеюсь, он решит вашу задачу. Если что-то ещё нужно, просто спросите! 😊",
+                     "Приветствую! Вот ответ на ваш вопрос. Спасибо за обращение! Если нужно что-то уточнить, я всегда на связи. 🚀",
+                     "Здравствуйте! Ваш вопрос обработан, и вот ответ от нашего специалиста. Надеюсь, он будет полезен. Если есть ещё вопросы, задавайте! 📩",]
+        random_greeting = random.choice(greetings)
+
+        if last_dialog is None:
+            return JsonResponse({'error': 'У пользователя нет активных диалогов.'}, status=400)
+
+        Message.objects.create(
+            dialog=last_dialog,
+            sender_type='bot',
+            sender=sender,
+            content=f'''{random_greeting}<br>
+                        Ваш вопрос:<br>
+                        {training_message.content}<br>
+                        <br>
+                        Ответ оператора:<br>
+                        {answer}''',
+            message_type='message'
+        )
+
+        if training_message.sender and training_message.sender.email:
+            subject = "Ваш вопрос обработан — ответ ждёт вас в чате"
+            message = (
+                f''' Уважаемый(ая) {sender.first_name} {sender.last_name}!,
+                Большое спасибо за ваше терпение! Мы рады сообщить, что ваш вопрос был обработан, и ответ уже направлен вам в чат.
+                Для вашего удобства дублируем вопрос и ответ ниже:
+                Ваш вопрос: 
+                {training_message.content}
+                
+                Ответ оператора:
+                {answer}
+                
+                Если у вас остались вопросы или что-то требует уточнения, пожалуйста, напишите нам в чат — мы всегда готовы помочь!
+                
+                С уважением,
+                Команда поддержки Интеллектуальной платформы взаимодействия с пользователями HelpDeskBot'''
+             )
+            from_email = 'sapunowdany@yandex.by'
+            send_mail(subject, message, from_email, [training_message.sender.email],fail_silently=False)
+            training_message.delete()
+
+        return JsonResponse({'status': 'success'})
+    except TrainingMessage.DoesNotExist:
+        return JsonResponse({'error': 'Сообщение для дообучения не найдено.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def get_answer(name):
+    name_safe = name.replace("'", "''")  # Экранирование одинарных кавычек
+    sql_command = f"SELECT expand(out('Includes')) FROM Question WHERE content = '{name_safe}'"
+
+    headers = {'Content-Type': 'application/json'}
+    json_data = {"command": sql_command}
+    response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
+                             auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
+    data = response.json()
+    result_list = data['result']
+    content_value = result_list[0]['content']
+    return content_value
+
+@role_required(['admin', 'operator'])
 def train_message(request, message_id):
     """Displays a message for training."""
     logger.info(f"Accessing training page for message ID: {message_id}")
@@ -506,7 +595,7 @@ def get_nodes(request):
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
 
-            response = requests.post(config_settings.ORIENT_QUERY_URL, headers=headers, json=json_data,
+            response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
                                      auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
 
             if response.status_code == 200:
@@ -590,7 +679,7 @@ def create_training_message(request):
     logger.warning("Invalid method: only POST is supported.")
     return JsonResponse({'error': 'Method not supported. Use POST.'}, status=405)
 
-
+@role_required(['admin',])
 def user_list(request):
     """Displays a combined list of User and ChatUser."""
     logger.info("Accessing user list.")
@@ -671,7 +760,7 @@ def user_list(request):
         'sort_column': sort_column,
         'search_query': search_query
     })
-# @role_required('admin')
+@role_required('admin')
 def user_create(request):
     """Creates a new user."""
     logger.info("Creating a new user.")
@@ -730,6 +819,8 @@ def get_user_model_by_type(user_type):
         return ChatUser
     raise Http404("Invalid user type")
 
+
+@role_required('admin')
 def user_update(request, user_type, pk):
     """Updates user data for both User and ChatUser models."""
     logger.info(f"Updating {user_type} user with ID: {pk}")
@@ -765,7 +856,7 @@ def user_update(request, user_type, pk):
         'user_type': user_type
     })
 
-
+@role_required('admin')
 def user_delete(request, user_type, pk):
     """Deletes a user from specified model."""
     logger.info(f"Attempting to delete {user_type} user with ID: {pk}")
@@ -799,7 +890,7 @@ def get_last_message_subquery(field):
     return Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values(field)[:1]
 
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def archive(request):
     user = request.user
     logger.info(f"Accessing archive page by user {user}.")
@@ -852,7 +943,7 @@ def archive(request):
     })
 
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def create_or_edit_content(request):
     user = request.user
     user_action.info(
@@ -1079,7 +1170,7 @@ def get_info(request, user_id):
     return JsonResponse({'status': user_status})
 
 
-# @role_required(['admin'])
+@role_required(['admin'])
 def settings_view(request):
     settings, created = Settings.objects.get_or_create(id=1)
     user = request.user

@@ -40,9 +40,13 @@
                 </form>
             </div>
         </div>
-        <div class="chat-messages" id="user-chat-messages"></div>
+
+        <div class="chat-messages" id="user-chat-messages">
+
+        </div>
+
         <div class="extend-session-wrapper" id="extend-session-wrapper">
-            <div class="extend-session-window" >
+            <div class="extend-session-window">
                 <h5 class="extend-title" id="sessionExpiredModalLabel">Ваша сессия истекла. Желаете продолжить?</h5>
                 <div class="extend-buttons">
                     <button type="button" class="btn btn-success" id="extend-btn">Продолжить сессию</button>
@@ -50,6 +54,7 @@
                 </div>
             </div>
         </div>
+
         <div class="chat-footer">
             <div class="typing-animation"></div>
             <div class="menu-buttons"></div>
@@ -64,7 +69,8 @@
                 </button>
             </div>
         </div>
-</div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
     <script src="{% static 'chat_user/js/chat.js' %}"></script>
 </body>
