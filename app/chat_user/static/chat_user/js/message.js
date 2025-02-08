@@ -1,4 +1,4 @@
-const appendMessage = (sender, content, timestamp) => {
+const appendMessage = (sender, content, timestamp, showButton = false) => {
     const messageDiv = document.createElement('div');
     messageDiv.className = sender === 'bot' ? 'message bot-message' : 'message user-message';
     const date = new Date(timestamp);
@@ -29,6 +29,21 @@ const appendMessage = (sender, content, timestamp) => {
     chatMessagesArea.appendChild(messageDiv);
     setTimeout(scrollToBottom, 0);
 };
+   if (sender === 'bot' && showButton) {
+
+        messageDiv.dataset.date = messageDate;
+        chatMessagesArea.appendChild(messageDiv);
+
+        messageDiv.insertAdjacentElement('afterend', menuButtonsContainer);
+
+        scrollToBottom();
+    } else {
+        messageDiv.dataset.date = messageDate;
+        chatMessagesArea.appendChild(messageDiv);
+        scrollToBottom();
+        }
+        };
+
 
 const sendMessageToAPI = async (dialog_id, senderType, messageType, content, timestamp) => {
     try {
