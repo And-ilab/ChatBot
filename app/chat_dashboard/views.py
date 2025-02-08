@@ -32,36 +32,22 @@ user_action = logging.getLogger('user_actions')
 # @role_required(['admin', 'operator'])
 def analytics(request):
     user = request.user
-    user_action.info(
-        'Accessing analytics page',
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'Accessing analytics page',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"{user.first_name} {user.last_name}' get access to analytics",
-            })
-
-        }
-    )
-    """Displays the analytics page."""
+    # user_action.info(
+    #     'Accessing analytics page',
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'Accessing analytics page',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"{user.first_name} {user.last_name}' get access to analytics",
+    #         })
+    #
+    #     }
+    # )
+    # """Displays the analytics page."""
     logger.info("Accessing analytics page.")
     return render(request, 'chat_dashboard/analytics.html')
-
-
-def user_activity_data(request):
-    """Returns user login activity data."""
-    logger.info("Fetching user a ctivity data.")
-    data = (
-        User.objects.filter(last_login__isnull=False)
-        .annotate(login_date=TruncDate('last_login'))
-        .values('login_date')
-        .annotate(count=Count('id'))
-        .order_by('login_date')
-    )
-    logger.debug(f"User activity data retrieved: {list(data)}")
-    return JsonResponse(list(data), safe=False)
 
 
 @csrf_exempt
@@ -122,7 +108,7 @@ def messages_count_data(request):
         formatted_data[date][sender_type] = count
 
     response_data = [
-        {'date': date, 'user': values['user'], 'bot': values['bot']}
+        {'created_at': date, 'user': values['user'], 'bot': values['bot']}
         for date, values in formatted_data.items()
     ]
     logger.debug(f"Formatted message count data: {response_data}")
@@ -554,6 +540,10 @@ def create_training_message(request):
 
             training_message = TrainingMessage.objects.create(
                 sender=sender,
+                content=content
+            )
+            refused_message = RefusedMessage.objects.create(
+                user=sender,
                 content=content
             )
             logger.info(f"Training message created with ID: {training_message.id}")

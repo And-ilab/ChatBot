@@ -110,7 +110,6 @@ class Message(models.Model):
         return f"{self.get_sender_type_display()} ({self.get_message_type_display()}) - {self.content[:20]}"
 
 
-
 class TrainingMessage(models.Model):
     sender = models.ForeignKey(
         'chat_user.ChatUser',
@@ -140,3 +139,8 @@ class Settings(models.Model):
 
         return f"Settings(ad_enabled={self.ad_enabled}, message_retention_days={self.message_retention_days}, session_duration={self.session_duration})"
 
+
+class PopularRequests(models.Model):
+    sender = models.ForeignKey('chat_user.ChatUser', null=True, blank=True, on_delete=models.SET_NULL)
+    type = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)

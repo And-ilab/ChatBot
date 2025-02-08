@@ -37,3 +37,20 @@ class Session(models.Model):
 
     def __str__(self):
         return f"Session for {self.user.email}"
+
+
+class Feedbacks(models.Model):
+    FEEDBACK_TYPE = [
+        ("like", "Лайк"),
+        ("dislike", "Дизлайк")
+    ]
+
+    user = models.ForeignKey(ChatUser, on_delete=models.CASCADE)
+    message_type = models.CharField(
+        max_length=10, choices=FEEDBACK_TYPE
+    )
+    answer_content = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.message_type}"

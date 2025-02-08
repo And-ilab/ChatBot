@@ -62,12 +62,17 @@ urlpatterns = [
     path('api/delete-node/', dashboard_views.delete_node, name='delete_node'),
     path('api/get-artifact-by-id/', chat_views.get_artifact_by_id, name='get_artifact_by_id'),
     path('api/create-training-message/', dashboard_views.create_training_message, name='create_training_message'),
-    path("api/user-activity/", dashboard_views.user_activity_data, name="user_activity_data"),
     path("api/messages-count-data/", dashboard_views.messages_count_data, name="messages_count_data"),
     path("api/daily-messages/", dashboard_views.daily_messages_data, name="daily_messages_data"),
     path("api/recognize-question/", chat_views.recognize_question, name="recognize_question"),
     path('api/upload-document/', dashboard_views.upload_document, name='upload_document'),
     path('api/get-document-link-by-name/<str:file_name>/', dashboard_views.get_document_link_by_name, name='get_document_link_by_name'),
+    path("api/add-feedback/", chat_views.add_feedback, name="add_feedback"),
+    path("api/feedbacks/", chat_views.FeedbacksList.as_view(), name="feedbacks-list"),
+    path("api/session-data/", chat_views.session_data, name="session-data"),
+    path("api/refused-data/", chat_views.refused_data, name="refused_data"),
+    path("api/popular-requests/", chat_views.popular_requests_data, name="popular_requests_data"),
+    path("api/add-popular-request/", chat_views.add_popular_request, name="add_popular_request"),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:

@@ -3,29 +3,71 @@
 {% block title %}Аналитика{% endblock %}
 
 {% block content %}
-<div class="d-flex h-100" style="height: 100%;">
-    <div class="chat-sidebar d-flex flex-column h-100 align-items-center" style="border-right: 1px solid #ccc; padding: 20px;">
+<div class="analytics-wrapper">
+    <div class="analytics-sidebar">
         <div class="py-2 sidebar-header d-flex align-items-center justify-content-center border-bottom p-0"
              style="width: 100%;">
             <h3 class="mb-0">Отчеты</h3>
         </div>
         <div class="d-flex flex-column gap-3 mt-4 w-100">
             <button id="btn-messages-count" class="btn custom-btn sidebar-btn">
-                По кол-ву сообщений
+                Количество сообщений
             </button>
             <button id="btn-users-activity" class="btn custom-btn sidebar-btn">
-                По активности пользователей
+                Активные пользователи
             </button>
-            <button id="btn-ignored" class="btn custom-btn sidebar-btn">
-                По частоте отказов
+<!--            <button id="btn-iteractions-frequency" class="btn custom-btn sidebar-btn">-->
+<!--                Частота взаимодействий-->
+<!--            </button>-->
+            <button id="btn-satisfaction-level" class="btn custom-btn sidebar-btn">
+                Уровень удовлетворенности
+            </button>
+            <button id="btn-failure-frequency" class="btn custom-btn sidebar-btn">
+                Частота отказов
+            </button>
+            <button id="btn-popular-requests" class="btn custom-btn sidebar-btn">
+                Популярные запросы
             </button>
         </div>
     </div>
-
-    <div id="chart-container" class="flex-grow-1 p-4" style="display: none;">
-        <canvas id="messagesChart" style="display: none;"></canvas>
-        <canvas id="userActivityChart" style="display: none;"></canvas>
-        <canvas id="ignoredFrequencyChart" style="display: none;"></canvas>
+    <div class="analytics-content">
+        <div class="py-2 sidebar-header d-flex align-items-center justify-content-center border-bottom p-0"
+             style="width: 100%;">
+            <h3 class="mb-0">Название диаграммы</h3>
+        </div>
+        <div class="analytics-tools">
+            <div class="dropdown">
+                <button class="btn btn-primary d-flex align-items-center dropdown-toggle" id="dropdownMenuButton" data-bs-toggle="dropdown">
+                    <i class="bi bi-calendar me-2"></i> Фильтр
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <li><a class="dropdown-item filter-item" data-period="day">Сегодня</a></li>
+                    <li><a class="dropdown-item filter-item" data-period="week">За неделю</a></li>
+                    <li><a class="dropdown-item filter-item active" data-period="month">За месяц</a></li>
+                    <li>
+                        <a class="dropdown-item filter-item" data-period="custom-month">
+                            Выбрать месяц
+                            <input type="month" class="form-control month-picker" style="display: none;">
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item filter-item" data-period="custom-date">
+                            Выбрать дату
+                            <input type="date" class="form-control date-picker" style="display: none;">
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="btn-group" role="group">
+                <button class="btn btn-outline-primary" id="btn-pie-chart"><i class="bi bi-pie-chart"></i></button>
+                <button class="btn btn-outline-primary" id="btn-bar-chart"><i class="bi bi-bar-chart"></i></button>
+                <button class="btn btn-outline-primary" id="btn-table"><i class="bi bi-table"></i></button>
+            </div>
+            <button class="btn btn-success d-flex align-items-center">
+                <i class="bi bi-download me-2" id="btn-export"></i> Экспорт
+            </button>
+        </div>
+        <div class="analytics-canvas"></div>
     </div>
 </div>
 
