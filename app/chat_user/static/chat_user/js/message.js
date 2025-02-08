@@ -28,7 +28,7 @@ const appendMessage = (sender, content, timestamp, showButton = false) => {
     messageDiv.dataset.date = messageDate;
     chatMessagesArea.appendChild(messageDiv);
     setTimeout(scrollToBottom, 0);
-};
+
    if (sender === 'bot' && showButton) {
 
         messageDiv.dataset.date = messageDate;
@@ -41,8 +41,8 @@ const appendMessage = (sender, content, timestamp, showButton = false) => {
         messageDiv.dataset.date = messageDate;
         chatMessagesArea.appendChild(messageDiv);
         scrollToBottom();
-        }
-        };
+    }
+};
 
 
 const sendMessageToAPI = async (dialog_id, senderType, messageType, content, timestamp) => {
