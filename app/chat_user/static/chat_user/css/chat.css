@@ -381,3 +381,52 @@
     cursor: not-allowed;
     transform: none !important;
 }
+
+#operator-button-container {
+    padding: 10px 15px;
+    border-top: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    text-align: center;
+    order: 1; /* Если используется flex-контейнер */
+    margin-top: auto; /* Для прижатия к низу перед футером */
+}
+
+#send-to-operator-button {
+    width: 100%;
+    padding: 8px 15px;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    background-color: #0d6efd; /* Синий цвет Bootstrap */
+    color: white;
+}
+
+#send-to-operator-button:hover {
+    background-color: #0b5ed7; /* Темнее при наведении */
+    transform: translateY(-1px);
+}
+
+#send-to-operator-button i {
+    margin-right: 8px;
+}
+
+.operator-button-container {
+    margin-top: 10px;
+    text-align: center;
+    padding: 10px;
+}
+
+.operator-button {
+    background: #0d6efd;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.operator-button:hover {
+    background: #0b5ed7;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}

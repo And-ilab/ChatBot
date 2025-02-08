@@ -278,6 +278,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const nodesResponse = await fetch('/api/get-nodes/');
                 if (nodesResponse.ok) {
                     const data = await nodesResponse.json();
+
                     console.log(data);
                     const nodes = data["data"]["result"];
                     startNodeSelect.innerHTML = '';

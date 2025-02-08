@@ -95,11 +95,49 @@ document.addEventListener("DOMContentLoaded", function () {
         state["username"] = `${userData.first_name} ${userData.last_name}`;
     }
 
-    // Login function
+    function showLoginWindow() {
+        chatMessagesArea.innerHTML = '';
+        const loginWrapper = document.createElement("div");
+        loginWrapper.classList.add("chat-login-wrapper");
+        loginWrapper.id = "chat-login-wrapper";
+        loginWrapper.innerHTML = `
+            <div class="chat-login small-window">
+                <div class="chat-login-header" id="chat-login-header">Авторизация</div>
+                <form class="chat-login-form" id="user-info-form">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                    <div class="form-group">
+                        <label for="user-first-name" class="form-label">Имя</label>
+                        <input type="text" id="user-first-name" name="first_name" class="form-control" placeholder="Введите ваше имя" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="user-last-name" class="form-label">Фамилия</label>
+                        <input type="text" id="user-last-name" name="last_name" class="form-control" placeholder="Введите вашу фамилию" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="user-email" class="form-label">Электронная почта</label>
+                        <input type="email" id="user-email" name="email" class="form-control" placeholder="Введите ваш email" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary chat-login-submit">Продолжить</button>
+                </form>
+            </div>
+        `;
+
+        chatMessagesArea.appendChild(loginWrapper);
+
+        const loginForm = document.getElementById("user-info-form");
+        loginForm.addEventListener("submit", handleLogin);
+    }
+
     async function handleLogin(event) {
         event.preventDefault();
 
-        const formData = new FormData(loginForm);
+        // Используем event.target для получения формы
+        const form = event.target;
+
+        // Создаем FormData из формы
+        const formData = new FormData(form);
+
+        // Преобразуем FormData в объект
         const jsonData = Object.fromEntries(formData.entries());
 
         try {
@@ -113,6 +151,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             const result = await response.json();
+            console.log(result);
 
             if (!response.ok) {
                 throw new Error(result.message || "Ошибка авторизации");

@@ -32,23 +32,23 @@ user_action = logging.getLogger('user_actions')
 
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def analytics(request):
     user = request.user
-    # user_action.info(
-    #     'Accessing analytics page',
-    #     extra={
-    #         'user_id': user.id,
-    #         'user_name': user.first_name + ' ' + user.last_name,
-    #         'action_type': 'Accessing analytics page',
-    #         'time': datetime.now(),
-    #         'details': json.dumps({
-    #             'status': f"{user.first_name} {user.last_name}' get access to analytics",
-    #         })
-    #
-    #     }
-    # )
-    # """Displays the analytics page."""
+    user_action.info(
+        'Accessing analytics page',
+        extra={
+            'user_id': user.id,
+            'user_name': user.first_name + ' ' + user.last_name,
+            'action_type': 'Accessing analytics page',
+            'time': datetime.now(),
+            'details': json.dumps({
+                'status': f"{user.first_name} {user.last_name}' get access to analytics",
+            })
+
+        }
+    )
+    """Displays the analytics page."""
     logger.info("Accessing analytics page.")
     return render(request, 'chat_dashboard/analytics.html')
 
@@ -138,7 +138,7 @@ custom_stop_words = {"может", "могут", "какой", "какая", "к
                      "почему"}
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def training_dashboard(request):
     """Displays the training dashboard."""
     logger.info("Accessing training dashboard.")
@@ -257,7 +257,7 @@ def get_answer(name):
     content_value = result_list[0]['content']
     return content_value
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def train_message(request, message_id):
     """Displays a message for training."""
     logger.info(f"Accessing training page for message ID: {message_id}")
@@ -631,10 +631,7 @@ def create_training_message(request):
                 sender=sender,
                 content=content
             )
-            refused_message = RefusedMessage.objects.create(
-                user=sender,
-                content=content
-            )
+
             logger.info(f"Training message created with ID: {training_message.id}")
             user_action.info(
                 f"Training message created with ID: {training_message.id}",
