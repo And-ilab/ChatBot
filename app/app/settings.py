@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
@@ -140,7 +141,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     BASE_DIR / "chat_dashboard" / "static",
     BASE_DIR / "chat_user" / "static",
-    BASE_DIR / "authentication" / "static",
+    BASE_DIR / "authentication" / "static"
 ]
 
 # Default primary key field type

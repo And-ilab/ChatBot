@@ -10,11 +10,15 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.conf import settings
-from chat_dashboard.models import Dialog, Message, Settings
-from .models import ChatUser, Session
+from chat_dashboard.models import Dialog, Message, Settings, TrainingMessage, PopularRequests
+from .models import ChatUser, Session, Feedbacks
+from .serializers import FeedbackSerializer
 from chat_dashboard.models import Settings
 from urllib.parse import unquote
 from config import config_settings
+from rest_framework import status, generics
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 logger = logging.getLogger('chat_user')
 
@@ -218,57 +222,6 @@ def close_session(request):
             "message": "An unexpected error occurred."
         }, status=500)
 
-    """Функция для продления сессии."""
-    if request.method == "POST":
-        session_token = request.headers.get("Authorization")
-
-        if not session_token:
-            logger.warning("Session token not provided.")
-            return JsonResponse({"status": "error", "message": "Токен сессии обязателен."}, status=400)
-
-        try:
-            # Поиск сессии в базе данных
-            session = Session.objects.get(session_token=session_token)
-            logger.info(f"Сессия найдена для пользователя: {session.user.email} с токеном: {session_token}")
-
-            # Получаем продолжительность сессии из настроек
-            try:
-                session_duration_minutes = Settings.objects.first().session_duration
-            except Settings.DoesNotExist:
-                logger.error("Настройки не найдены, используем значение по умолчанию в 30 минут.")
-                session_duration_minutes = 30  # Значение по умолчанию
-
-            # Обновляем время истечения сессии
-            new_expires_at = now() + timedelta(minutes=session_duration_minutes)
-            session.expires_at = new_expires_at
-            session.save()
-
-            logger.info(f"Сессия для пользователя {session.user.email} продлена. Новое время истечения: {new_expires_at}")
-
-            return JsonResponse({
-                "status": "success",
-                "message": "Сессия успешно продлена.",
-                "expires_at": new_expires_at,
-            })
-
-        except Session.DoesNotExist:
-            logger.error("Сессия не найдена с предоставленным токеном.")
-            return JsonResponse({
-                "status": "error",
-                "message": "Сессия не найдена. Пожалуйста, войдите снова."
-            }, status=404)
-
-        except Exception as e:
-            logger.error(f"Неожиданная ошибка: {str(e)}", exc_info=True)
-            return JsonResponse({
-                "status": "error",
-                "message": "Произошла неожиданная ошибка."
-            }, status=500)
-
-    logger.warning("Попытка доступа к extend_session с не-POST запросом.")
-    return JsonResponse({"status": "error", "message": "Разрешён только метод POST."}, status=405)
-
-
 
 def get_user_details(request, user_id):
     """Retrieve first_name and last_name of a user by their ID."""
@@ -318,10 +271,10 @@ def get_nodes_by_type(request):
     node_type = urllib.parse.unquote(node_type)
 
     # Формируем URL для запроса
-    url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
+    url = f"http://localhost:2480/query/chat/sql/SELECT FROM {node_type}"
 
     try:
-        response = requests.get(url, auth=('root','guregure'))
+        response = requests.get(url, auth=('root','gure'))
 
         if response.status_code == 200:
             logger.info(f"Successfully fetched data for type: {node_type}")
@@ -754,7 +707,7 @@ def update_question(request):
             # Отправляем запрос
             response = requests.get(
                 config_settings.ORIENT_COMMAND_URL,
-                auth=('root', 'guregure'),
+                auth=('root', 'gure'),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
@@ -803,6 +756,107 @@ def recognize_question(request):
             # Использование объекта model_handler
             recognized_question = settings.MODEL_HANDLER.handle_query(message)
             return JsonResponse({'recognized_question': recognized_question})
+
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return JsonResponse({'error': 'Internal server error'}, status=500)
+
+    logger.warning("Invalid request method")
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@api_view(["POST"])
+def add_feedback(request):
+    serializer = FeedbackSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class FeedbacksList(generics.ListAPIView):
+    queryset = Feedbacks.objects.all()
+    serializer_class = FeedbackSerializer
+
+
+@api_view(["GET"])
+def session_data(request):
+    logger.info("Fetching session data.")
+
+    sessions = Session.objects.values('user', 'expires_at')
+
+    response_data = [
+        {'user': session['user'], 'created_at': session['expires_at']}
+        for session in sessions
+    ]
+
+    logger.debug(f"Formatted session data: {response_data}")
+    return JsonResponse(response_data, safe=False)
+
+
+@api_view(["GET"])
+def refused_data(request):
+    logger.info("Fetching refused messages data.")
+
+    refused_messages = TrainingMessage.objects.values('sender', 'created_at')
+
+    response_data = [
+        {'user': message['sender'], 'created_at': message['created_at']}
+        for message in refused_messages
+    ]
+
+    logger.debug(f"Formatted refused messages data: {response_data}")
+    return JsonResponse(response_data, safe=False)
+
+
+@api_view(["GET"])
+def popular_requests_data(request):
+    logger.info("Fetching popular requests data.")
+
+    popular_requests = PopularRequests.objects.values('sender', 'type', 'created_at')
+
+    response_data = [
+        {'user': req['sender'], 'type': req['type'], 'created_at': req['created_at']}
+        for req in popular_requests
+    ]
+
+    logger.debug(f"Formatted popular requests data: {response_data}")
+    return JsonResponse(response_data, safe=False)
+
+
+@csrf_exempt
+def add_popular_request(request):
+    if request.method == 'POST':
+        try:
+            raw_body = request.body
+            logger.info(f"Raw request body: {raw_body}")
+
+            body = json.loads(raw_body.decode('utf-8'))
+            logger.info(f"Parsed body: {body}")
+
+            sender_id = body.get('sender_id')
+            request_type = body.get('type')
+
+            if not request_type:
+                return JsonResponse({'error': 'Field "type" is required'}, status=400)
+
+            sender = None
+            if sender_id:
+                sender = ChatUser.objects.filter(id=sender_id).first()
+
+            popular_request = PopularRequests.objects.create(
+                sender=sender,
+                type=request_type
+            )
+
+            return JsonResponse({
+                'id': popular_request.id,
+                'sender_id': sender.id if sender else None,
+                'type': popular_request.type,
+                'created_at': popular_request.created_at.isoformat()
+            }, status=201)
 
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error: {e}")

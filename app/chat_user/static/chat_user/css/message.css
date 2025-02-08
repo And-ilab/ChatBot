@@ -1,0 +1,46 @@
+.message {
+    position: relative;
+    max-width: 503px;
+    min-width: 50px;
+    padding: 8px 8px 25px 8px;
+    border-radius: 5px;
+    overflow-wrap: break-word;
+}
+
+.bot-message {
+    background-color: #f1f1f1;
+    align-self: flex-start;
+}
+
+.user-message {
+    background-color: #007bff;
+    color: white;
+    align-self: flex-end;
+}
+
+.message-time {
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    font-size: 0.8em;
+    color: gray;
+    text-align: right;
+    margin-top: 5px;
+}
+
+.user-message-time {
+    color: #E0E0E0;
+}
+
+.message-date-wrapper {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+.message-date-content {
+    background-color: rgba(0, 123, 255, 0.3);
+    border-radius: 14px;
+    color: black;
+    padding: 5px 10px 5px 10px;
+}

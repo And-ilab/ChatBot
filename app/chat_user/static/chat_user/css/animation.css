@@ -1,0 +1,32 @@
+@keyframes blink-shadow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(0, 123, 255, 0.8);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(0, 123, 255, 0.4);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes typing {
+    0% {
+        content: "Печатает";
+    }
+    25% {
+        content: "Печатает.";
+    }
+    50% {
+        content: "Печатает..";
+    }
+    75% {
+        content: "Печатает...";
+    }
+}

@@ -165,16 +165,14 @@ body {
 }
 
 .extend-session-wrapper {
-    display: none;
     justify-content: center;
     align-items: center;
     width: 100%;
-    height: 550px;
-    padding: 0 100px;
+    height: 100%;
 }
 
 .extend-session-window {
-    padding: 80px 50px;
+    padding: 50px 20px;
     height: 300px;
     justify-content: space-between;
     flex-direction: column;
@@ -365,4 +363,46 @@ body {
     background: #0b5ed7;
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+
+
+@keyframes blink-shadow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(0, 123, 255, 0.8);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(0, 123, 255, 0.4);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+#user-chat-toggle {
+    animation: blink-shadow 1.5s infinite, pulse 2s infinite;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out; /* Добавил плавный переход */
+}
+
+#user-chat-toggle:hover {
+    background-color: #0056b3;
+    box-shadow: 0 0 25px rgba(0, 123, 255, 0.5); /* Увеличил расстояние свечения */
 }
