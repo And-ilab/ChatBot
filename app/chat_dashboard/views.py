@@ -32,7 +32,7 @@ user_action = logging.getLogger('user_actions')
 
 
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def analytics(request):
     user = request.user
     user_action.info(
@@ -138,7 +138,7 @@ custom_stop_words = {"может", "могут", "какой", "какая", "к
                      "почему"}
 
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def training_dashboard(request):
     """Displays the training dashboard."""
     logger.info("Accessing training dashboard.")
@@ -257,11 +257,12 @@ def get_answer(name):
     content_value = result_list[0]['content']
     return content_value
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def train_message(request, message_id):
     """Displays a message for training."""
     logger.info(f"Accessing training page for message ID: {message_id}")
     message = get_object_or_404(TrainingMessage, id=message_id)
+    print(message.id, message.sender_id)
     logger.debug(f"Training message retrieved: {message.content}")
     user = request.user
     user_action.info(
@@ -991,7 +992,6 @@ def filter_dialogs_by_date_range(request):
     return JsonResponse(dialogs_data, safe=False)
 
 
-# @role_required(['admin', 'operator'])
 def filter_dialogs(request, period):
     user = request.user
     logger.info(f"Filtering dialogs by user {user} with period {period}.")

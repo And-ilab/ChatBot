@@ -219,7 +219,7 @@ async function recognizeQuestion(message) {
                             "X-CSRFToken": csrfToken,
                         },
                         body: JSON.stringify({
-                            sender_id: state['suer_id'],
+                            sender_id: state['user_id'],
                             content: message,
                             status: 'sent_to_operator'
                         }),
