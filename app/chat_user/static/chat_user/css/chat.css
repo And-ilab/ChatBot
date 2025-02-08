@@ -271,19 +271,19 @@
 }
 
 .chat-button {
+    display: flex;
     background-color: #007bff;
     color: white;
     border: none;
     border-radius: 3px;
     padding: 5px 10px;
-    font-size: 15px;
+    font-size: 16px;
     cursor: pointer;
-    white-space: normal;
-    word-wrap: break-word;
-    text-align: center;
-    display: inline-flex;
-    justify-content: center;
     align-items: center;
+    text-align: left;
+    justify-content: space-between;
+    margin-right: 10px;
+    max-width: 420px;
 }
 
 .chat-button:hover {

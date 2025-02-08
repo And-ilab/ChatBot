@@ -7,6 +7,16 @@ const userMessageHandler = async (message) => {
     const isGreeting = greetings.some(greeting => cleanedMessage.includes(greeting));
     const isMenu = menu.some(menu => cleanedMessage.includes(menu));
 
+    if (isGreeting) {
+        showGreetingMessages();
+        return;
+    }
+
+    else if (isMenu) {
+        await showSectionButtons();
+        return;
+    }
+
     const children = chatMessagesArea.children;
     if (children.length >= 2) {
         const thirdLastChild = children[children.length - 2];
@@ -25,16 +35,6 @@ const userMessageHandler = async (message) => {
             }
         }
     } else {
-        return;
-    }
-
-    if (isGreeting) {
-        showGreetingMessages();
-        return;
-    }
-
-    else if (isMenu) {
-        await showSectionButtons();
         return;
     }
 
