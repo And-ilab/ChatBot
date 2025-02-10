@@ -263,7 +263,7 @@ class CustomPasswordResetView(View):
         if user:
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-            reset_link = f"http://{config_settings.SIRE_URL}/authentication/reset/{uid}/{token}/"
+            reset_link = f"http://{config_settings.SITE_URL}/authentication/reset/{uid}/{token}/"
 
             logger.info(f"Generated password reset link for user: {email}, ResetLink: {reset_link}")
 

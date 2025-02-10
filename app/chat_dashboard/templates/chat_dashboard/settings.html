@@ -112,7 +112,6 @@
     const adServerInput = document.getElementById('ad_server');
     const adDomainInput = document.getElementById('ad_domain');
     const sessionDurationInput = document.getElementById('session_duration');
-    const ipAddressInput = document.getElementById('ip_address');
     const statusText = document.querySelector('.status p'); // Элемент для статуса AD
 
     // Сохраняем исходные значения формы
@@ -123,7 +122,6 @@
         adServer: adServerInput.value,
         adDomain: adDomainInput.value,
         sessionDuration: sessionDurationInput.value,
-        ipAddress: ipAddressInput.value,
     };
 
     // Проверяет, есть ли изменения в форме
@@ -134,8 +132,7 @@
             logsBackupSelect.value!== initialValues.logsBackupSelect ||
             adServerInput.value !== initialValues.adServer ||
             adDomainInput.value !== initialValues.adDomain ||
-            sessionDurationInput.value !== initialValues.sessionDuration ||
-            ipAddressInput.value !== initialValues.ipAddress
+            sessionDurationInput.value !== initialValues.sessionDuration
         );
     }
 
@@ -152,7 +149,6 @@
     retentionSelect.addEventListener('change', toggleSaveButton);
     logsBackupSelect.addEventListener('change', toggleSaveButton);
     adServerInput.addEventListener('input', toggleSaveButton);
-    ipAddressInput.addEventListener('input', toggleSaveButton);
     adDomainInput.addEventListener('input', toggleSaveButton);
     sessionDurationInput.addEventListener('input', toggleSaveButton);
 
@@ -160,7 +156,6 @@
     saveButton.addEventListener('click', function () {
         const formData = new FormData();
         formData.append('session_duration', sessionDurationInput.value);
-        formData.append('ip_address', ipAddressInput.value);
         formData.append('ad_server', adServerInput.value);
         formData.append('ad_domain', adDomainInput.value);
         formData.append('message_retention_months', retentionSelect.value);
@@ -190,9 +185,6 @@
                     initialValues.adServer = adServerInput.value;
                     initialValues.adDomain = adDomainInput.value;
                     initialValues.sessionDuration = sessionDurationInput.value;
-                    initialValues.ipAddress = ipAddressInput.value;
-
-                    // Обновляем статус AD на странице
                     statusText.textContent = enableAdCheckbox.checked ? 'Включена' : 'Отключена';
                     statusText.style.color = enableAdCheckbox.checked ? 'green' : 'red';
                 } else {
