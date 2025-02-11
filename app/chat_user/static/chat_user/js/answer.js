@@ -187,7 +187,7 @@ async function recognizeQuestion(message) {
             ];
             const messageId = Date.now(); // уникальный ID для сообщения
             const botAnswerMessage = customResponses[Math.floor(Math.random() * customResponses.length)];
-            appendMessage('bot', botAnswerMessage, getTimestamp(), false, messageId); // showButton = false
+            appendMessage('bot', botAnswerMessage, getTimestamp(), false, messageId); //
             await sendBotMessage(botAnswerMessage);
 
             const operatorButtonContainer = document.createElement('div');
@@ -231,6 +231,7 @@ async function recognizeQuestion(message) {
                 // Удаляем контейнер с кнопкой, чтобы предотвратить повторную отправку
                 operatorButtonContainer.remove();
             }, { once: true });
+            chatInput.disabled = false;
         }
 
 

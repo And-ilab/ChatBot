@@ -119,9 +119,9 @@ def login_view(request):
                     user_action.warning(
                         'login_unsuccess',
                         extra={
-                            'user_id': request.user.id,
+                            'user_id': None,
                             'action_type': 'login_unsuccess',
-                            'user_name': request.user.first_name + '' + request.user.last_name,
+                            'user_name': f"{username}" ,
                             'time': datetime.now(),
                             'details': json.dumps({
                                 'status': 'Login or password uncorrect',
