@@ -4,7 +4,9 @@ async function fetchPopularRequestsData() {
         if (!response.ok) {
             throw new Error(`Ошибка HTTP: ${response.status}`);
         }
-        return await response.json();
+        data = await response.json();
+        currentChartData = data;
+        return data;
     } catch (error) {
         console.error('Ошибка при получении данных:', error.message);
         return [];
@@ -57,6 +59,7 @@ function processPopularRequestsData(data) {
         groupedData[dateKey][type]++;
     });
 
+    currentExportData = groupedData;
     return {
         groupedData,
         requestTypes

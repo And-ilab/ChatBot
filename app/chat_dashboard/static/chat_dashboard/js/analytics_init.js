@@ -3,6 +3,7 @@ const canvasContainer = document.querySelector(".analytics-canvas");
 let selectedDate = null;
 let selectedMonth = null;
 let chartInstance = null;
+let currentExportData = null;
 let currentFilter = {
     type: 'month',
     value: null

@@ -63,9 +63,23 @@
                 <button class="btn btn-outline-primary" id="btn-bar-chart"><i class="bi bi-bar-chart"></i></button>
                 <button class="btn btn-outline-primary" id="btn-table"><i class="bi bi-table"></i></button>
             </div>
-            <button class="btn btn-success d-flex align-items-center">
+            <button class="btn btn-success d-flex align-items-center" id="export-button">
                 <i class="bi bi-download me-2" id="btn-export"></i> Экспорт
             </button>
+        </div>
+        <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                      <div class="modal-header">
+                          <h5 class="modal-title" id="exportModalLabel">Экспорт данных</h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body d-flex justify-content-around">
+                          <button id="exportCsv" class="btn btn-primary">Экспорт в CSV</button>
+                          <button id="exportExcel" class="btn btn-success">Экспорт в Excel</button>
+                      </div>
+                </div>
+            </div>
         </div>
         <div class="analytics-canvas"></div>
     </div>

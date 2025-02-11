@@ -6,6 +6,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const pieChartButton = document.getElementById("btn-pie-chart");
     const tableButton = document.getElementById("btn-table");
 
+    const exportButton = document.getElementById("export-button");
+    const exportCsvButton = document.getElementById("exportCsv");
+    const exportExcelButton = document.getElementById("exportExcel");
+
     const satisfactionButton = document.getElementById("btn-satisfaction-level");
     const messagesCountButton = document.getElementById("btn-messages-count");
     const usersActivityButton = document.getElementById("btn-users-activity");
@@ -26,6 +30,65 @@ document.addEventListener("DOMContentLoaded", function () {
     fetchMessagesCountData().then(data => {
         renderMessagesCountChart(data, "bar");
         setActiveChartButton(barChartButton);
+    });
+
+    exportButton.addEventListener("click", function () {
+        const exportModal = new bootstrap.Modal(document.getElementById("exportModal"));
+        exportModal.show();
+        console.log(currentExportData);
+    });
+
+    function transformData(data) {
+        return Object.entries(data).map(([date, values]) => [date, values.user, values.bot]);
+    }
+
+    function exportToCsv(data, filename = "data.csv") {
+        const csvContent = "data:text/csv;charset=utf-8," + data.map(row => row.join(",")).join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    async function exportToExcel(dataObj, filename = "data.xlsx") {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Sheet_Export");
+
+        // Преобразуем объект в массив массивов (добавляем дату в начало каждой строки)
+        const rows = Object.entries(dataObj).map(([date, values]) => [date, ...Object.values(values)]);
+
+        // Добавляем строки в лист (без заголовков)
+        rows.forEach(row => worksheet.addRow(row));
+
+        // Генерация и скачивание файла
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+
+        saveAs(blob, filename);
+    }
+
+
+
+    // Экспорт в CSV
+    exportCsvButton.addEventListener("click", function () {
+        if (currentExportData) {
+            const transformedData = transformData(currentExportData);
+            exportToCsv(transformedData, "export.csv");
+        } else {
+            alert("Нет данных для экспорта.");
+        }
+    });
+
+    // Экспорт в Excel
+    exportExcelButton.addEventListener("click", function () {
+        if (currentExportData) {
+            exportToExcel(currentExportData, "export.xlsx");
+        } else {
+            alert("Нет данных для экспорта.");
+        }
     });
 
     // Обработчик выбора фильтра

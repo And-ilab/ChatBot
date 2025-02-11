@@ -48,6 +48,7 @@ function processMessagesCountChartData(data) {
         }
     });
 
+    currentExportData = groupedData;
     return groupedData;
 }
 

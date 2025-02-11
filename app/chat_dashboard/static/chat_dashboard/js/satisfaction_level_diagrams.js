@@ -50,6 +50,7 @@ function processSatisfactionChartData(data) {
         }
     });
 
+    currentExportData = groupedData;
     return groupedData;
 }
 

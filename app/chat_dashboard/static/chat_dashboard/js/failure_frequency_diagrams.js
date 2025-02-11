@@ -51,6 +51,7 @@ function processFailureFrequencyData(data) {
         }
     });
 
+    currentExportData = groupedData;
     return groupedData;
 }
 

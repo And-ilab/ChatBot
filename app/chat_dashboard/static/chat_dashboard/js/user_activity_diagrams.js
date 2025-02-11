@@ -47,6 +47,7 @@ function processUserActivityData(data) {
         groupedData[date] = groupedData[date].size;
     }
 
+    currentExportData = groupedData;
     return groupedData;
 }
 
