@@ -14,7 +14,28 @@ async function fetchFailureFrequencyData() {
 }
 
 function processFailureFrequencyData(data) {
-    const { start, end } = getDateRange();
+    let start, end;
+
+    if (selectedDate) {
+        const selected = new Date(selectedDate);
+        start = new Date(selected);
+        end = new Date(selected);
+    } else if (selectedMonth) {
+        const selected = new Date(selectedMonth);
+        start = new Date(selected.getFullYear(), selected.getMonth(), 1);
+        end = new Date(selected.getFullYear(), selected.getMonth() + 1, 0);
+    } else {
+        ({ start, end } = getDateRange());
+    }
+
+    // Проверка, что start и end установлены правильно для одного дня
+    if (selectedDate) {
+        if (start.getTime() !== end.getTime()) {
+            console.error('Несовпадение дат при выборе конкретного дня');
+            return {};
+        }
+    }
+
     const allDates = generateDateRange(start, end);
     const groupedData = {};
 

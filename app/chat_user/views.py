@@ -271,10 +271,10 @@ def get_nodes_by_type(request):
     node_type = urllib.parse.unquote(node_type)
 
     # Формируем URL для запроса
-    url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
+    url = f"http://localhost:2480/query/chat/sql/SELECT FROM {node_type}"
 
     try:
-        response = requests.get(url, auth=('root','guregure'))
+        response = requests.get(url, auth=('root','gure'))
 
         if response.status_code == 200:
             logger.info(f"Successfully fetched data for type: {node_type}")

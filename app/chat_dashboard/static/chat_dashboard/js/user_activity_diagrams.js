@@ -14,31 +14,42 @@ async function fetchUserActivityData() {
 }
 
 function processUserActivityData(data) {
-    const { start, end } = getDateRange();
+    let start, end;
+
+    if (selectedDate) {
+        const selected = new Date(selectedDate);
+        start = new Date(selected);
+        end = new Date(selected);
+    } else if (selectedMonth) {
+        const selected = new Date(selectedMonth);
+        start = new Date(selected.getFullYear(), selected.getMonth(), 1);
+        end = new Date(selected.getFullYear(), selected.getMonth() + 1, 0);
+    } else {
+        ({ start, end } = getDateRange());
+    }
+
     const allDates = generateDateRange(start, end);
     const groupedData = {};
 
-    // Инициализация всех дат с нулями
     allDates.forEach(date => {
         const key = formatDate(date);
-        groupedData[key] = new Set(); // Используем Set для уникальных пользователей
+        groupedData[key] = new Set();
     });
 
-    // Группируем данные по датам
     data.forEach(({ created_at, user }) => {
         const dateKey = formatDate(new Date(created_at));
         if (groupedData[dateKey]) {
-            groupedData[dateKey].add(user); // Добавляем уникального пользователя в Set
+            groupedData[dateKey].add(user);
         }
     });
 
-    // Преобразуем Set в количество уникальных пользователей
     for (const date in groupedData) {
         groupedData[date] = groupedData[date].size;
     }
 
     return groupedData;
 }
+
 
 
 function renderUserActivityChart(data, chartType) {

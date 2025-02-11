@@ -14,25 +14,45 @@ async function fetchSatisfactionData() {
 }
 
 function processSatisfactionChartData(data) {
-    const { start, end } = getDateRange();
+    let start, end;
+
+    if (selectedDate) {
+        // Если выбрана конкретная дата, используем её
+        const selected = new Date(selectedDate);
+        start = new Date(selected);
+        end = new Date(selected);
+    } else if (selectedMonth) {
+        // Если выбран месяц, используем его
+        const selected = new Date(selectedMonth);
+        start = new Date(selected.getFullYear(), selected.getMonth(), 1);
+        end = new Date(selected.getFullYear(), selected.getMonth() + 1, 0);
+    } else {
+        // Если не выбрана дата или месяц, используем текущий месяц
+        ({ start, end } = getDateRange());
+    }
+
     const allDates = generateDateRange(start, end);
     const groupedData = {};
 
+    // Инициализируем все даты с нулями в правильном формате
     allDates.forEach(date => {
         const key = formatDate(date);
         groupedData[key] = { likes: 0, dislikes: 0 };
     });
 
+    // Заполняем данными из API, приводя дату к нужному формату
     data.forEach(({ created_at, message_type }) => {
         const dateKey = formatDate(new Date(created_at));
         if (groupedData[dateKey]) {
-            message_type === 'like' ? groupedData[dateKey].likes++
-                                   : groupedData[dateKey].dislikes++;
+            message_type === 'like'
+                ? groupedData[dateKey].likes++
+                : groupedData[dateKey].dislikes++;
         }
     });
 
     return groupedData;
 }
+
 
 function renderSatisfactionChart(data, chartType) {
     const groupedData = processSatisfactionChartData(data);

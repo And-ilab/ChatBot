@@ -45,16 +45,16 @@
                     <li><a class="dropdown-item filter-item" data-period="week">За неделю</a></li>
                     <li><a class="dropdown-item filter-item active" data-period="month">За месяц</a></li>
                     <li>
-                        <a class="dropdown-item filter-item" data-period="custom-month">
+                        <a class="dropdown-item filter-item" data-period="custom-month" id="custom-month-trigger">
                             Выбрать месяц
-                            <input type="month" class="form-control month-picker" style="display: none;">
                         </a>
+                        <input type="month" class="form-control month-picker" id="month-picker" style="display: none;">
                     </li>
                     <li>
-                        <a class="dropdown-item filter-item" data-period="custom-date">
+                        <a class="dropdown-item filter-item" data-period="custom-date" id="custom-date-trigger">
                             Выбрать дату
-                            <input type="date" class="form-control date-picker" style="display: none;">
                         </a>
+                        <input type="date" class="form-control date-picker" id="date-picker" style="display: none;">
                     </li>
                 </ul>
             </div>

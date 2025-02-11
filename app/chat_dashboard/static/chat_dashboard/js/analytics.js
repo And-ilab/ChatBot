@@ -15,8 +15,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Фильтр
     const filterItems = document.querySelectorAll('.filter-item');
-    const monthPicker = document.querySelector('.month-picker');
-    const datePicker = document.querySelector('.date-picker');
+    const dropdownMenu = document.querySelector('.dropdown-menu');
+    const monthPicker = document.getElementById('month-picker');
+    const datePicker = document.getElementById('date-picker');
+    const customMonthTrigger = document.getElementById('custom-month-trigger');
+    const customDateTrigger = document.getElementById('custom-date-trigger');
+
+
+    messagesCountButton.classList.add("active");
+    fetchMessagesCountData().then(data => {
+        renderMessagesCountChart(data, "bar");
+        setActiveChartButton(barChartButton);
+    });
 
     // Обработчик выбора фильтра
     filterItems.forEach(item => {
@@ -28,46 +38,99 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (period === 'custom-month') {
                 datePicker.style.display = 'none';
-                monthPicker.style.display = 'none';
-                monthPicker.focus(); // Для появления выбора
+                monthPicker.style.display = 'block';
+                monthPicker.focus(); // Фокусируемся на поле выбора месяца
             } else if (period === 'custom-date') {
                 monthPicker.style.display = 'none';
-                datePicker.style.display = 'none';
-                datePicker.focus(); // Для появления выбора
+                datePicker.style.display = 'block';
+                datePicker.focus(); // Фокусируемся на поле выбора даты
             } else {
                 monthPicker.style.display = 'none';
                 datePicker.style.display = 'none';
                 currentFilter.type = period;
-                refreshData();
+                refreshData(); // Обновляем данные
             }
         });
     });
 
-    monthPicker.addEventListener('change', function(e) {
-        const [year, month] = this.value.split('-');
-        currentFilter = {
-            type: 'custom-month',
-            value: {
-                start: new Date(year, month-1, 1),
-                end: new Date(year, month, 0)
-            }
-        };
-        refreshData();
+    // Обработчик для выбора месяца
+    customMonthTrigger.addEventListener('click', function(event) {
+        event.preventDefault(); // Предотвращаем действие по умолчанию
+        event.stopPropagation(); // Предотвращаем закрытие дропдауна
+        monthPicker.style.display = 'block'; // Показываем поле выбора месяца
+        datePicker.style.display = 'none'; // Скрываем поле выбора даты
+        monthPicker.focus(); // Фокусируемся на поле выбора месяца
     });
 
-    datePicker.addEventListener('change', function(e) {
-        currentFilter = {
-            type: 'custom-date',
-            value: {
-                start: new Date(this.value),
-                end: new Date(this.value)
-            }
-        };
-        currentFilter.value.end.setHours(23, 59, 59, 999);
-        refreshData();
+    // Обработчик для выбора даты
+    customDateTrigger.addEventListener('click', function(event) {
+        event.preventDefault(); // Предотвращаем действие по умолчанию
+        event.stopPropagation(); // Предотвращаем закрытие дропдауна
+        datePicker.style.display = 'block'; // Показываем поле выбора даты
+        monthPicker.style.display = 'none'; // Скрываем поле выбора месяца
+        datePicker.focus(); // Фокусируемся на поле выбора даты
     });
 
-        function getActiveChartFunctions() {
+    // Обработчик для выбора месяца
+    monthPicker.addEventListener('change', function() {
+        selectedMonth = monthPicker.value;
+        selectedDate = null; // Сбрасываем выбранную дату
+        console.log('Выбран месяц:', selectedMonth);
+        refreshData(); // Обновляем данные
+    });
+
+    // Обработчик для выбора даты
+    datePicker.addEventListener('change', function() {
+        selectedDate = datePicker.value;
+        selectedMonth = null; // Сбрасываем выбранный месяц
+        console.log('Выбрана дата:', selectedDate);
+        refreshData(); // Обновляем данные
+    });
+
+    // Предотвращение закрытия дропдауна при вводе данных
+    monthPicker.addEventListener('click', function(event) {
+        event.stopPropagation();
+    });
+
+    monthPicker.addEventListener('input', function(event) {
+        event.stopPropagation();
+    });
+
+    datePicker.addEventListener('click', function(event) {
+        event.stopPropagation();
+    });
+
+    datePicker.addEventListener('input', function(event) {
+        event.stopPropagation();
+    });
+
+    // Закрытие дропдауна при потере фокуса
+    monthPicker.addEventListener('blur', function() {
+        const dropdown = new bootstrap.Dropdown(document.getElementById('dropdownMenuButton'));
+        dropdown.hide(); // Закрываем дропдаун
+    });
+
+    datePicker.addEventListener('blur', function() {
+        const dropdown = new bootstrap.Dropdown(document.getElementById('dropdownMenuButton'));
+        dropdown.hide(); // Закрываем дропдаун
+    });
+
+    // Закрытие дропдауна при нажатии Enter
+    monthPicker.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            const dropdown = new bootstrap.Dropdown(document.getElementById('dropdownMenuButton'));
+            dropdown.hide(); // Закрываем дропдаун
+        }
+    });
+
+    datePicker.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            const dropdown = new bootstrap.Dropdown(document.getElementById('dropdownMenuButton'));
+            dropdown.hide(); // Закрываем дропдаун
+        }
+    });
+
+    function getActiveChartFunctions() {
         const activeButton = document.querySelector(".sidebar-btn.active");
         if (!activeButton) return {};
 
@@ -75,7 +138,6 @@ document.addEventListener("DOMContentLoaded", function () {
             "btn-satisfaction-level": [fetchSatisfactionData, renderSatisfactionChart, renderSatisfactionTable],
             "btn-messages-count": [fetchMessagesCountData, renderMessagesCountChart, renderMessagesCountTable],
             "btn-users-activity": [fetchUserActivityData, renderUserActivityChart, renderUserActivityTable],
-//            "btn-iteractions-frequency": [fetchInteractionsFrequencyData, renderInteractionsFrequencyChart, renderInteractionsFrequencyTable],
             "btn-failure-frequency": [fetchFailureFrequencyData, renderFailureFrequencyChart, renderFailureFrequencyTable],
             "btn-popular-requests": [fetchPopularRequestsData, renderPopularRequestsChart, renderPopularRequestsTable]
         };
@@ -123,11 +185,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Обновленная функция фильтрации
     function filterData(data) {
-        const { start, end } = getDateRange();
-        return data.filter(item => {
-            const itemDate = new Date(item.created_at);
-            return itemDate >= start && itemDate <= end;
-        });
+        if (selectedDate) {
+            // Фильтрация по выбранной дате
+            const selected = new Date(selectedDate);
+            return data.filter(item => {
+                const itemDate = new Date(item.created_at);
+                return (
+                    itemDate.getFullYear() === selected.getFullYear() &&
+                    itemDate.getMonth() === selected.getMonth() &&
+                    itemDate.getDate() === selected.getDate()
+                );
+            });
+        } else if (selectedMonth) {
+            // Фильтрация по выбранному месяцу
+            const selected = new Date(selectedMonth);
+            return data.filter(item => {
+                const itemDate = new Date(item.created_at);
+                return (
+                    itemDate.getFullYear() === selected.getFullYear() &&
+                    itemDate.getMonth() === selected.getMonth()
+                );
+            });
+        } else {
+            // Фильтрация по текущему периоду (если не выбрана дата или месяц)
+            const { start, end } = getDateRange();
+            return data.filter(item => {
+                const itemDate = new Date(item.created_at);
+                return itemDate >= start && itemDate <= end;
+            });
+        }
     }
 
     function setActiveChartButton(activeButton) {

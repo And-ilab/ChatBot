@@ -14,7 +14,23 @@ async function fetchMessagesCountData() {
 }
 
 function processMessagesCountChartData(data) {
-    const { start, end } = getDateRange();
+    let start, end;
+
+    if (selectedDate) {
+        // Если выбрана конкретная дата, используем её
+        const selected = new Date(selectedDate);
+        start = new Date(selected);
+        end = new Date(selected);
+    } else if (selectedMonth) {
+        // Если выбран месяц, используем его
+        const selected = new Date(selectedMonth);
+        start = new Date(selected.getFullYear(), selected.getMonth(), 1);
+        end = new Date(selected.getFullYear(), selected.getMonth() + 1, 0);
+    } else {
+        // Если не выбрана дата или месяц, используем текущий месяц
+        ({ start, end } = getDateRange());
+    }
+
     const allDates = generateDateRange(start, end);
     const groupedData = {};
 
@@ -25,7 +41,7 @@ function processMessagesCountChartData(data) {
     });
 
     // Заполняем данными из API, приводя дату к нужному формату
-    data.forEach(({ created_at, user, bot }) => { // заменили date на created_at
+    data.forEach(({ created_at, user, bot }) => {
         const formattedDate = formatDate(new Date(created_at)); // Преобразуем в форматированную дату
         if (groupedData[formattedDate]) {
             groupedData[formattedDate] = { user, bot };
