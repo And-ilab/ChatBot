@@ -11,7 +11,8 @@
     <!-- Сообщение пользователя -->
     <div class="w-75 mt-4">
         <h4 class="mb-3">Сообщение пользователя:</h4>
-        <input type="text" id="train-input" class="form-control" value="{{ message.content }}" readonly />
+        <input type="text" id="train-input" class="form-control" value="{{ message.content }}"
+               data-sender-id="{{ message.sender_id }}" data-message-id="{{ message.id }}" readonly />
     </div>
 
     <!-- Ответ администратора -->

@@ -218,26 +218,26 @@ def mark_question_trained(request):
             message_type='message'
         )
 
-        if training_message.sender and training_message.sender.email:
-            subject = "Ваш вопрос обработан — ответ ждёт вас в чате"
-            message = (
-                f''' Уважаемый(ая) {sender.first_name} {sender.last_name}!,
-                Большое спасибо за ваше терпение! Мы рады сообщить, что ваш вопрос был обработан, и ответ уже направлен вам в чат.
-                Для вашего удобства дублируем вопрос и ответ ниже:
-                Ваш вопрос: 
-                {training_message.content}
-                
-                Ответ оператора:
-                {answer}
-                
-                Если у вас остались вопросы или что-то требует уточнения, пожалуйста, напишите нам в чат — мы всегда готовы помочь!
-                
-                С уважением,
-                Команда поддержки Интеллектуальной платформы взаимодействия с пользователями HelpDeskBot'''
-             )
-            from_email = 'sapunowdany@yandex.by'
-            send_mail(subject, message, from_email, [training_message.sender.email],fail_silently=False)
-            training_message.delete()
+        # if training_message.sender and training_message.sender.email:
+        #     subject = "Ваш вопрос обработан — ответ ждёт вас в чате"
+        #     message = (
+        #         f''' Уважаемый(ая) {sender.first_name} {sender.last_name}!,
+        #         Большое спасибо за ваше терпение! Мы рады сообщить, что ваш вопрос был обработан, и ответ уже направлен вам в чат.
+        #         Для вашего удобства дублируем вопрос и ответ ниже:
+        #         Ваш вопрос:
+        #         {training_message.content}
+        #
+        #         Ответ оператора:
+        #         {answer}
+        #
+        #         Если у вас остались вопросы или что-то требует уточнения, пожалуйста, напишите нам в чат — мы всегда готовы помочь!
+        #
+        #         С уважением,
+        #         Команда поддержки Интеллектуальной платформы взаимодействия с пользователями HelpDeskBot'''
+        #      )
+        #     from_email = 'sapunowdany@yandex.by'
+        #     send_mail(subject, message, from_email, [training_message.sender.email],fail_silently=False)
+        training_message.delete()
 
         return JsonResponse({'status': 'success'})
     except TrainingMessage.DoesNotExist:
@@ -251,7 +251,6 @@ def train_message(request, message_id):
     """Displays a message for training."""
     logger.info(f"Accessing training page for message ID: {message_id}")
     message = get_object_or_404(TrainingMessage, id=message_id)
-    print(message.id, message.sender_id)
     logger.debug(f"Training message retrieved: {message.content}")
     user = request.user
     user_action.info(
