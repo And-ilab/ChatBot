@@ -37,13 +37,12 @@ const appendMessage = (sender, content, timestamp, showButton = false) => {
         messageDiv.insertAdjacentElement('afterend', menuButtonsContainer);
 
         scrollToBottom();
-    } else {
-        messageDiv.dataset.date = messageDate;
-        chatMessagesArea.appendChild(messageDiv);
-        scrollToBottom();
-    }
+   } else {
+       messageDiv.dataset.date = messageDate;
+       chatMessagesArea.appendChild(messageDiv);
+       scrollToBottom();
+   }
 };
-
 
 const sendMessageToAPI = async (dialog_id, senderType, messageType, content, timestamp) => {
     try {
@@ -67,7 +66,6 @@ const sendMessageToAPI = async (dialog_id, senderType, messageType, content, tim
         }
 
         const data = await response.json();
-        console.log('Сообщение успешно отправлено:', data);
     } catch (error) {
         console.error('Ошибка при отправке сообщения:', error);
         throw error;
@@ -88,7 +86,6 @@ const sendUserMessage = async () => {
     const message = chatInput.value.trim();
     if (!message) return;
 
-    console.log('Отправляемое сообщение:', message);
     const userMessageTimestamp = getTimestamp()
     appendMessage('Вы', message, userMessageTimestamp);
 
@@ -101,24 +98,145 @@ const sendUserMessage = async () => {
     }
 };
 
+async function drawDocument(content) {
+    const docName = content.split("^_^")[0];
+    const docUUID = content.split("^_^")[1];
+    const documentMessageDiv = document.createElement('div');
+    const documentButton = document.createElement('button');
+    documentButton.className = 'document-button';
+    documentButton.innerHTML = `
+        ${docName}
+        <i class="fas fa-download" style="margin-left: 8px;"></i>
+    `;
+
+    try {
+        const response = await fetch(`/api/get-document-link-by-uuid/${docUUID}/`);
+        if (!response.ok) {
+            throw new Error('Не удалось получить ссылку на файл');
+        }
+
+        const data = await response.json();
+        const filePath = data.file_url;
+
+        const link = document.createElement('a');
+        link.href = filePath;
+        link.download = docName;
+        documentButton.onclick = () => {
+            link.click();
+        };
+        documentMessageDiv.appendChild(documentButton);
+        chatMessagesArea.appendChild(documentMessageDiv);
+    } catch (error) {
+        console.error(`Ошибка при получении ссылки для файла "${docName}":`, error.message);
+        documentButton.textContent = `${docName} (недоступен)`;
+        documentButton.classList.add('error');
+        documentMessageDiv.appendChild(documentButton);
+        chatMessagesArea.appendChild(documentMessageDiv);
+    }
+}
+
+function drawLink(content) {
+    const linkName = content.split("^_^")[0];
+    const linkHref = content.split("^_^")[1];
+    const messageDiv = document.createElement('div');
+    const linkButton = document.createElement('button');
+    linkButton.className = 'link-button';
+    linkButton.innerHTML = `
+        ${linkName}
+        <i class="fas fa-external-link-alt" style="margin-left: 8px;"></i>
+    `;
+
+    linkButton.addEventListener('click', () => {
+        window.open(linkHref, '_blank');
+    });
+    messageDiv.appendChild(linkButton);
+    chatMessagesArea.appendChild(messageDiv);
+}
+
 const loadMessages = async () => {
     try {
         const messagesResponse = await fetch(`/api/messages/${state['dialog_id']}/`);
         const data = await messagesResponse.json();
         chatMessagesArea.innerHTML = '';
 
-        for (const { sender, content, message_type, timestamp } of data.messages) {
-            if (message_type === 'message') {
-                appendMessage(sender, content, timestamp);
+        for (let index = 0; index < data.messages.length; index++) {
+            const { sender, content, message_type, timestamp } = data.messages[index];
+            const isLastMessage = index === data.messages.length - 1;
+            const previousMessage = index > 0 ? data.messages[index - 2] : null;
+
+            if (message_type === 'operator') {
+                console.log('OPERATOR');
+                console.log(previousMessage);
+                if (isLastMessage) {
+                    await addOperatorButton(previousMessage.content, false, false);
+                    await showSectionButtons();
+                } else {
+                    await addOperatorButton(previousMessage.content, false, true);
+                    await showSectionButtons();
+                }
+            } else if (message_type === 'like') {
+                const messageDiv = document.createElement('div');
+                const buttonsWrapper = document.createElement('div');
+                buttonsWrapper.className = 'feedback-buttons';
+
+                const likeButton = document.createElement('button');
+                likeButton.className = 'feedback-button like-button';
+                likeButton.innerHTML = '👍 <span>Полезен</span>';
+                likeButton.disabled = !isLastMessage;
+                if (isLastMessage) {
+                    likeButton.onclick = async () => {
+                        likeButton.disabled = true;
+                        await sendFeedback('like');
+                        sendThanksFeedbackMessage();
+                    };
+                }
+                buttonsWrapper.appendChild(likeButton);
+                messageDiv.appendChild(buttonsWrapper);
+
+                chatMessagesArea.appendChild(messageDiv);
+            } else if (message_type === 'dislike') {
+                const messageDiv = document.createElement('div');
+                const buttonsWrapper = document.createElement('div');
+                buttonsWrapper.className = 'feedback-buttons';
+
+                const dislikeButton = document.createElement('button');
+                dislikeButton.className = 'feedback-button dislike-button';
+                dislikeButton.innerHTML = '👎 <span>Не то, что хотелось бы</span>';
+                dislikeButton.disabled = !isLastMessage;
+                if (isLastMessage) {
+                    dislikeButton.onclick = async () => {
+                        dislikeButton.disabled = true;
+                        await sendFeedbackRequest();
+                    };
+                }
+                buttonsWrapper.appendChild(dislikeButton);
+                messageDiv.appendChild(buttonsWrapper);
+
+                chatMessagesArea.appendChild(messageDiv);
+            } else if (message_type === 'document') {
+                if (isLastMessage) {
+                    await drawDocument(content);
+                    await showSectionButtons();
+                } else {
+                    await drawDocument(content);
+                }
+            } else if (message_type === 'link') {
+                if (isLastMessage) {
+                    drawLink(content);
+                    await showSectionButtons();
+                } else {
+                    drawLink(content);
+                }
+            } else if (message_type === 'message') {
+                if (isLastMessage) {
+                    appendMessage(sender, content, timestamp);
+                    await showSectionButtons();
+                } else {
+                    appendMessage(sender, content, timestamp);
+                }
             }
-//            else {
-//                console.log(content);
-//                const artifact = await loadArtifact(message_type, content);
-//                console.log(artifact);
-//                await createDocumentBlock([artifact]);
-//            }
         }
-        await showSectionButtons();
+
         setTimeout(scrollToBottom, 0);
 
     } catch (error) {

@@ -425,11 +425,11 @@ def get_answer(request):
             query = f"SELECT FROM Answer WHERE @rid IN (SELECT OUT('Includes') FROM Question WHERE @rid = '{question_id}')"
             try:
                 response = requests.get(
-                    config_settings.ORIENT_COMMAND_URL,
+                    config_settings.ORIENT_QUERY_URL,
                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                     headers={"Content-Type": "application/json"},
                     json={"command": query}
-                )
+                  )
                 logger.info(f"Response status: {response.status_code}.")
 
                 if not response.ok:

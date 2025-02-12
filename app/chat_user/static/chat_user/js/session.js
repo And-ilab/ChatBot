@@ -104,4 +104,3 @@ async function closeSession() {
         chatMessagesArea.innerHTML = '';
     }
 }
-
