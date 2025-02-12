@@ -286,12 +286,12 @@ function updateStatusUI(status) {
         }`;
     }
 }
-
-function showErrorNotification(message) {
-    // Реализация показа уведомления
-    console.error(message);
-    alert(message);
-}
+//
+//function showErrorNotification(message) {
+//    // Реализация показа уведомления
+//    console.error(message);
+//    alert(message);
+//}
 
 // Инициализация обработчиков модальных окон
 $(document).ready(function() {
