@@ -181,13 +181,13 @@ def mark_question_trained(request):
         data = json.loads(request.body)
         message_id = data.get('message_id')
         sender = data.get('sender_id')
+        answer = data.get('answer')
 
         if not message_id:
             return JsonResponse({'error': 'Не передан идентификатор сообщения.'}, status=400)
 
         training_message = TrainingMessage.objects.get(id=message_id)
         sender = ChatUser.objects.get(id=sender)
-        answer = get_answer(training_message.content)
         last_dialog = Dialog.objects.filter(user=sender).order_by('-started_at').first()
 
         greetings = ["Привет! Спасибо за ваше терпение. Вот ответ на ваш вопрос от нашего оператора. Надеюсь, он будет полезен! 😊",
@@ -245,20 +245,8 @@ def mark_question_trained(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-def get_answer(name):
-    name_safe = name.replace("'", "''")  # Экранирование одинарных кавычек
-    sql_command = f"SELECT expand(out('Includes')) FROM Question WHERE content = '{name_safe}'"
 
-    headers = {'Content-Type': 'application/json'}
-    json_data = {"command": sql_command}
-    response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
-                             auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
-    data = response.json()
-    result_list = data['result']
-    content_value = result_list[0]['content']
-    return content_value
-
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def train_message(request, message_id):
     """Displays a message for training."""
     logger.info(f"Accessing training page for message ID: {message_id}")
