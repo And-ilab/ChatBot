@@ -15,11 +15,11 @@
             {% csrf_token %}
             <div class="form-group mb-3">
                 <label for="username" class="form-label">Электронная почта</label>
-                <input type="text" name="username" id="username" class="form-control" required>
+                <input type="text" name="username" id="username" class="form-control">
             </div>
             <div class="form-group mb-3">
                 <label for="password" class="form-label">Пароль</label>
-                <input type="password" name="password" id="password" class="form-control" required>
+                <input type="password" name="password" id="password" class="form-control" required autocomplete="off">
             </div>
             <div class="text-center">
                 <button type="submit" class="btn btn-primary mt-3" style="width: 100%;">Войти</button>
@@ -66,7 +66,7 @@
         "debug": false,
         "newestOnTop": true,
         "progressBar": true,
-        "positionClass": "toast-top-center",  // Положение уведомления по центру вверху
+        "positionClass": "toast-top-center",
         "preventDuplicates": false,
         "showDuration": "300",
         "hideDuration": "1000",
@@ -79,40 +79,33 @@
     };
 
     function handleLogin(event) {
-    event.preventDefault();
+        event.preventDefault();
 
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
 
-    console.log('Функция handleLogin вызвана');
-
-fetch("{% url 'authentication:login' %}", {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-CSRFToken': '{{ csrf_token }}'
-    },
-    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
-})
-.then(response => response.json()) // Парсим JSON-ответ
-.then(data => {
-    console.log('Ответ от сервера:', data);
-
-    if (data.redirect) {
-        console.log('Редирект на:', data.redirect);
-        window.location.href = data.redirect;  // Перенаправление
-    } else if (data.error) {
-        toastr.error(data.error, 'Ошибка');
-    } else {
-        toastr.error('Неизвестная ошибка.', 'Ошибка');
+        fetch("{% url 'authentication:login' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.redirect) {
+                window.location.href = data.redirect;
+            } else if (data.error) {
+                toastr.error(data.error, 'Ошибка');
+            } else {
+                toastr.error('Неизвестная ошибка.', 'Ошибка');
+            }
+        })
+        .catch(error => {
+            toastr.error('Произошла ошибка. Попробуйте ещё раз.', 'Ошибка');
+        });
     }
-})
-.catch(error => {
-    console.error('Ошибка сети:', error.message);
-    toastr.error('Произошла ошибка. Попробуйте ещё раз.', 'Ошибка');
-});
-
-}
 
     function showPasswordResetModal() {
         document.getElementById('passwordResetModal').style.display = 'block';
@@ -148,7 +141,6 @@ fetch("{% url 'authentication:login' %}", {
             }
         })
         .catch(error => {
-            console.error('Ошибка:', error);
             toastr.error('Произошла ошибка. Попробуйте ещё раз.', 'Ошибка');
         });
     }

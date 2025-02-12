@@ -1,6 +1,7 @@
 import logging
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth import get_user_model
+from django.forms import CharField
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
@@ -178,6 +179,7 @@ def training_dashboard(request):
 @csrf_exempt
 def mark_question_trained(request):
     try:
+        user = request.user
         data = json.loads(request.body)
         message_id = data.get('message_id')
         sender = data.get('sender_id')
@@ -238,11 +240,36 @@ def mark_question_trained(request):
         #     from_email = 'sapunowdany@yandex.by'
         #     send_mail(subject, message, from_email, [training_message.sender.email],fail_silently=False)
         training_message.delete()
-
         return JsonResponse({'status': 'success'})
     except TrainingMessage.DoesNotExist:
+        user_action.error(
+            'Mark_question_trained_unsuccessfully',
+            extra={
+                'user_id': user.id,
+                'user_name': user.first_name + ' ' + user.last_name,
+                'action_type': 'mark question trained',
+                'time': datetime.now(),
+                'details': json.dumps({
+                    'status': f"Message not found",
+                })
+
+            }
+        )
         return JsonResponse({'error': 'Сообщение для дообучения не найдено.'}, status=404)
     except Exception as e:
+        user_action.error(
+            'Mark_question_trained_unsuccessfully',
+            extra={
+                'user_id': user.id,
+                'user_name': user.first_name + ' ' + user.last_name,
+                'action_type': 'mark question trained',
+                'time': datetime.now(),
+                'details': json.dumps({
+                    'status': f"Error {e}",
+                })
+
+            }
+        )
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -272,6 +299,7 @@ def train_message(request, message_id):
 def toggle_ignore_message(request, message_id):
     """Toggle the ignored status of a training message."""
     logger.info(f"Toggling ignore status for message ID: {message_id}")
+    user = request.user
     try:
         message = TrainingMessage.objects.get(id=message_id)
         message.is_unread = not message.is_unread
@@ -282,6 +310,19 @@ def toggle_ignore_message(request, message_id):
         ignored_count = TrainingMessage.objects.filter(is_ignored=True).count()
 
         logger.info(f"Message {message_id} updated: unread={message.is_unread}, ignored={message.is_ignored}")
+        user_action.info(
+            'f"toggle_ignore_message successfully"',
+            extra={
+                'user_id': user.id,
+                'user_name': user.first_name + ' ' + user.last_name,
+                'action_type': 'Toggle ignore message',
+                'time': datetime.now(),
+                'details': json.dumps({
+                    'status': f"Toggle ignore message is successful",
+                })
+
+            }
+        )
         return JsonResponse({
             'unread_count': unread_count,
             'ignored_count': ignored_count,
@@ -290,6 +331,19 @@ def toggle_ignore_message(request, message_id):
             'is_ignored': message.is_ignored,
         })
     except TrainingMessage.DoesNotExist:
+        user_action.error(
+            'f"TrainingMessage is not found"',
+            extra={
+                'user_id': user.id,
+                'user_name': user.first_name + ' ' + user.last_name,
+                'action_type': 'TrainingMessage is not found',
+                'time': datetime.now(),
+                'details': json.dumps({
+                    'status': f"TrainingMessage is not found",
+                })
+
+            }
+        )
         logger.error(f"Message ID {message_id} not found.")
         return JsonResponse({'error': 'Message not found'}, status=404)
 
@@ -324,6 +378,19 @@ def delete_message(request, message_id):
         })
 
     except TrainingMessage.DoesNotExist:
+        user_action.error(
+            f"Message not found",
+            extra={
+                'user_id': user.id,
+                'user_name': user.first_name + ' ' + user.last_name,
+                'action_type': 'Message not found',
+                'time': datetime.now(),
+                'details': json.dumps({
+                    'status': f"Message not found",
+                })
+
+            }
+        )
         logger.error(f"Message ID {message_id} not found for deletion.")
         return JsonResponse({'error': 'Message not found'}, status=404)
 
@@ -416,7 +483,6 @@ def create_node(request):
                         'details': json.dumps({
                             'status': f"{user.first_name} {user.last_name}' create node successfully",
                         })
-
                     }
                 )
                 try:
@@ -425,10 +491,37 @@ def create_node(request):
 
                 except ValueError as e:
                     logger.error(f"Error parsing JSON response: {e}")
+                    user_action.error(
+                        f"Error parsing JSON response: {e}",
+                        extra={
+                            'user_id': user.id,
+                            'user_name': user.first_name + ' ' + user.last_name,
+                            'action_type': 'create_node',
+                            'time': datetime.now(),
+                            'details': json.dumps({
+                                'status': f"Error parsing JSON response: {e}",
+                            })
+
+                        }
+                    )
+
                     return JsonResponse({'error': 'Failed to parse response'}, status=500)
 
             else:
                 logger.error(f"Error fetching data: HTTP {response.status_code} - {response.text}")
+                user_action.error(
+                    f"Error fetching data: HTTP {response.status_code} - {response.text}",
+                    extra={
+                        'user_id': user.id,
+                        'user_name': user.first_name + ' ' + user.last_name,
+                        'action_type': 'create_node',
+                        'time': datetime.now(),
+                        'details': json.dumps({
+                            'status': f"Error fetching data: HTTP {response.status_code} - {response.text}",
+                        })
+
+                    }
+                )
                 return JsonResponse({'error': f"Error {response.status_code}: {response.text}"},
                                     status=response.status_code)
 
@@ -504,7 +597,19 @@ def create_relation(request):
             return JsonResponse({'message': 'Relation successfully created'}, status=201)
         except Exception as e:
             logger.exception("An error occurred while creating a relation.")
+            user_action.error(
+                "An error occurred while creating a relation.",
+                extra={
+                    'user_id': user.id,
+                    'user_name': user.first_name + ' ' + user.last_name,
+                    'action_type': 'create_relation',
+                    'time': datetime.now(),
+                    'details': json.dumps({
+                        'status': "An error occurred while creating a relation.",
+                    })
 
+                }
+            )
             return JsonResponse({'error': str(e)}, status=400)
 
 
@@ -519,7 +624,7 @@ def delete_node(request):
 
             if not node_id_to_delete:
                 logger.warning("Missing required fields for relation creation.")
-                user_action.info(
+                user_action.warning(
                     f"Missing required fields for relation creation.",
                     extra={
                         'user_id': user.id,
@@ -557,6 +662,19 @@ def delete_node(request):
 
             return JsonResponse({'message': 'Node successfully deleted'}, status=201)
         except Exception as e:
+            user_action.warning(
+                "An error occurred while creating a relation.",
+                extra={
+                    'user_id': user.id,
+                    'user_name': user.first_name + ' ' + user.last_name,
+                    'action_type': 'delete_node',
+                    'time': datetime.now(),
+                    'details': json.dumps({
+                        'status': "An error occurred while creating a relation.",
+                    })
+
+                }
+            )
             logger.exception("An error occurred while creating a relation.")
             return JsonResponse({'error': str(e)}, status=400)
 
@@ -667,11 +785,11 @@ def user_list(request):
     sort_column = request.GET.get('sort', 'username')
     page_number = request.GET.get('page', 1)
 
-    # Получаем данные из обеих моделей
+
     users = User.objects.all()
     chat_users = ChatUser.objects.all()
 
-    # Объединяем данные в список словарей с общими полями
+
     combined_users = []
     for user in users:
         combined_users.append({
@@ -690,7 +808,7 @@ def user_list(request):
             'id': chat_user.id,
             'first_name': chat_user.first_name,
             'last_name': chat_user.last_name,
-            'username': chat_user.username,  # Используем свойство @property
+            'username': chat_user.username,
             'email': chat_user.email,
             'role': chat_user.get_role_display(),
         })
@@ -748,7 +866,7 @@ def user_create(request):
         email = request.POST.get('email')
         if User.objects.filter(email=email).exists():
             logger.error(f"Attempt to create user failed: Email already registered - {email}")
-            user_action.info(
+            user_action.warning(
                 f"Attempt to create user failed: Email already registered - {email}",
                 extra={
                     'user_id': user.id,
@@ -804,7 +922,6 @@ def user_update(request, user_type, pk):
     logger.info(f"Updating {user_type} user with ID: {pk}")
     model = get_user_model_by_type(user_type)
     user = get_object_or_404(model, pk=pk)
-    user_for_log = request.user
 
     if request.method == 'POST':
         form = UserFormUpdate(request.POST, instance=user)
@@ -943,8 +1060,10 @@ def filter_dialogs_by_date_range(request):
     start_date = request.GET.get('start')
     end_date = request.GET.get('end')
 
-    start = timezone.datetime.fromisoformat(start_date)
-    end = timezone.datetime.fromisoformat(end_date)
+    # Преобразование в aware datetime
+    start = timezone.make_aware(timezone.datetime.fromisoformat(start_date))
+    end = timezone.make_aware(timezone.datetime.fromisoformat(end_date))
+
     dialogs = Dialog.objects.annotate(
         has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
         username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
@@ -957,8 +1076,7 @@ def filter_dialogs_by_date_range(request):
         last_message_username=Case(
             When(last_message_sender_id=None, then=Value('Bot')),
             default=Subquery(
-                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[
-                :1])
+                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1])
         ),
     ).filter(has_messages=True, last_message_timestamp__range=(start, end)).order_by('-last_message_timestamp')
 
@@ -982,16 +1100,168 @@ def filter_dialogs_by_date_range(request):
     return JsonResponse(dialogs_data, safe=False)
 
 
-def filter_dialogs(request, period):
+
+
+# def filter_dialogs(request, period):
+    # user = request.user
+    # logger.info(f"Filtering dialogs by user {user} with period {period}.")
+    #
+    # # Определяем дату для фильтрации
+    # now = timezone.now()
+    #
+    # if period == 0:
+    #     # Фильтруем все диалоги
+    #     dialogs = Dialog.objects.annotate(
+    #         has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
+    #         username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
+    #         last_message=Subquery(
+    #             Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]),
+    #         last_message_timestamp=Subquery(
+    #             Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]),
+    #         last_message_sender_id=Subquery(
+    #             Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]),
+    #         last_message_username=Case(
+    #             When(last_message_sender_id=None, then=Value('Bot')),
+    #             default=Subquery(
+    #                 Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1])
+    #         ),
+    #     ).filter(has_messages=True).order_by('-last_message_timestamp')
+    # else:
+    #     # Фильтруем по времени
+    #     time_filter = now - timedelta(days=period)
+    #     dialogs = Dialog.objects.annotate(
+    #         has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
+    #         username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
+    #         last_message=Subquery(
+    #             Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]),
+    #         last_message_timestamp=Subquery(
+    #             Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]),
+    #         last_message_sender_id=Subquery(
+    #             Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]),
+    #         last_message_username=Case(
+    #             When(last_message_sender_id=None, then=Value('Bot')),
+    #             default=Subquery(
+    #                 Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1])
+    #         ),
+    #     ).filter(has_messages=True, last_message_timestamp__gte=time_filter).order_by('-last_message_timestamp')
+    #
+    # # Логирование для отладки
+    # logger.debug(f"Filtered dialogs: {list(dialogs)}")
+    #
+    # # Возвращаем отфильтрованные диалоги в формате JSON
+    # dialogs_data = [
+    #     {
+    #         'id': dialog.id,
+    #         'user': {
+    #             'id': dialog.user.id,
+    #             'username': dialog.user.username
+    #         },
+    #         'last_message': dialog.last_message,
+    #         'last_message_timestamp': dialog.last_message_timestamp,
+    #         'last_message_username': dialog.last_message_username
+    #     }
+    #     for dialog in dialogs
+    # ]
+    #
+    # return JsonResponse(dialogs_data, safe=False)
+from django.db.models import CharField
+
+
+def filter_dialogs(request):
+    period = request.GET.get('period', 0)
+    user_id = request.GET.get('user_id')
+    start_date = request.GET.get('start')
+    end_date = request.GET.get('end')
+
+    try:
+        period = int(period)
+    except ValueError:
+        period = 0
+
+    dialogs = Dialog.objects.annotate(
+        has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
+        last_message=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk'))
+            .order_by('-created_at')
+            .values('content')[:1]
+        ),
+        last_message_timestamp=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk'))
+            .order_by('-created_at')
+            .values('created_at')[:1]
+        ),
+        last_message_sender_id=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk'))
+            .order_by('-created_at')
+            .values('sender_id')[:1]
+        ),
+        last_message_username=Case(
+            When(last_message_sender_id__isnull=True, then=Value('Bot')),
+            default=Concat(
+                Subquery(
+                    ChatUser.objects.filter(pk=OuterRef('last_message_sender_id'))
+                    .values('first_name')[:1]
+                ),
+                Value(' '),
+                Subquery(
+                    ChatUser.objects.filter(pk=OuterRef('last_message_sender_id'))
+                    .values('last_name')[:1]
+                ),
+            ),
+            output_field=CharField()
+        ),
+        username=Concat(
+            F('user__first_name'),
+            Value(' '),
+            F('user__last_name'),
+            output_field=CharField()
+        )
+    ).filter(has_messages=True)
+
+    if user_id:
+        dialogs = dialogs.filter(user_id=user_id)
+
+    if period > 0:
+        time_filter = timezone.now() - timedelta(days=period)
+        dialogs = dialogs.filter(last_message_timestamp__gte=time_filter)
+
+    if start_date and end_date:
+        try:
+            start = timezone.make_aware(datetime.strptime(start_date, '%Y-%m-%d'))
+            end = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d')) + timedelta(days=1)
+            dialogs = dialogs.filter(last_message_timestamp__range=(start, end))
+        except ValueError:
+            return JsonResponse({'error': 'Invalid date format'}, status=400)
+
+    dialogs = dialogs.order_by('-last_message_timestamp').distinct()
+
+    dialogs_data = [
+        {
+            'id': dialog.id,
+            'user': {
+                'id': dialog.user.id,
+                'username': dialog.username
+            },
+            'last_message': dialog.last_message,
+            'last_message_timestamp': dialog.last_message_timestamp,
+            'last_message_username': dialog.last_message_username
+        }
+        for dialog in dialogs
+    ]
+
+    return JsonResponse(dialogs_data, safe=False)
+
+def filter_dialogs_by_id(request):
     user = request.user
-    logger.info(f"Filtering dialogs by user {user} with period {period}.")
+    user_id = request.GET.get('user_id')
+    if not user_id:
+        return JsonResponse({'error': 'user_id parameter is required'}, status=400)
 
-    # Определяем дату для фильтрации
-    now = timezone.now()
+    period = request.GET.get('period', 0)
 
-    if period == 0:
-        # Если фильтруем все диалоги, то период не ограничиваем
-        dialogs = Dialog.objects.annotate(
+    logger.info(f"Filtering dialogs by user {user} with user ID {user_id}.")
+    try:
+        dialogs = Dialog.objects.filter(user_id=user_id).annotate(
             has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
             username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
             last_message=Subquery(
@@ -1003,34 +1273,13 @@ def filter_dialogs(request, period):
             last_message_username=Case(
                 When(last_message_sender_id=None, then=Value('Bot')),
                 default=Subquery(
-                    Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[
-                    :1])
+                    Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1])
             ),
         ).filter(has_messages=True).order_by('-last_message_timestamp')
-    else:
-        # Если фильтруем по дате, создаем фильтрацию по времени
-        time_filter = now - timedelta(days=period)
-        dialogs = Dialog.objects.annotate(
-            has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
-            username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
-            last_message=Subquery(
-                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]),
-            last_message_timestamp=Subquery(
-                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]),
-            last_message_sender_id=Subquery(
-                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]),
-            last_message_username=Case(
-                When(last_message_sender_id=None, then=Value('Bot')),
-                default=Subquery(
-                    Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[
-                    :1])
-            ),
-        ).filter(has_messages=True, last_message_timestamp__gte=time_filter).order_by('-last_message_timestamp')
 
-    # Логирование для отладки
-    logger.debug(f"Filtered dialogs: {list(dialogs)}")
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
-    # Возвращаем отфильтрованные диалоги в формате JSON
     dialogs_data = [
         {
             'id': dialog.id,
@@ -1045,46 +1294,13 @@ def filter_dialogs(request, period):
         for dialog in dialogs
     ]
 
-    return JsonResponse(dialogs_data, safe=False)
-
-
-def filter_dialogs_by_id(request, user_id):
-    user = request.user
-    logger.info(f"Filtering dialogs by user {user} with user ID {user_id}.")
-
-    dialogs = Dialog.objects.filter(user_id=user_id).annotate(
-        has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
-        username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
-        last_message=Subquery(
-            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]),
-        last_message_timestamp=Subquery(
-            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]),
-        last_message_sender_id=Subquery(
-            Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]),
-        last_message_username=Case(
-            When(last_message_sender_id=None, then=Value('Bot')),
-            default=Subquery(
-                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1])
-        ),
-    ).filter(has_messages=True).order_by('-last_message_timestamp')
-
-    # Возвращаем отфильтрованные диалоги в формате JSON
-    dialogs_data = [
-        {
-            'id': dialog.id,
-            'user': {
-                'id': dialog.user.id,
-                'username': dialog.user.username
-            },
-            'last_message': dialog.last_message,
-            'last_message_timestamp': dialog.last_message_timestamp,
-            'last_message_username': dialog.last_message_username
-        }
-        for dialog in dialogs
-    ]
+    if not dialogs_data:
+        return JsonResponse({
+            'message': 'Диалогов не найдено',
+            'data': []
+        }, status=200)
 
     return JsonResponse(dialogs_data, safe=False)
-
 
 def get_messages(request, dialog_id):
     """Retrieves all messages in a dialog."""
@@ -1123,16 +1339,13 @@ def get_messages(request, dialog_id):
 def get_info(request, user_id):
     try:
         user = ChatUser.objects.get(id=user_id)
-        # Проверяем активность сессий пользователя
         active_session = Session.objects.filter(user=user, expires_at__gt=now()).first()
         if active_session:
-            # Если сессия активна
             user_status = {
                 'is_online': True,
                 'last_active': 'Недавно'
             }
         else:
-            # Если сессия не активна
             last_session = Session.objects.filter(user=user).order_by('-expires_at').first()
             user_status = {
                 'is_online': False,

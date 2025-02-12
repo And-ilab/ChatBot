@@ -13,7 +13,6 @@
         <div class="status mb-6">
             <h5 class="text-lg font-medium text-gray-700" data-bs-toggle="tooltip"
                 title="Авторизация через Active Directory позволяет использовать учетные данные AD для аутентификации и авторизации пользователей">
-
                 Текущий статус авторизации через AD:
             </h5>
             <p class="text-md font-semibold" style="color: {{ settings.ad_enabled|yesno:'green,red' }};">
@@ -49,17 +48,6 @@
                 </div>
             </div>
 
-<!--            <div class="form-group mb-4">-->
-<!--                <label for="ip_address" class="block text-md font-medium text-gray-600"-->
-<!--                       data-bs-toggle="tooltip" title="IP адрес сервера регистраций ">-->
-<!--                    Адрес:-->
-<!--                </label>-->
-<!--                <input type="text" id="ip_address" name="ip_address" value="{{ settings.ip_address }}"-->
-<!--                       class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600"-->
-<!--                       data-bs-toggle="tooltip" title="Статическая часть IP адреса сервера регистраций новых пользователей">-->
-<!--            </div>-->
-
-
             <div class="form-group mb-4">
                 <label for="message_retention_months" class="block text-md font-medium text-gray-600"
                        data-bs-toggle="tooltip" title="Срок хранения на сервере переписки с пользователями">
@@ -70,14 +58,15 @@
                        class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600"
                        min="1" max="24">
             </div>
-                        <div class="form-group mb-4">
+
+            <div class="form-group mb-4">
                 <label for="logs_backup" class="block text-md font-medium text-gray-600"
                        data-bs-toggle="tooltip" title="Срок хранения на логов на сервере">
                     Срок хранения логов (в днях):
                 </label>
                 <input type="number" id="logs_backup" name="logs_backup"
                        value="{{ logs_backup }}"
-                       class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm foc   us:ring-2 focus:ring-blue-600"
+                       class="form-input mt-2 p-2 w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600"
                        min="1" max="100">
             </div>
 
@@ -99,11 +88,33 @@
                 Сохранить
             </button>
         </form>
-
     </div>
 </div>
 
+<!-- Подключение Toastr -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
 <script>
+    // Настройки Toastr
+    toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": true,
+        "progressBar": true,
+        "positionClass": "toast-top-center",
+        "preventDuplicates": false,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    };
+
     const enableAdCheckbox = document.getElementById('enable_ad');
     const adParameters = document.getElementById('ad-parameters');
     const saveButton = document.getElementById('save-settings');
@@ -112,9 +123,8 @@
     const adServerInput = document.getElementById('ad_server');
     const adDomainInput = document.getElementById('ad_domain');
     const sessionDurationInput = document.getElementById('session_duration');
-    const statusText = document.querySelector('.status p'); // Элемент для статуса AD
+    const statusText = document.querySelector('.status p');
 
-    // Сохраняем исходные значения формы
     const initialValues = {
         enableAd: enableAdCheckbox.checked,
         retentionSelect: retentionSelect.value,
@@ -124,24 +134,21 @@
         sessionDuration: sessionDurationInput.value,
     };
 
-    // Проверяет, есть ли изменения в форме
     function hasChanges() {
         return (
             enableAdCheckbox.checked !== initialValues.enableAd ||
             retentionSelect.value !== initialValues.retentionSelect ||
-            logsBackupSelect.value!== initialValues.logsBackupSelect ||
+            logsBackupSelect.value !== initialValues.logsBackupSelect ||
             adServerInput.value !== initialValues.adServer ||
             adDomainInput.value !== initialValues.adDomain ||
             sessionDurationInput.value !== initialValues.sessionDuration
         );
     }
 
-    // Показ или скрытие кнопки "Сохранить" в зависимости от изменений
     function toggleSaveButton() {
         saveButton.style.display = hasChanges() ? 'block' : 'none';
     }
 
-    // Обработчики событий для полей формы
     enableAdCheckbox.addEventListener('change', () => {
         adParameters.style.display = enableAdCheckbox.checked ? 'block' : 'none';
         toggleSaveButton();
@@ -152,15 +159,14 @@
     adDomainInput.addEventListener('input', toggleSaveButton);
     sessionDurationInput.addEventListener('input', toggleSaveButton);
 
-    // Обработчик для кнопки "Сохранить"
     saveButton.addEventListener('click', function () {
         const formData = new FormData();
         formData.append('session_duration', sessionDurationInput.value);
         formData.append('ad_server', adServerInput.value);
         formData.append('ad_domain', adDomainInput.value);
         formData.append('message_retention_months', retentionSelect.value);
-        formData.append('logs_backup', logsBackupSelect.value); // Добавлено
-        formData.append('enable_ad', enableAdCheckbox.checked ? 'on' : 'off'); // Добавлено
+        formData.append('logs_backup', logsBackupSelect.value);
+        formData.append('enable_ad', enableAdCheckbox.checked ? 'on' : 'off');
 
         const csrftoken = document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1];
 
@@ -175,10 +181,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    alert('Изменения сохранены!');
+                    toastr.success('Изменения сохранены!', 'Успех');
                     saveButton.style.display = 'none';
-
-                    // Обновляем исходные значения после успешного сохранения
                     initialValues.enableAd = enableAdCheckbox.checked;
                     initialValues.retentionSelect = retentionSelect.value;
                     initialValues.logsBackupSelect = logsBackupSelect.value;
@@ -188,23 +192,25 @@
                     statusText.textContent = enableAdCheckbox.checked ? 'Включена' : 'Отключена';
                     statusText.style.color = enableAdCheckbox.checked ? 'green' : 'red';
                 } else {
-                    alert('Ошибка при сохранении: ' + data.message);
+                    toastr.error('Ошибка при сохранении: ' + data.message, 'Ошибка');
                 }
             })
-            .catch(error => console.error('Ошибка:', error));
+            .catch(error => {
+                console.error('Ошибка:', error);
+                toastr.error('Произошла ошибка. Попробуйте еще раз.', 'Ошибка');
+            });
     });
 
     window.onload = function() {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl, {
                 container: 'body',
-                placement: 'bottom' // Устанавливаем позицию тултипа снизу
+                placement: 'bottom'
             });
         });
     };
 
-    // Проверяем начальное состояние формы при загрузке страницы
     toggleSaveButton();
 </script>
 {% endblock %}

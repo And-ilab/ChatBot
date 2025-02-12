@@ -251,3 +251,54 @@
 #btn-searched {
     display: none;
 }
+
+.chat-list {
+    scrollbar-width: thin;
+    scrollbar-color: #dee2e6 transparent;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+.py-4 {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+
+.datepicker {
+    border-radius: 8px !important;
+}
+    .status-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.input-group-text {
+    background: #f8f9fa;
+    border-right: 0;
+}
+
+.form-control:focus {
+    box-shadow: none;
+    border-color: #dee2e6;
+}
+
+.flatpickr-calendar {
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.flatpickr-day.selected {
+    background: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.flatpickr-day.inRange {
+    background: #bfdbfe;
+    box-shadow: -5px 0 0 #bfdbfe, 5px 0 0 #bfdbfe;
+}
+
+.flatpickr-day.today:not(.selected) {
+    border-color: #94a3b8;
+}
