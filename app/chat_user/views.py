@@ -378,7 +378,6 @@ def get_question_id_by_content(request):
     """Fetch question for a specific question ID."""
     if request.method == 'GET':
         question_content = urllib.parse.unquote(request.GET.get('questionContent'))
-        print(question_content)
 
         if question_content:
             logger.info(f"Received question content: {question_content}")
@@ -459,7 +458,7 @@ def get_answer(request):
             return JsonResponse({"error": "No questionId provided"}, status=400)
 
 
-def get_documents(request):
+def get_artifacts(request):
     """Получение документов и ссылок, связанных с ответом по заданному ID."""
     if request.method == 'GET':
         # Извлекаем answerID из GET-запроса
@@ -492,8 +491,13 @@ def get_documents(request):
                 if 'result' in documents_data:
                     for node in documents_data['result']:
                         if '@rid' in node:
-                            if 'content' in node:
+                            if 'content' in node and 'uuid' in node:
+                                nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content'],
+                                                   'type': 'document', 'uuid': node['uuid']})
+                            elif 'content' in node:
                                 nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content'], 'type': 'document'})
+                            elif 'uuid' in node:
+                                nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': '', 'type': 'document', 'uuid': node['uuid']})
                             else:
                                 nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': '', 'type': 'document'})
                     logger.info(f"Found {len(nodes_data)} documents.")

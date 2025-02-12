@@ -7,14 +7,15 @@ let navigationStack = [];
 const updateChatLayout = () => {
     chatMessagesArea.style.height = '380px';
     menuButtonsContainer.style.display = 'flex';
+    menuButton.style.display = 'flex';
     setTimeout(scrollToBottom, 0);
 };
 
-menuButton.addEventListener('click', () => {
+menuButton.addEventListener('click', async () => {
     const menuButtonsContainer = document.querySelector('.menu-buttons');
 
     if (menuButtonsContainer.style.display === 'none' || menuButtonsContainer.style.display === '') {
-        updateChatLayout();
+        await showSectionButtons();
     } else {
         menuButtonsContainer.style.display = 'none';
         chatMessagesArea.style.height = '560px';
@@ -123,6 +124,22 @@ const fetchAnswer = async (questionID) => {
     }
 };
 
+const fetchArtifacts = async (answerID) => {
+    const encodedAnswerID = encodeURIComponent(answerID);
+    try {
+        const response = await fetch(`/api/get-artifacts/?answerID=${encodedAnswerID}`, { method: 'GET' });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error fetching answer: ${response.status} - ${errorText}`);
+        }
+        const data = await response.json();
+        return data['result'];
+    } catch (error) {
+        console.error('Error fetching answer:', error.message);
+        return '';
+    }
+};
+
 const goBack = async () => {
     if (navigationStack.length === 0) {
         return;
@@ -159,7 +176,7 @@ const createButtonsFromNodes = (nodes, onClickHandler) => {
     if (navigationStack.length > 0)
     {
         const backButton = document.createElement('button');
-        backButton.textContent = 'Назад';
+        backButton.innerHTML = '↑ ⋯';
         backButton.classList.add('chat-button');
         backButton.onclick = () => goBack();
         menuButtonsContainer.appendChild(backButton);
@@ -224,7 +241,7 @@ const showAnswer = async (questionID, requestType) => {
                 await sendBotMessage(formattedPart);
             }
         }
-
+        await showArtifacts(answer.id);
         typingBlock.style.display = 'none';
         if (requestType === 'script') {
             enableUserActions();
@@ -234,13 +251,138 @@ const showAnswer = async (questionID, requestType) => {
         } else {
             return;
         }
-//        await showDocuments(answer.id);
     } else {
         let message = 'Не удалось найти ответ на выбранный вопрос, попробуйте еще раз';
         appendMessage('bot', message, getTimestamp());
         await sendBotMessage(message);
         await showSectionButtons();
+        enableUserActions();
     }
+};
+
+const createArtifactsBlock = async (artifacts) => {
+    const documents = artifacts.filter(item => item.type === 'document');
+    const links = artifacts.filter(item => item.type === 'link');
+
+    if (!documents || !links) {
+        return
+    }
+
+    if (documents.length > 0) {
+        let docMessage;
+        if (documents.length > 1) {
+            docMessage = `${state['username']}, еще больше информации Вы можете получить в документах:`;
+        } else {
+            docMessage = `${state['username']}, еще больше информации Вы можете получить в документе:`;
+        }
+        appendMessage('bot', docMessage, getTimestamp());
+        await sendBotMessage(docMessage);
+
+        // Обрабатываем документы
+        for (const doc of documents) {
+            const documentMessageDiv = document.createElement('div');
+            const documentButton = document.createElement('button');
+            documentButton.className = 'document-button';
+            documentButton.innerHTML = `
+                ${doc.name}
+                <i class="fas fa-download" style="margin-left: 8px;"></i>
+            `;
+
+            try {
+                const response = await fetch(`/api/get-document-link-by-uuid/${doc.uuid}/`);
+                if (!response.ok) {
+                    throw new Error('Не удалось получить ссылку на файл');
+                }
+
+                const data = await response.json();
+                const filePath = data.file_url;
+
+                const link = document.createElement('a');
+                link.href = filePath;
+                link.download = doc.name; // Указываем имя файла для скачивания
+                documentButton.onclick = () => {
+                    link.click(); // Скачивание файла при нажатии на кнопку
+                };
+                documentMessageDiv.appendChild(documentButton);
+                chatMessagesArea.appendChild(documentMessageDiv);
+                await sendMessageToAPI(state['dialog_id'], 'bot', 'document', `${doc.name}^_^${doc.uuid}`, getTimestamp());
+            } catch (error) {
+                console.error(`Ошибка при получении ссылки для файла "${doc.name}":`, error.message);
+                documentButton.textContent = `${doc.name} (недоступен)`;
+                documentButton.classList.add('error');
+                documentMessageDiv.appendChild(documentButton);
+                chatMessagesArea.appendChild(documentMessageDiv);
+            }
+        }
+
+        setTimeout(scrollToBottom, 0);
+
+        // После завершения обработки документов выводим ссылки
+        if (links.length > 0) {
+            console.log('Jopa');
+            console.log(links);
+            let linkMessage;
+            if (links.length > 1) {
+                linkMessage = `... а также на страницах портала:`;
+            } else {
+                linkMessage = `... а также на странице портала:`;
+            }
+            appendMessage('bot', linkMessage, getTimestamp());
+            await sendBotMessage(linkMessage);
+
+            for (const link of links) {
+                const messageDiv = document.createElement('div');
+                const linkButton = document.createElement('button');
+                linkButton.className = 'link-button';
+                linkButton.innerHTML = `
+                    ${link.name}
+                    <i class="fas fa-external-link-alt" style="margin-left: 8px;"></i>
+                `;
+
+                linkButton.addEventListener('click', () => {
+                    window.open(link.content, '_blank');
+                });
+                messageDiv.appendChild(linkButton);
+                chatMessagesArea.appendChild(messageDiv);
+                await sendMessageToAPI(state['dialog_id'], 'bot', 'link', `${link.name}^_^${link.content}`, getTimestamp());
+            }
+
+            setTimeout(scrollToBottom, 0);
+        }
+    } else {
+        let message = ''
+        if (links.length > 1) {
+            message = `${state['username']}, еще больше информации Вы можете получить на страницах портала:`;
+        } else {
+            message = `${state['username']}, еще больше информации Вы можете получить на странице портала:`;
+        }
+        appendMessage('bot', message, getTimestamp());
+        await sendBotMessage(message);
+        links.forEach(async (link) => {
+            const messageDiv = document.createElement('div');
+                const linkButton = document.createElement('button');
+                linkButton.className = 'link-button';
+                linkButton.innerHTML = `
+                    ${link.name}
+                    <i class="fas fa-external-link-alt" style="margin-left: 8px;"></i>
+                `;
+
+                linkButton.addEventListener('click', () => {
+                    window.open(link.content, '_blank');
+                });
+                messageDiv.appendChild(linkButton);
+                chatMessagesArea.appendChild(messageDiv);
+                await sendMessageToAPI(state['dialog_id'], 'bot', 'link', `${link.name}^_^${link.content}`, getTimestamp());
+        });
+        setTimeout(scrollToBottom, 0);
+    }
+}
+
+const showArtifacts = async (answerID) => {
+    const artifactsData = await fetchArtifacts(answerID);
+    console.log(artifactsData);
+    await createArtifactsBlock(artifactsData);
+    typingBlock.style.display = 'none';
 };
 
 const sendFeedback = async (messageType, answerContent = null) => {
@@ -249,7 +391,8 @@ const sendFeedback = async (messageType, answerContent = null) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Token ${localStorage.getItem('token')}`
+                'Authorization': `Token ${localStorage.getItem('token')}`,
+                "X-CSRFToken": csrfToken
             },
             body: JSON.stringify({
                 user: state['user_id'],
@@ -275,6 +418,7 @@ const sendThanksFeedbackMessage = async () => {
     appendMessage('bot', message, getTimestamp());
     await sendBotMessage(message);
     enableUserActions();
+    await showSectionButtons();
 }
 
 const sendFeedbackRequest = async () => {
@@ -296,17 +440,19 @@ const appendBotFeedbackButtons = () => {
     likeButton.onclick = async () => {
         likeButton.disabled = true;
         dislikeButton.remove();
+        await sendMessageToAPI(state['dialog_id'], 'bot', 'like', 'Useful', getTimestamp());
         await sendFeedback('like');
         sendThanksFeedbackMessage();
     };
 
     const dislikeButton = document.createElement('button');
     dislikeButton.className = 'feedback-button dislike-button';
-    dislikeButton.innerHTML = '👎 <span>Не то, что я хотел(-а)</span>';
-    dislikeButton.onclick = () => {
+    dislikeButton.innerHTML = '👎 <span>Не то, что хотелось бы</span>';
+    dislikeButton.onclick = async () => {
         dislikeButton.disabled = true;
         likeButton.remove();
-        sendFeedbackRequest();
+        await sendMessageToAPI(state['dialog_id'], 'bot', 'dislike', 'Not useful', getTimestamp());
+        await sendFeedbackRequest();
     };
 
     buttonsWrapper.appendChild(likeButton);

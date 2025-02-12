@@ -87,6 +87,10 @@
     margin-top: 0.125rem;
 }
 
+.dropdown-item {
+    cursor: pointer;
+}
+
 /* Стили для выпадающего меню с date picker */
 .dropdown-menu .filter-item {
     position: relative;

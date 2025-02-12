@@ -7,13 +7,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, F, Count
 from django.db.models.functions import TruncDate, Concat
 from django.utils.timezone import now
-from .models import Dialog, Message, User, TrainingMessage, Settings
+from .models import Dialog, Message, User, TrainingMessage, Settings, Documents
 from chat_user.models import ChatUser, Session
 from .forms import UserForm, UserFormUpdate
 import json
 import re
 import spacy
 import os
+import os
+from django.conf import settings
 import pymorphy3
 from config import config_settings
 from django.conf import settings
@@ -26,11 +28,10 @@ from chat_user.models import ChatUser
 from django.core.mail import send_mail
 from authentication.decorators import role_required
 import random
+import uuid
 
 logger = logging.getLogger('chat_dashboard')
 user_action = logging.getLogger('user_actions')
-
-
 
 # @role_required(['admin', 'operator'])
 def analytics(request):
@@ -138,7 +139,7 @@ custom_stop_words = {"может", "могут", "какой", "какая", "к
                      "почему"}
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def training_dashboard(request):
     """Displays the training dashboard."""
     logger.info("Accessing training dashboard.")
@@ -399,15 +400,17 @@ def create_node(request):
             node_class = data.get('class')
             node_name = data.get('name')
             node_content = data.get('content')
+            node_uuid = data.get('uuid')
 
             if not node_class or not node_name:
                 return JsonResponse({'error': 'Missing required fields: class or name'}, status=400)
 
             logger.info(f"node class: {node_class}")
+            sql_command = f"CREATE VERTEX {node_class} SET name = '{node_name}'"
             if node_content:
-                sql_command = f"CREATE VERTEX {node_class} SET name = '{node_name}', content = '{node_content}'"
-            else:
-                sql_command = f"CREATE VERTEX {node_class} SET name = '{node_name}'"
+                sql_command += f", content = '{node_content}'"
+            elif node_uuid:
+                sql_command += f", uuid = '{node_uuid}'"
 
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
@@ -931,7 +934,7 @@ def archive(request):
     })
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def create_or_edit_content(request):
     user = request.user
     user_action.info(
@@ -1218,11 +1221,17 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Кор
 
 @csrf_exempt
 def upload_document(request):
+    global DOCUMENTS_DICT
     user = request.user
     if request.method == 'POST' and request.FILES.get('file'):
         uploaded_file = request.FILES['file']
         file_name = uploaded_file.name
         file_path = os.path.join(settings.MEDIA_ROOT, 'documents', file_name)
+        document_uuid = str(uuid.uuid4())
+        new_document = Documents.objects.create(
+            document_name=file_name,
+            document_uuid=document_uuid
+        )
 
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, 'wb+') as destination:
@@ -1241,7 +1250,7 @@ def upload_document(request):
                 })
             })
 
-        return JsonResponse({'message': 'Файл успешно загружен!', 'file_name': file_name}, status=200)
+        return JsonResponse({'message': 'Файл успешно загружен!', 'data': {'file_name': file_name, 'file_id': document_uuid}}, status=200)
     user_action.info(
         f"Trying upload document by user {user} unsuccess",
         extra={
@@ -1257,18 +1266,15 @@ def upload_document(request):
     return JsonResponse({'message': 'Файл не загружен!'}, status=400)
 
 
-import os
-from django.conf import settings
-from django.http import JsonResponse
-
-
-def get_document_link_by_name(request, file_name):
+def get_document_link_by_uuid(request, uuid):
     documents_path = os.path.join(settings.MEDIA_ROOT, 'documents')
     available_files = os.listdir(documents_path)
 
+    document = Documents.objects.get(document_uuid=uuid)
+    document_name = document.document_name
+
     for file in available_files:
-        print(f"file = ss{file_name.strip()}ss, compare = ss{file.split('.docx')[0].strip()}ss")
-        if file_name.strip() == file.split('.')[0]:
+        if document_name.strip() == file.strip():
             file_url = f"{settings.MEDIA_URL}documents/{file}"
 
             return JsonResponse({'file_url': file_url}, status=200)

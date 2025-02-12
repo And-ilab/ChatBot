@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
@@ -97,6 +98,9 @@ class Message(models.Model):
         ('message', 'Message'),
         ('document', 'Document'),
         ('link', 'Link'),
+        ('like', 'Like'),
+        ('dislike', 'Dislike'),
+        ('operator', 'Operator')
     ]
 
     dialog = models.ForeignKey(Dialog, on_delete=models.CASCADE, related_name="messages")
@@ -144,3 +148,8 @@ class PopularRequests(models.Model):
     sender = models.ForeignKey('chat_user.ChatUser', null=True, blank=True, on_delete=models.SET_NULL)
     type = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Documents(models.Model):
+    document_name = models.CharField(max_length=255)  # Укажите максимальную длину
+    document_uuid = models.CharField(max_length=36, unique=True, default=uuid.uuid4)

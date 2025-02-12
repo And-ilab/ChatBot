@@ -68,7 +68,7 @@ const fetchAnswer = async (questionId) => {
 const fetchDocuments = async (answerID) => {
     const encodedAnswerID = encodeURIComponent(answerID);
     try {
-        const response = await fetch(`/api/get-documents/?answerID=${encodedAnswerID}`, { method: 'GET' });
+        const response = await fetch(`/api/get-artifacts/?answerID=${encodedAnswerID}`, { method: 'GET' });
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -76,7 +76,6 @@ const fetchDocuments = async (answerID) => {
         }
 
         const data = await response.json();
-        console.log(data);
         return data.result || [];
     } catch (error) {
         console.error('Error fetching documents:', error.message);
@@ -86,8 +85,6 @@ const fetchDocuments = async (answerID) => {
 
 const updateDocumentList = (documents) => {
     documentList.innerHTML = '';
-    console.log(documents);
-
     documents.forEach((doc) => {
         const listItem = document.createElement('li');
         listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
@@ -137,7 +134,6 @@ const updateDocumentList = (documents) => {
 
 const updateLinkList = (links) => {
     linkList.innerHTML = '';
-    console.log(links);
 
     links.forEach((link) => {
         const listItem = document.createElement('li');
@@ -243,7 +239,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (response.ok) {
                 const result = await response.json();
-                console.log(result.message);
 
                 try {
                     const createDocumentResponse = await fetch('/api/create-node/', {
@@ -256,6 +251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             class: 'document',
                             name: fileTitle,
                             content: '',
+                            uuid: result.data.file_id
                         }),
                     });
 

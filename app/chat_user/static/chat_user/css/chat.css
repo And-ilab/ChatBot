@@ -430,3 +430,52 @@
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0,0,0,0.1);
 }
+
+.document-button {
+    display: flex;
+    background-color: #28a745; /* Зеленый цвет */
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 8px 16px; /* Увеличим padding для лучшего вида */
+    font-size: 14px; /* Увеличим размер шрифта */
+    cursor: pointer;
+    align-items: center;
+    text-align: left;
+    justify-content: space-between;
+    margin-right: 10px;
+    max-width: 420px;
+    transition: background-color 0.3s ease; /* Плавное изменение цвета */
+}
+
+.document-button:hover {
+    background-color: #218838; /* Темно-зеленый цвет при наведении */
+}
+
+.document-button i {
+    margin-left: 8px; /* Отступ для иконки */
+}
+
+.link-button {
+    display: flex;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    align-items: center;
+    text-align: left;
+    justify-content: space-between;
+    margin-right: 10px;
+    max-width: 420px;
+    transition: background-color 0.3s ease;
+}
+
+.link-button {
+    background-color: #17a2b8;
+}
+
+.link-button:hover {
+    background-color: #138496;
+}

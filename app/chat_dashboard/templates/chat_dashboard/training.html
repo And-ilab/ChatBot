@@ -61,7 +61,7 @@
 <!--                        </div>-->
                     </div>
                     <div class="text-center me-5">
-                        <small class="text-muted">{{ message.created_at|add_hours:3|date:"Y-m-d H:i:s" }}</small>
+                        <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
                     </div>
                     <div class="message-actions d-flex gap-2">
                         <button class="btn btn-outline-success btn-sm" title="Обучить">
@@ -120,7 +120,7 @@
                         <p class="mb-0">{{ message.content }}</p>
                     </div>
                     <div class="text-center me-5">
-                        <small class="text-muted">{{ message.created_at|add_hours:3|date:"Y-m-d H:i:s" }}</small>
+                        <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
                     </div>
                     <div class="message-actions d-flex gap-2">
                         <button class="btn btn-outline-success btn-sm" title="Обучить">
