@@ -32,17 +32,17 @@
                             <i class="bi bi-calendar-month me-2"></i>За месяц
                         </a>
                         <div class="dropdown-divider"></div>
-                        <a class="dropdown-item filter-option" id="filter-by-date-range-custom">
-                            <i class="bi bi-calendar-range me-2"></i>Выбрать дату
-                        </a>
+<!--                        <a class="dropdown-item filter-option" id="filter-by-date-range-custom">-->
+<!--                            <i class="bi bi-calendar-range me-2"></i>Выбрать дату-->
+<!--                        </a>-->
                         <a class="dropdown-item filter-option" id="open-id-filter-modal">
                             <i class="bi bi-person-badge me-2"></i>По ID
                         </a>
                     </div>
                 </div>
-                <button class="btn btn-outline-secondary" id="reset-filter">
-                    <i class="bi bi-arrow-counterclockwise"></i>
-                </button>
+<!--                <button class="btn btn-outline-secondary" id="reset-filter">-->
+<!--                    <i class="bi bi-arrow-counterclockwise"></i>-->
+<!--                </button>-->
             </div>
         </div>
         <ul class="chat-list" style="flex-grow: 1; overflow-y: auto; box-sizing: border-box; list-style-type: none; padding-left: 0;">
@@ -63,8 +63,8 @@
                     <div class="d-flex w-100">
                         <p><strong>{{ dialog.last_message_username }}:</strong></p>
                         <p class="dialog-content mb-0">
-                            {% if dialog.last_message|length > 15 %}
-                                {{ dialog.last_message|slice:":15" }}...
+                            {% if dialog.last_message|length > 21 %}
+                                {{ dialog.last_message|slice:":21" }}...
                             {% else %}
                                 {{ dialog.last_message }}
                             {% endif %}

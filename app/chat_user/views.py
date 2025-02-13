@@ -872,3 +872,16 @@ def add_popular_request(request):
 
     logger.warning("Invalid request method")
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+@require_http_methods(["DELETE"])
+def delete_last_chat_message(request, dialog_id):
+    print('TRYING TO DELETE ZALUPU')
+    try:
+        last_message = Message.objects.filter(dialog_id=dialog_id).latest('created_at')
+        last_message.delete()
+        return JsonResponse({"status": "success", "message": "Last message deleted successfully."})
+    except Message.DoesNotExist:
+        return JsonResponse({"status": "error", "message": "No messages found."}, status=404)
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)

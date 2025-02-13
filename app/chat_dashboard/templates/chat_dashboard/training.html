@@ -10,23 +10,25 @@
              style="width: 350px;">
             <h3 class="mb-0">Обучение</h3>
         </div>
-        <div class="input-group border rounded w-75 mt-3">
-            <input id="search-input" type="text" class="form-control border-0" placeholder="Поиск..." aria-label="Поиск"
-                   data-bs-toggle="tooltip" data-bs-placement="top" title="Поиск неотвеченных или игнорируемых сообщений по имени пользователя">
-
-            <button id="search-button" class="btn btn-light border-0" type="button"
-                    data-bs-toggle="tooltip" data-bs-placement="top" title="Нажмите для поиска">
-                <i class="bi bi-search"></i>
-            </button>
+        <div class="container mt-5 w-90">
+            <div class="row justify-content-center">
+                <div class="w-75 position-relative">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="search-input" placeholder="Поиск...">
+                    </div>
+                    <ul class="list-group mt-2 position-absolute shadow search-dropdown-menu hidden" id="suggestionsList" style="z-index: 1000; width: 240px;">
+                    </ul>
+                </div>
+            </div>
         </div>
         <div class="d-flex flex-column gap-2 mt-4">
             <button id="btn-unread" class="btn custom-btn d-flex justify-content-between align-items-center active"
                 data-bs-toggle="tooltip" data-bs-placement="right" title="Вопросы пользователей, оставшиеся без ответа">
-            <span class="d-flex align-items-center gap-2">
-                <i class="bi bi-envelope"></i>
-                Неотвеченные сообщения
-            </span>
-            <span id="unread-indicator" class="indicator {% if unread_messages|length == 0 %}hidden{% endif %}">{{ unread_messages|length }}</span>
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-envelope"></i>
+                    Неотвеченные сообщения
+                </span>
+                <span id="unread-indicator" class="indicator {% if unread_messages|length == 0 %}hidden{% endif %}">{{ unread_messages|length }}</span>
             </button>
             <button id="btn-ignored" class="btn custom-btn d-flex justify-content-between align-items-center"
                     data-bs-toggle="tooltip" data-bs-placement="right" title="Проигнорированные вопросы пользователей">
@@ -42,7 +44,7 @@
                     <i class="bi bi-slash-circle"></i>
                     Найденные сообщения
                 </span>
-                <span id="searcbhed-indicator" class="indicator {% if ignored_messages|length == 0 %}hidden{% endif %}">{{ ignored_messages|length }}</span>
+                <span id="searched-indicator" class="indicator {% if ignored_messages|length == 0 %}hidden{% endif %}">{{ ignored_messages|length }}</span>
             </button>
         </div>
     </div>
@@ -56,18 +58,14 @@
                 <div class="message-item d-flex align-items-center border p-2 mb-2 rounded">
                     <div class="flex-grow-1">
                         <p class="mb-0">{{ message.content }}</p>
-<!--                        <div>-->
-<!--                            <a href="#" class="text-decoration-none">Подробнее</a>-->
-<!--                        </div>-->
                     </div>
                     <div class="text-center me-5">
                         <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
                     </div>
                     <div class="message-actions d-flex gap-2">
-                        <button class="btn btn-outline-success btn-sm" title="Обучить">
-                            <a href="{% url 'chat_dashboard:train' message.id %}" class="text-decoration-none">
-                                <i class="bi bi-check"></i>
-                            </a>
+                        <button class="btn btn-outline-success btn-sm position-relative" title="Обучить">
+                            <i class="bi bi-check"></i>
+                            <a href="{% url 'chat_dashboard:train' message.id %}" class="stretched-link text-decoration-none"></a>
                         </button>
                         <button
                             class="btn btn-outline-warning btn-sm"
@@ -96,11 +94,9 @@
                         <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
                     </div>
                     <div class="message-actions d-flex gap-2">
-                        <button
-                            class="btn btn-outline-info btn-sm"
-                            title="Вернуть"
-                            data-message-id="{{ message.id }}">
-                            <i class="bi bi-arrow-counterclockwise"></i>
+                        <button class="btn btn-outline-success btn-sm position-relative" title="Обучить">
+                            <i class="bi bi-check"></i>
+                            <a href="{% url 'chat_dashboard:train' message.id %}" class="stretched-link text-decoration-none"></a>
                         </button>
                         <button class="btn btn-outline-danger btn-sm" data-message-id="{{ message.id }}" title="Удалить">
                             <i class="bi bi-x"></i>
@@ -112,37 +108,6 @@
                   <p>Извините, в системе отсутствуют <br> <strong> Игнорируемые сообщения </strong></p>
                 </div>
             {% endfor %}
-        </div>
-        <div id="searched-messages" class="chat-messages flex-grow-1 p-3 border-start border-end hidden">
-            {% for message in all_messages %}
-                <div class="message-item align-items-center border p-2 mb-2 rounded">
-                    <div class="flex-grow-1">
-                        <p class="mb-0">{{ message.content }}</p>
-                    </div>
-                    <div class="text-center me-5">
-                        <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
-                    </div>
-                    <div class="message-actions d-flex gap-2">
-                        <button class="btn btn-outline-success btn-sm" title="Обучить">
-                            <a href="{% url 'chat_dashboard:train' message.id %}" class="text-decoration-none">
-                                <i class="bi bi-check"></i>
-                            </a>
-                        </button>
-                        <button
-                            class="btn btn-outline-warning btn-sm"
-                            title="Игнорировать"
-                            data-message-id="{{ message.id }}">
-                            <i class="bi bi-slash-circle"></i>
-                        </button>
-                        <button class="btn btn-outline-danger btn-sm" data-message-id="{{ message.id }}" title="Удалить">
-                            <i class="bi bi-x"></i>
-                        </button>
-                    </div>
-                </div>
-            {% endfor %}
-            <div class="empty-container justify-content-center" id="searched-empty">
-              <p>Извините, в системе отсутствуют сообщения, подходящие под Ваш запрос</p>
-            </div>
         </div>
     </div>
 </div>

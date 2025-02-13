@@ -429,7 +429,7 @@ const sendFeedbackRequest = async () => {
     enableUserActions();
 };
 
-const appendBotFeedbackButtons = () => {
+const appendBotFeedbackButtons = async () => {
     const messageDiv = document.createElement('div');
     const buttonsWrapper = document.createElement('div');
     buttonsWrapper.className = 'feedback-buttons';

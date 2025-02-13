@@ -136,21 +136,27 @@ async function drawDocument(content) {
 }
 
 function drawLink(content) {
-    const linkName = content.split("^_^")[0];
-    const linkHref = content.split("^_^")[1];
-    const messageDiv = document.createElement('div');
-    const linkButton = document.createElement('button');
-    linkButton.className = 'link-button';
-    linkButton.innerHTML = `
-        ${linkName}
-        <i class="fas fa-external-link-alt" style="margin-left: 8px;"></i>
-    `;
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const linkName = content.split("^_^")[0];
+            const linkHref = content.split("^_^")[1];
+            const messageDiv = document.createElement('div');
+            const linkButton = document.createElement('button');
+            linkButton.className = 'link-button';
+            linkButton.innerHTML = `
+                ${linkName}
+                <i class="fas fa-external-link-alt" style="margin-left: 8px;"></i>
+            `;
 
-    linkButton.addEventListener('click', () => {
-        window.open(linkHref, '_blank');
+            linkButton.addEventListener('click', () => {
+                window.open(linkHref, '_blank');
+            });
+            messageDiv.appendChild(linkButton);
+            chatMessagesArea.appendChild(messageDiv);
+
+            resolve();
+        }, 1);
     });
-    messageDiv.appendChild(linkButton);
-    chatMessagesArea.appendChild(messageDiv);
 }
 
 const loadMessages = async () => {
@@ -222,15 +228,20 @@ const loadMessages = async () => {
                 }
             } else if (message_type === 'link') {
                 if (isLastMessage) {
-                    drawLink(content);
+                    await drawLink(content);
                     await showSectionButtons();
                 } else {
-                    drawLink(content);
+                    await drawLink(content);
                 }
             } else if (message_type === 'message') {
                 if (isLastMessage) {
-                    appendMessage(sender, content, timestamp);
-                    await showSectionButtons();
+                    if (content === 'Насколько полезным был для Вас этот ответ?') {
+                        appendMessage(sender, content, timestamp);
+                        await appendBotFeedbackButtons();
+                    } else {
+                        appendMessage(sender, content, timestamp);
+                        await showSectionButtons();
+                    }
                 } else {
                     appendMessage(sender, content, timestamp);
                 }

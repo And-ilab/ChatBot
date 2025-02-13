@@ -302,3 +302,22 @@
 .flatpickr-day.today:not(.selected) {
     border-color: #94a3b8;
 }
+
+.btn-outline-success {
+    position: relative;
+}
+
+.btn-outline-success a {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.no-results {
+    background-color: white;
+    height: 40px;
+}

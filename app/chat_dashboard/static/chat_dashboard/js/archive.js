@@ -134,8 +134,8 @@ function createDialogElement(dialog) {
             <div class="d-flex w-100">
                 <p><strong>${dialog.last_message_username}:</strong></p>
                 <p class="dialog-content mb-0">
-                    ${dialog.last_message.length > 15 ?
-                      dialog.last_message.slice(0, 15) + '...' :
+                    ${dialog.last_message.length > 22 ?
+                      dialog.last_message.slice(0, 22) + '...' :
                       dialog.last_message}
                 </p>
             </div>
@@ -186,32 +186,33 @@ function renderMessages(messages) {
     container.innerHTML = '';
 
     messages.forEach(message => {
-        const messageElement = document.createElement('div');
-        messageElement.className = `d-flex ${
-            message.sender === 'bot' ? 'justify-content-start' : 'justify-content-end'
-        } archive-item w-90 mb-3`;
+        if (message.message_type == 'message') {
+            const messageElement = document.createElement('div');
+            messageElement.className = `d-flex ${
+                message.sender === 'bot' ? 'justify-content-start' : 'justify-content-end'
+            } archive-item w-90 mb-3`;
 
-        messageElement.innerHTML = `
-            <div class="message-wrapper"
-                 style="${message.sender === 'bot' ?
-                   'background-color: #8cc3f4;' :
-                   'background-color: #f1f1f1;'}
-                        border-radius: 10px;
-                        padding: 5px 10px 20px 10px;
-                        position: relative;
-                        min-width: 180px;
-                        max-width: 70%;
-                        overflow-wrap: break-word;">
-                <div class="d-flex message-sender">${message.sender}</div>
-                <div class="d-flex message-content">${message.content}</div>
-                <div class="d-flex message-time text-muted"
-                     style="position: absolute; right: 10px; bottom: 2px;">
-                    ${new Date(message.timestamp).toLocaleString()}
+            messageElement.innerHTML = `
+                <div class="message-wrapper"
+                     style="${message.sender === 'bot' ?
+                       'background-color: #8cc3f4;' :
+                       'background-color: #f1f1f1;'}
+                            border-radius: 10px;
+                            padding: 5px 10px 20px 10px;
+                            position: relative;
+                            min-width: 180px;
+                            max-width: 70%;
+                            overflow-wrap: break-word;">
+                    <div class="d-flex message-sender">${message.sender}</div>
+                    <div class="d-flex message-content">${message.content}</div>
+                    <div class="d-flex message-time text-muted"
+                         style="position: absolute; right: 10px; bottom: 2px;">
+                        ${new Date(message.timestamp).toLocaleString()}
+                    </div>
                 </div>
-            </div>
-        `;
-
-        container.appendChild(messageElement);
+            `;
+            container.appendChild(messageElement);
+        }
     });
 
     container.scrollTop = container.scrollHeight;

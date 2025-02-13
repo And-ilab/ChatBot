@@ -34,7 +34,7 @@ import uuid
 logger = logging.getLogger('chat_dashboard')
 user_action = logging.getLogger('user_actions')
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def analytics(request):
     user = request.user
     user_action.info(
@@ -140,7 +140,7 @@ custom_stop_words = {"может", "могут", "какой", "какая", "к
                      "почему"}
 
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def training_dashboard(request):
     """Displays the training dashboard."""
     logger.info("Accessing training dashboard.")
@@ -273,7 +273,7 @@ def mark_question_trained(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def train_message(request, message_id):
     """Displays a message for training."""
     logger.info(f"Accessing training page for message ID: {message_id}")
@@ -296,14 +296,14 @@ def train_message(request, message_id):
     return render(request, 'chat_dashboard/train_message.html', {'message': message})
 
 
-def toggle_ignore_message(request, message_id):
+def ignore_message(request, message_id):
     """Toggle the ignored status of a training message."""
     logger.info(f"Toggling ignore status for message ID: {message_id}")
     user = request.user
     try:
         message = TrainingMessage.objects.get(id=message_id)
-        message.is_unread = not message.is_unread
-        message.is_ignored = not message.is_ignored
+        message.is_unread = False
+        message.is_ignored = True
         message.save()
 
         unread_count = TrainingMessage.objects.filter(is_unread=True, is_ignored=False).count()
@@ -341,14 +341,13 @@ def toggle_ignore_message(request, message_id):
                 'details': json.dumps({
                     'status': f"TrainingMessage is not found",
                 })
-
             }
         )
         logger.error(f"Message ID {message_id} not found.")
         return JsonResponse({'error': 'Message not found'}, status=404)
 
 
-def delete_message(request, message_id):
+def delete_training_message(request, message_id):
     """Deletes a training message."""
     logger.info(f"Attempting to delete message ID: {message_id}")
     try:
@@ -985,7 +984,7 @@ def get_last_message_subquery(field):
     return Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values(field)[:1]
 
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def archive(request):
     user = request.user
     logger.info(f"Accessing archive page by user {user}.")
@@ -1038,7 +1037,7 @@ def archive(request):
     })
 
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def create_or_edit_content(request):
     user = request.user
     user_action.info(

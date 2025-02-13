@@ -7,6 +7,10 @@ const userMessageHandler = async (message) => {
     const isGreeting = greetings.some(greeting => cleanedMessage.includes(greeting));
     const isMenu = menu.some(menu => cleanedMessage.includes(menu));
 
+    document.querySelectorAll('.operator-button').forEach(button => {
+        button.disabled = true;
+    });
+
     if (isGreeting) {
         showGreetingMessages();
         return;
@@ -134,6 +138,31 @@ async function processRecognizedQuestion(questionContent) {
     }
 }
 
+async function deleteOperatorButton() {
+    try {
+        const response = await fetch(`/api/delete_last_chat_message/${state['dialog_id']}/`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+        });
+
+        const data = await response.json();
+        console.log(data);
+
+        if (response.ok) {
+            return data;
+        } else {
+            console.error(data.message);
+            throw new Error(data.message);
+        }
+    } catch (error) {
+        console.error('Ошибка при удалении последнего сообщения:', error);
+        throw error;
+    }
+}
+
 async function addOperatorButton(message, to_send, is_disabled) {
     const operatorButtonContainer = document.createElement('div');
     operatorButtonContainer.className = 'operator-button-container';
@@ -149,21 +178,13 @@ async function addOperatorButton(message, to_send, is_disabled) {
     }
     chatMessagesArea.appendChild(operatorButtonContainer);
     setTimeout(scrollToBottom, 0);
+    await showSectionButtons();
 
     const operatorButton = operatorButtonContainer.querySelector('.operator-button');
     if (is_disabled) {
         operatorButton.disabled = true;
     } else {
         operatorButton.addEventListener('click', async (e) => {
-            const confirmMessage = operatorConfirmationMessages[
-                Math.floor(Math.random() * operatorConfirmationMessages.length)
-            ];
-
-            appendMessage('bot', confirmMessage, getTimestamp());
-            await sendBotMessage(confirmMessage);
-            setTimeout(scrollToBottom, 0);
-            await showSectionButtons();
-
             try {
                 await fetch("/api/create-training-message/", {
                     method: "POST",
@@ -180,8 +201,15 @@ async function addOperatorButton(message, to_send, is_disabled) {
             } catch (error) {
                 console.error("Ошибка при отправке оператору:", error);
             }
-
+            const confirmMessage = operatorConfirmationMessages[
+                Math.floor(Math.random() * operatorConfirmationMessages.length)
+            ];
+            await deleteOperatorButton();
             operatorButtonContainer.remove();
+
+            appendMessage('bot', confirmMessage, getTimestamp());
+            await sendBotMessage(confirmMessage);
+            setTimeout(scrollToBottom, 0);
         });
     }
 }

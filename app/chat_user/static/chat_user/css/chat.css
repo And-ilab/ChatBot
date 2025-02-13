@@ -387,8 +387,8 @@
     border-top: 1px solid #e0e0e0;
     background: #f8f9fa;
     text-align: center;
-    order: 1; /* Если используется flex-контейнер */
-    margin-top: auto; /* Для прижатия к низу перед футером */
+    order: 1;
+    margin-top: auto;
 }
 
 #send-to-operator-button {
@@ -430,6 +430,15 @@
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0,0,0,0.1);
 }
+
+.operator-button:disabled {
+    background: #ccc;
+    color: #666;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
 
 .document-button {
     display: flex;
