@@ -1,178 +1,96 @@
-// Функция для получения данных
-async function fetchSatisfactionData() {
-    try {
-        const response = await fetch('/api/feedbacks/');
-        if (!response.ok) {
-            throw new Error(`Ошибка HTTP: ${response.status}`);
+document.addEventListener('DOMContentLoaded', function () {
+    const smileyButton = document.getElementById('add-smiley');
+    const smileyDropdown = document.getElementById('smiley-dropdown');
+    const answerInput = document.getElementById("admin-response");
+    const replyBtn = document.getElementById("reply-btn");
+    const replyAndTrainBtn = document.getElementById("reply-and-train-btn");
+    const userMessageInput = document.getElementById("train-input");
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith('${name}=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
         }
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('Произошла ошибка при получении данных:', error.message);
-        return [];
-    }
-}
-
-function processSatisfactionChartData(data) {
-    let start, end;
-
-    if (selectedDate) {
-        // Если выбрана конкретная дата, используем её
-        const selected = new Date(selectedDate);
-        start = new Date(selected);
-        end = new Date(selected);
-    } else if (selectedMonth) {
-        // Если выбран месяц, используем его
-        const selected = new Date(selectedMonth);
-        start = new Date(selected.getFullYear(), selected.getMonth(), 1);
-        end = new Date(selected.getFullYear(), selected.getMonth() + 1, 0);
-    } else {
-        // Если не выбрана дата или месяц, используем текущий месяц
-        ({ start, end } = getDateRange());
+        return cookieValue;
     }
 
-    const allDates = generateDateRange(start, end);
-    const groupedData = {};
+    async function notifyUser(answer) {
+        const messageId = userMessageInput.getAttribute('data-message-id');
+        const senderId = userMessageInput.getAttribute('data-sender-id');
 
-    // Инициализируем все даты с нулями в правильном формате
-    allDates.forEach(date => {
-        const key = formatDate(date);
-        groupedData[key] = { likes: 0, dislikes: 0 };
-    });
-
-    // Заполняем данными из API, приводя дату к нужному формату
-    data.forEach(({ created_at, message_type }) => {
-        const dateKey = formatDate(new Date(created_at));
-        if (groupedData[dateKey]) {
-            message_type === 'like'
-                ? groupedData[dateKey].likes++
-                : groupedData[dateKey].dislikes++;
+        console.log(messageId);
+        console.log(senderId);
+        if (!messageId && !senderId) {
+            console.log('Ошибка messageId или senderId');
+            return;
         }
-    });
-
-    currentExportData = groupedData;
-    return groupedData;
-}
-
-
-function renderSatisfactionChart(data, chartType) {
-    const groupedData = processSatisfactionChartData(data);
-    const labels = Object.keys(groupedData).sort();
-    const likesData = labels.map(date => groupedData[date].likes);
-    const dislikesData = labels.map(date => groupedData[date].dislikes);
-
-    canvasContainer.innerHTML = '<canvas id="satisfactionChart"></canvas>';
-    const ctx = document.getElementById("satisfactionChart").getContext("2d");
-
-    if (chartInstance) {
-        chartInstance.destroy();
-    }
-
-    if (chartType === "bar") {
-        chartInstance = new Chart(ctx, {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: "Лайки",
-                        data: likesData,
-                        backgroundColor: "#4CAF50",
-                        borderRadius: 5,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.5
-                    },
-                    {
-                        label: "Дизлайки",
-                        data: dislikesData,
-                        backgroundColor: "#F44336",
-                        borderRadius: 5,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.5
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        title: { display: true, text: "Дата" }
-                    },
-                    y: {
-                        title: { display: true, text: "Количество оценок" },
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                            precision: 0
-                        }
-                    }
+        try {
+            const response = await fetch('/api/mark-trained/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
                 },
-                plugins: {
-                    legend: {
-                        position: 'top'
-                    }
-                }
+                body: JSON.stringify({ message_id: messageId, sender_id: senderId, answer: answer })
+            });
+
+            if (response.ok) {
+                alert('Вопрос удалён из списка дообучения и уведомление отправлено.');
+                window.location.href = '/chat_dashboard/training/';
+            } else {
+                const errorData = await response.json();
+                alert('Ошибка: ' + errorData.error);
             }
-        });
-    } else if (chartType === "pie") {
-        chartInstance = new Chart(ctx, {
-            type: "pie",
-            data: {
-                labels: ["Лайки", "Дизлайки"],
-                datasets: [
-                    {
-                        label: "Оценки",
-                        data: [likesData.reduce((a, b) => a + b, 0), dislikesData.reduce((a, b) => a + b, 0)],
-                        backgroundColor: ["#4CAF50", "#F44336"]
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top'
-                    }
-                }
-            }
-        });
+        } catch (error) {
+            console.error('Ошибка при отправке запроса:', error);
+        }
     }
-}
 
-function renderSatisfactionTable(data) {
-    const groupedData = processSatisfactionChartData(data);
-    const dates = Object.keys(groupedData).sort();
+    async function handleResponse(action) {
+        const responseText = answerInput.value.trim();
 
-    const tableHTML = `
-        <table class="analytics-table">
-            <thead>
-                <tr>
-                    <th>Дата</th>
-                    <th>Лайки</th>
-                    <th>Дизлайки</th>
-                    <th>Всего</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${dates.map(date => `
-                    <tr>
-                        <td>${date}</td>
-                        <td>${groupedData[date].likes}</td>
-                        <td>${groupedData[date].dislikes}</td>
-                        <td>${groupedData[date].likes + groupedData[date].dislikes}</td>
-                    </tr>
-                `).join('')}
-                <tr class="total-row">
-                    <td>Итого</td>
-                    <td>${dates.reduce((sum, date) => sum + groupedData[date].likes, 0)}</td>
-                    <td>${dates.reduce((sum, date) => sum + groupedData[date].dislikes, 0)}</td>
-                    <td>${dates.reduce((sum, date) => sum + groupedData[date].likes + groupedData[date].dislikes, 0)}</td>
-                </tr>
-            </tbody>
-        </table>
-    `;
+        if (!responseText) {
+            answerInput.classList.add("border", "border-danger");
+            return;
+        }
 
-    canvasContainer.innerHTML = tableHTML;
-}
+        answerInput.classList.remove("border", "border-danger");
+
+        await notifyUser(responseText);
+        answerInput.value = "";
+    }
+
+    replyBtn.addEventListener("click", function () {
+        handleResponse("reply");
+    });
+
+    replyAndTrainBtn.addEventListener("click", function () {
+        handleResponse("reply_and_train");
+    });
+
+    smileyButton.addEventListener('click', function (event) {
+        event.stopPropagation();
+        smileyDropdown.style.display = (smileyDropdown.style.display === 'block') ? 'none' : 'block';
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!smileyButton.contains(event.target) && !smileyDropdown.contains(event.target)) {
+            smileyDropdown.style.display = 'none';
+        }
+    });
+
+    // Добавление смайликов в текстовое поле
+    document.querySelectorAll('.smiley').forEach(smiley => {
+        smiley.addEventListener('click', function () {
+            const textarea = document.getElementById('admin-response');
+            textarea.value += this.textContent;
+        });
+    });
+});
