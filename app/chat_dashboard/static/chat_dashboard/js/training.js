@@ -99,30 +99,6 @@ document.addEventListener("DOMContentLoaded", function () {
     unreadButton.addEventListener("click", () => showContainer(unreadMessagesContainer, unreadButton));
     ignoredButton.addEventListener("click", () => showContainer(ignoredMessagesContainer, ignoredButton));
 
-    document.getElementById("search-button").addEventListener("click", function() {
-        let inputText = document.getElementById("search-input").value.toLowerCase();
-        let messageItems = document.querySelectorAll("#searched-messages .message-item");
-
-        messageItems.forEach(function(item) {
-            let messageContent = item.querySelector(".mb-0").textContent.toLowerCase();
-            if (messageContent.includes(inputText)) {
-                item.style.display = "flex";
-            } else {
-                item.style.display = "none";
-            }
-        });
-
-        let visibleItems = Array.from(messageItems).some(item => item.style.display !== "none");
-        console.log(visibleItems);
-        const emptyContainer = document.getElementById("searched-empty");
-        console.log(emptyContainer);
-
-        if (visibleItems) {
-            emptyContainer.style.display = 'none';
-        } else {
-            emptyContainer.style.display = 'flex';
-        }
-    });
 
     async function deleteMessage(messageId, element) {
         try {
