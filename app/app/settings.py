@@ -71,21 +71,21 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5000",
-    "https:/www.digitranslab.com"
-]
-#CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
-
-CSRF_TRUSTED_ORIGINS = [
-    "https:/www.digitranslab.com",
-    "http://localhost:5000",
-]
-
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SECURE = True  # Только для HTTPS!
-SESSION_COOKIE_SECURE = True  # Только для HTTPS!
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5000",
+#     "https:/www.digitranslab.com"
+# ]
+# #CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOW_CREDENTIALS = True
+#
+# CSRF_TRUSTED_ORIGINS = [
+#     "https:/www.digitranslab.com",
+#     "http://localhost:5000",
+# ]
+#
+# CSRF_COOKIE_SAMESITE = 'None'
+# CSRF_COOKIE_SECURE = True  # Только для HTTPS!
+# SESSION_COOKIE_SECURE = True  # Только для HTTPS!
 
 ROOT_URLCONF = 'app.urls'
 
