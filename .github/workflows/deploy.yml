@@ -37,6 +37,7 @@ jobs:
       run: |
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no daniil@${{ secrets.SERVER_IP }} << 'EOF'
           set -e
+          set -x 
           function handle_error {
               curl -s -X POST "https://api.telegram.org/bot${{ env.BOT_TOKEN }}/sendMessage" \
               -d "chat_id=${{ env.CHAT_ID }}" \
