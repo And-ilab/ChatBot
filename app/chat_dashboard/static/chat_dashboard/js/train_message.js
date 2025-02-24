@@ -3,8 +3,52 @@ document.addEventListener('DOMContentLoaded', function () {
     const smileyDropdown = document.getElementById('smiley-dropdown');
     const answerInput = document.getElementById("admin-response");
     const replyBtn = document.getElementById("reply-btn");
-    const replyAndTrainBtn = document.getElementById("reply-and-train-btn");
+//    const replyAndTrainBtn = document.getElementById("reply-and-train-btn");
     const userMessageInput = document.getElementById("train-input");
+
+    document.querySelectorAll('.tab-button').forEach((button) => {
+        button.addEventListener('click', () => {
+          document.querySelectorAll('.tab-button').forEach((btn) => btn.classList.remove('active'));
+          button.classList.add('active');
+
+          document.querySelectorAll('.tab-pane').forEach((pane) => {
+            pane.classList.remove('active');
+            pane.style.opacity = 0;
+          });
+
+          const tabId = button.getAttribute('data-tab');
+          const activePane = document.getElementById(tabId);
+          activePane.classList.add('active');
+          setTimeout(() => {
+            activePane.style.opacity = 1;
+          }, 10);
+        });
+    });
+
+    function copyToClipboard(element, message) {
+        element.select();
+        document.execCommand("copy");
+        // Показываем уведомление
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
+        notification.innerText = message;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.remove();
+        }, 2000);
+    }
+
+    document.querySelectorAll('input[name="train-option"]').forEach((radio) => {
+        radio.addEventListener('change', (e) => {
+            if (e.target.value === 'add-to-existing') {
+                document.getElementById('existing-question-dropdown').style.display = 'block';
+                document.getElementById('new-question-form').style.display = 'none';
+            } else {
+                document.getElementById('existing-question-dropdown').style.display = 'none';
+                document.getElementById('new-question-form').style.display = 'block';
+            }
+        });
+    });
 
     function getCookie(name) {
         let cookieValue = null;
@@ -71,9 +115,9 @@ document.addEventListener('DOMContentLoaded', function () {
         handleResponse("reply");
     });
 
-    replyAndTrainBtn.addEventListener("click", function () {
-        handleResponse("reply_and_train");
-    });
+//    replyAndTrainBtn.addEventListener("click", function () {
+//        handleResponse("reply_and_train");
+//    });
 
     smileyButton.addEventListener('click', function (event) {
         event.stopPropagation();

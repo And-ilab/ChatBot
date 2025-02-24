@@ -277,8 +277,8 @@ def mark_question_trained(request):
 def train_message(request, message_id):
     """Displays a message for training."""
     logger.info(f"Accessing training page for message ID: {message_id}")
-    message = get_object_or_404(TrainingMessage, id=message_id)
-    logger.debug(f"Training message retrieved: {message.content}")
+    user_message = get_object_or_404(TrainingMessage, id=message_id)
+    logger.debug(f"Training message retrieved: {user_message.content}")
     user = request.user
     user_action.info(
         'f"Accessing training page for message ID: {message_id}"',
@@ -293,7 +293,10 @@ def train_message(request, message_id):
 
         }
     )
-    return render(request, 'chat_dashboard/train_message.html', {'message': message})
+    return render(request, 'chat_dashboard/train_message.html',
+                  {'user_message': user_message,
+                   'recognized_question': 'Здесь будет распознанный вопрос',
+                   'neural_answer': 'Здесь будет ответ нейросетевой модели (в разработке)'})
 
 
 def ignore_message(request, message_id):

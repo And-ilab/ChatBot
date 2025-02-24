@@ -4,60 +4,139 @@
 
 {% block content %}
 {% load static %}
+
 <div class="container d-flex flex-column align-items-center">
     <h1 class="my-4">Обучение</h1>
     <div class="divider w-100 bg-secondary" style="height: 2px;"></div>
 
-    <!-- Сообщение пользователя -->
-    <div class="w-75 mt-4">
-        <h4 class="mb-3">Сообщение пользователя:</h4>
-        <input type="text" id="train-input" class="form-control" value="{{ message.content }}"
-               data-sender-id="{{ message.sender_id }}" data-message-id="{{ message.id }}" readonly />
+    <!-- Вопрос пользователя -->
+    <div class="w-75 mt-4 position-relative">
+        <h4 class="mb-3">Вопрос пользователя:</h4>
+        <input type="text" id="train-input" class="form-control pe-5" value="{{ user_message.content }}" data-sender-id="{{ user_message.sender_id }}"
+               data-message-id="{{ user_message.id }}" readonly />
+<!--        <button class="btn btn-sm btn-outline-secondary position-absolute top-50 end-0 translate-middle-y me-2"-->
+<!--                type="button"-->
+<!--                onclick="copyToClipboard(this.previousElementSibling, 'Вопрос пользователя скопирован')">-->
+<!--            <i class="fas fa-copy"></i>-->
+<!--        </button>-->
     </div>
 
-    <!-- Ответ администратора -->
-    <div class="w-75 mt-4">
-        <h4 class="mb-3">Ответ администратора:</h4>
-        <textarea id="admin-response" class="form-control" rows="18" placeholder="Введите ваш ответ..." style="resize: none;"></textarea>
-        <div class="position-relative d-inline-block mt-2">
-            <button id="add-smiley" class="btn btn-sm btn-outline-secondary" type="button">
+    <!-- Распознанный вопрос -->
+<!--    <div class="w-75 mt-4 position-relative">-->
+<!--        <h4 class="mb-3">Распознанный вопрос:</h4>-->
+<!--        <input type="text" class="form-control pe-5" value="{{ recognized_question }}" readonly />-->
+<!--        <button class="btn btn-sm btn-outline-secondary position-absolute top-50 end-0 translate-middle-y me-2"-->
+<!--                type="button"-->
+<!--                onclick="copyToClipboard(this.previousElementSibling, 'Распознанный вопрос скопирован')">-->
+<!--            <i class="fas fa-copy"></i>-->
+<!--        </button>-->
+<!--    </div>-->
+
+    <!-- Ответ нейросетевой модели -->
+<!--    <div class="w-75 mt-4 position-relative">-->
+<!--        <h4 class="mb-3">Ответ нейросетевой модели:</h4>-->
+<!--        <textarea class="form-control pe-5" rows="4" readonly>{{ neural_answer }}</textarea>-->
+<!--        <button class="btn btn-sm btn-outline-secondary position-absolute top-50 end-0 translate-middle-y me-2"-->
+<!--                type="button"-->
+<!--                onclick="copyToClipboard(this.previousElementSibling, 'Ответ нейросетевой модели скопирован')">-->
+<!--            <i class="fas fa-copy"></i>-->
+<!--        </button>-->
+<!--    </div>-->
+
+    <!-- Вкладки -->
+    <div class="custom-tabs w-75 mt-4">
+      <div class="tab-buttons">
+        <button class="tab-button active" data-tab="reply">Ответить</button>
+<!--        <button class="tab-button" data-tab="train">Обучить</button>-->
+      </div>
+
+      <!-- Контент вкладок -->
+      <div class="tab-content">
+        <!-- Вкладка "Ответить" -->
+        <div id="reply" class="tab-pane active">
+          <div class="w-100 mt-4">
+            <h4 class="mb-3">Ответ администратора:</h4>
+            <textarea id="admin-response" class="form-control" rows="10" placeholder="Введите ваш ответ..." style="resize: none;"></textarea>
+            <div class="position-relative d-inline-block mt-2">
+              <button id="add-smiley" class="btn btn-sm btn-outline-secondary" type="button">
                 Добавить смайлик
-            </button>
-            <div id="smiley-dropdown" class="dropdown-menu p-2" style="position: absolute; top: 100%; left: 0; display: none; z-index: 10; width: 220px;">
+              </button>
+              <div id="smiley-dropdown" class="dropdown-menu p-2" style="position: absolute; top: 100%; left: 0; display: none; z-index: 10; width: 220px;">
                 <div class="d-flex flex-wrap gap-2">
-                    <span class="smiley" style="cursor: pointer;">😊</span>
-                    <span class="smiley" style="cursor: pointer;">😎</span>
-                    <span class="smiley" style="cursor: pointer;">😍</span>
-                    <span class="smiley" style="cursor: pointer;">🤔</span>
-                    <span class="smiley" style="cursor: pointer;">😡</span>
-                    <span class="smiley" style="cursor: pointer;">😂</span>
-                    <span class="smiley" style="cursor: pointer;">😢</span>
-                    <span class="smiley" style="cursor: pointer;">👍</span>
-                    <span class="smiley" style="cursor: pointer;">👎</span>
-                    <span class="smiley" style="cursor: pointer;">❤️</span>
-                    <span class="smiley" style="cursor: pointer;">🔥</span>
-                    <span class="smiley" style="cursor: pointer;">🎉</span>
-                    <span class="smiley" style="cursor: pointer;">😐</span>
-                    <span class="smiley" style="cursor: pointer;">😅</span>
+                  <span class="smiley" style="cursor: pointer;">😊</span>
+                  <span class="smiley" style="cursor: pointer;">😎</span>
+                  <span class="smiley" style="cursor: pointer;">😍</span>
+                  <span class="smiley" style="cursor: pointer;">🤔</span>
+                  <span class="smiley" style="cursor: pointer;">😡</span>
+                  <span class="smiley" style="cursor: pointer;">😂</span>
+                  <span class="smiley" style="cursor: pointer;">😢</span>
+                  <span class="smiley" style="cursor: pointer;">👍</span>
+                  <span class="smiley" style="cursor: pointer;">👎</span>
+                  <span class="smiley" style="cursor: pointer;">❤️</span>
+                  <span class="smiley" style="cursor: pointer;">🔥</span>
+                  <span class="smiley" style="cursor: pointer;">🎉</span>
+                  <span class="smiley" style="cursor: pointer;">😐</span>
+                  <span class="smiley" style="cursor: pointer;">😅</span>
                 </div>
+              </div>
             </div>
+              <div class="mt-3 mb-3 w-100">
+                  <button id="reply-btn" class="btn btn-primary">Ответить</button>
+              </div>
+          </div>
         </div>
-    </div>
 
-    <!-- Кнопки -->
-    <div class="w-75 mt-4 d-flex justify-content-center gap-3">
-        <button id="reply-btn" class="btn btn-primary">Ответить</button>
-        <button id="reply-and-train-btn" class="btn btn-success">Ответить и обучить</button>
-    </div>
-
-    <!-- Уточняющий текст -->
-    <div class="w-75 mt-4 text-muted">
-        <p>
-            <strong>Ответить:</strong> Отправляет ответ пользователю напрямую в чат.
-        </p>
-        <p>
-            <strong>Ответить и обучить:</strong> Отправляет ответ пользователю в чат и обучает модель на основе этого ответа, чтобы автоматически отвечать на подобные сообщения в будущем.
-        </p>
+        <!-- Вкладка "Обучить" -->
+<!--        <div id="train" class="tab-pane">-->
+<!--          <div class="w-100 mt-4">-->
+<!--            <h4 class="mb-3">Ответ администратора:</h4>-->
+<!--            <textarea id="admin-response-train" class="form-control" rows="10" placeholder="Введите ваш ответ..." style="resize: none;"></textarea>-->
+<!--            <div class="position-relative d-inline-block mt-2">-->
+<!--              <button id="add-smiley-train" class="btn btn-sm btn-outline-secondary" type="button">-->
+<!--                Добавить смайлик-->
+<!--              </button>-->
+<!--              <div id="smiley-dropdown-train" class="dropdown-menu p-2" style="position: absolute; top: 100%; left: 0; display: none; z-index: 10; width: 220px;">-->
+<!--                <div class="d-flex flex-wrap gap-2">-->
+<!--                  <span class="smiley" style="cursor: pointer;">😊</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">😎</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">😍</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">🤔</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">😡</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">😂</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">😢</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">👍</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">👎</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">❤️</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">🔥</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">🎉</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">😐</span>-->
+<!--                  <span class="smiley" style="cursor: pointer;">😅</span>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="mt-3">-->
+<!--              <label class="form-check-label">-->
+<!--                <input type="radio" name="train-option" value="add-to-existing" checked> Добавить ответ к существующему вопросу-->
+<!--              </label>-->
+<!--              <label class="form-check-label ms-3">-->
+<!--                <input type="radio" name="train-option" value="create-new"> Создать новый вопрос-->
+<!--              </label>-->
+<!--            </div>-->
+<!--            <div id="existing-question-dropdown" class="mt-3">-->
+<!--              <select class="form-select">-->
+<!--                <option>Выберите существующий вопрос</option>-->
+<!--                &lt;!&ndash; Здесь будут динамически загружаться существующие вопросы &ndash;&gt;-->
+<!--              </select>-->
+<!--            </div>-->
+<!--            <div id="new-question-form" class="mt-3" style="display: none;">-->
+<!--              <input type="text" class="form-control" placeholder="Введите новый вопрос" />-->
+<!--            </div>-->
+<!--              <div class="mt-3 mb-3 w-100">-->
+<!--                <button id="train-btn" class="btn btn-success">Обучить</button>-->
+<!--              </div>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--      </div>-->
     </div>
 </div>
 <script src="{% static 'chat_dashboard/js/train_message.js' %}"></script>

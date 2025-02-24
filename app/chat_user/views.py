@@ -757,7 +757,6 @@ def recognize_question(request):
             message = body['message']
             logger.info(f"Message to process: {message}")
 
-            # Использование объекта model_handler
             recognized_question = settings.MODEL_HANDLER.handle_query(message)
             return JsonResponse({'recognized_question': recognized_question})
 
@@ -876,7 +875,6 @@ def add_popular_request(request):
 
 @require_http_methods(["DELETE"])
 def delete_last_chat_message(request, dialog_id):
-    print('TRYING TO DELETE ZALUPU')
     try:
         last_message = Message.objects.filter(dialog_id=dialog_id).latest('created_at')
         last_message.delete()

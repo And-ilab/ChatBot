@@ -139,6 +139,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Преобразуем FormData в объект
         const jsonData = Object.fromEntries(formData.entries());
+        console.log(jsonData);
 
         try {
             const response = await fetch("/api/chat-login/", {

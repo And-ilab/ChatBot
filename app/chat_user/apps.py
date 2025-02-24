@@ -1,5 +1,7 @@
 from django.apps import AppConfig
 from models_ai.model_handler import ModelHandler
+from chat_user.questions import questions_list
+
 
 class ChatConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
@@ -7,6 +9,6 @@ class ChatConfig(AppConfig):
 
     def ready(self):
         from django.conf import settings
-        # Инициализация глобального объекта model_handler
+
         if not hasattr(settings, 'MODEL_HANDLER'):
-            settings.MODEL_HANDLER = ModelHandler()
+            settings.MODEL_HANDLER = ModelHandler(questions_list)

@@ -225,6 +225,7 @@ const showAnswer = async (questionID, requestType) => {
     menuButton.style.display = 'none';
 
     const answer = await fetchAnswer(questionID);
+    console.log(answer);
     if (answer) {
         typingBlock.style.display = 'flex';
         const randomDelay = Math.floor(Math.random() * 2000) + 2000;
