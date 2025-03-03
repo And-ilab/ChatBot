@@ -741,15 +741,11 @@ def update_question(request):
 def recognize_question(request):
     if request.method == 'POST':
         try:
-            # Получение тела запроса
             raw_body = request.body
             logger.info(f"Raw request body: {raw_body}")
-
-            # Разбор JSON
             body = json.loads(raw_body.decode('utf-8'))
             logger.info(f"Parsed body: {body}")
 
-            # Проверка наличия ключа 'message'
             if 'message' not in body:
                 logger.error("Missing 'message' key in request body")
                 return JsonResponse({'error': "Missing 'message' key in request body"}, status=400)
