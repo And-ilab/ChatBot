@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-
+import base64
 from click import pause
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
@@ -15,7 +15,7 @@ from django.contrib.auth import views as auth_views
 import json
 from django.http import JsonResponse
 
-
+import re
 from .utils import generate_jwt
 from django.contrib.auth.decorators import login_required
 from chat_dashboard.models import Settings, User
@@ -31,10 +31,53 @@ from django.http import JsonResponse
 from django.core.mail import send_mail
 from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetCompleteView
 from config import config_settings
+from ldap3 import Server, Connection, ALL, NTLM
+import ssl
 
 
 logger = logging.getLogger('authentication')
 user_action = logging.getLogger('user_actions')
+
+AD_SERVER = 'ldaps://10.200.125.16' 
+AD_DOMAIN = 'bb.asb'  
+AD_USERNAME = 'su_hrhelpbot'
+AD_PASSWORD = 'G1H0cvnb%^zaxs'  
+AD_BIND_DN = 'CN=su_hrhelpbot,OU=hrHelpBot,OU=Linux,OU=DIT,OU=7,OU=Servers,OU=BB,DC=bb,DC=asb'
+AD_BASE_DN = 'DC=bb,DC=asb'  
+SSL_CERT_PATH = '/etc/nginx/ssl/BB_issuing_true.pem' 
+
+def get_user_info(username,AD_USERNAME, AD_PASSWORD, AD_SERVER):
+    server = Server(AD_SERVER, use_ssl=True, get_info=ALL) 
+    connection = Connection(server, user=AD_USERNAME,password=AD_PASSWORD)
+
+    if not connection.bind():
+        return JsonResponse({"error":"failed bind"})
+
+    search_filter = f"(sAMAccountName={username})"
+    connection.search('DC=bb,DC=asb', search_filter, attributes=['displayName','mail'])
+
+    if connection.entries:
+        display_name_encoded = connection.entries[0].displayName.value
+        display_name_encoded = display_name_encoded.strip()
+        display_name_encoded = re.split(r'\s+',display_name_encoded)
+        last_name = display_name_encoded[0]
+        first_name = display_name_encoded[1]
+      #  display_name_decoded = base64.b64decode(display_name_encoded).decode('utf-8')
+        email = connection.entries[0].mail.value
+        return email, last_name, first_name
+    else:
+        return None
+
+def debug_auth(request):
+    username = request.META.get("HTTP_X_KERBEROS_USER")
+    test, email, last_name, first_name = get_user_info(username, AD_USERNAME, AD_PASSWORD,AD_SERVER)
+    return JsonResponse({
+        "email":email,
+        "fist_name": first_name,
+        "last_name": last_name,
+        "REMOTE_USER": request.META.get("HTTP_X_KERBEROS_USER"),
+    })
+
 
 
 def register_view(request):

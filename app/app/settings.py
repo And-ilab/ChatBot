@@ -40,7 +40,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 ALLOWED_HOSTS = [
     '134.17.17.131',
     'localhost',
+    'sca-hrhelpbot.bb.asb',
     '127.0.0.1',
+    '10.200.123.48',
+    '172.17.0.1',
     'chatbot.digitranslab.com',
     'www.chatbot.digitranslab.com'
 ]
@@ -62,15 +65,21 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+#    'django.contrib.auth.middleware.AuthenticationMiddleware',
+#    'django.contrib.auth.middleware.RemoteUserMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.RemoteUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+#AUTH_REMOTE_USER_AUTO_CREATE = True
+
 # CORS_ALLOWED_ORIGINS = [
 #     "http://localhost:5000",
 #     "https:/www.digitranslab.com"
@@ -168,7 +177,9 @@ LDAP_SERVER = config_settings.LDAP_SERVER
 DOMAIN = config_settings.DOMAIN
 BASE_DN = config_settings.base_dn
 
+
 AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.RemoteUserBackend',
     'authentication.backends.CustomAuthBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
@@ -200,4 +211,6 @@ EMAIL_HOST_PASSWORD = config_settings.EMAIL_HOST_PASSWORD
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 SITE_URL = 'http://localhost:8000'
-X_FRAME_OPTIONS = 'https:/www.digitranslab.com'
+#X_FRAME_OPTIONS = 'https:/www.digitranslab.com'
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True

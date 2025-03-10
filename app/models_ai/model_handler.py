@@ -14,8 +14,8 @@ lemmatizer = WordNetLemmatizer()
 class ModelHandler:
     def __init__(self, questions_list):
         self.questions_list = questions_list
-        self.tokenizer = BertTokenizer.from_pretrained('DeepPavlov/rubert-base-cased')
-        self.model = BertModel.from_pretrained('DeepPavlov/rubert-base-cased')
+#        self.tokenizer = BertTokenizer.from_pretrained('DeepPavlov/rubert-base-cased')
+#        self.model = BertModel.from_pretrained('DeepPavlov/rubert-base-cased')
 
     def preprocess(self, text):
         text = text.lower()

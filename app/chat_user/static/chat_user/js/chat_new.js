@@ -168,6 +168,7 @@ document.addEventListener("DOMContentLoaded", function () {
             enableUserActions();
         } catch (error) {
             console.error(error.message);
+	    console.log(log.message);x
             alert("Ошибка авторизации");
         }
     }

@@ -25,11 +25,14 @@ import chat_user.views as chat_views
 import authentication.views as authentication_views
 
 urlpatterns = [
+   # path('debug-auth',authentication_views.debug_auth,'debug_auth'),
     path('admin/', admin.site.urls),
     path('chat_user/', include('chat_user.urls', namespace='chat_user')),
     path('chat_dashboard/', include('chat_dashboard.urls', namespace='chat_dashboard')),
     path('authentication/', include('authentication.urls', namespace='authentication')),
     path('api/messages/<int:dialog_id>/', dashboard_views.get_messages, name='get_messages'),
+    path('api/get_user_info', authentication_views.get_user_info, name='get_user_info'),
+    path('api/debug-auth', authentication_views.debug_auth,name='debug_auth'),
     path('api/filter_dialogs_by_id/', dashboard_views.filter_dialogs_by_id, name='filter_dialogs_by_id'),
     path('api/filter_dialogs/', dashboard_views.filter_dialogs, name='filter_dialogs'),
     #path('api/filter_dialogs/<int:period>/', dashboard_views.filter_dialogs, name='filter_dialogs'),

@@ -471,7 +471,7 @@ def create_node(request):
             headers = {'Content-Type': 'application/json'}
             json_data = {"command": sql_command}
             response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
-                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
+                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),proxies=None)
 
             if response.status_code == 200:
                 logger.info(f"Node created successfully: {response.text}")
@@ -580,7 +580,7 @@ def create_relation(request):
             json_data = {"command": command}
 
             response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
-                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
+                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),proxies=None)
 
             logger.info(f"Relation created between nodes {start_node_id} and {end_node_id}.")
             user_action.info(
@@ -646,7 +646,7 @@ def delete_node(request):
             json_data = {"command": command}
 
             response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
-                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
+                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),proxies=None)
 
             user_action.info(
                 f"Node successfully deleted",
@@ -693,7 +693,7 @@ def get_nodes(request):
             json_data = {"command": sql_command}
 
             response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
-                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
+                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),proxies=None)
 
             if response.status_code == 200:
                 logger.info(f"Nodes get successfully: {response.text}")

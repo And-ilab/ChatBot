@@ -19,8 +19,44 @@ from config import config_settings
 from rest_framework import status, generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-
+from ldap3 import Server, ALL, NTLM
+from ldap3 import Connection as conn
+import ssl
 logger = logging.getLogger('chat_user')
+
+
+AD_SERVER = 'ldaps://10.200.125.16'
+AD_DOMAIN = 'bb.asb'
+AD_USERNAME = 'su_hrhelpbot'
+AD_PASSWORD = 'G1H0cvnb%^zaxs'
+AD_BIND_DN = 'CN=su_hrhelpbot,OU=hrHelpBot,OU=Linux,OU=DIT,OU=7,OU=Servers,OU=BB,DC=bb,DC=asb'
+AD_BASE_DN = 'DC=bb,DC=asb'
+SSL_CERT_PATH = '/etc/nginx/ssl/BB_issuing_true.pem'
+
+
+
+
+def get_user_info(username,AD_USERNAME, AD_PASSWORD, AD_SERVER):
+    server = Server(AD_SERVER, use_ssl=True, get_info=ALL)
+    connection = Connection(server, user=AD_USERNAME,password=AD_PASSWORD)
+
+    if not connection.bind():
+        return JsonResponse({"error":"failed bind"})
+
+    search_filter = f"(sAMAccountName={username})"
+    connection.search('DC=bb,DC=asb', search_filter, attributes=['displayName','mail'])
+
+    if connection.entries:
+        display_name_encoded = connection.entries[0].displayName.value
+        display_name_encoded = display_name_encoded.strip()
+        display_name_encoded = re.split(r'\s+',display_name_encoded)
+        last_name = display_name_encoded[0]
+        first_name = display_name_encoded[1]
+      #  display_name_decoded = base64.b64decode(display_name_encoded).decode('utf-8')
+        email = connection.entries[0].mail.value
+        return email, last_name, first_name
+    else:
+        return None
 
 
 def user_chat(request):
@@ -29,6 +65,8 @@ def user_chat(request):
 
 
 def chat_login(request):
+    username = request.META.get("HTTP_X_KERBEROS_USER")
+    email,last_name, first_name = get_user_info(username, AD_USERNAME, AD_PASSWORD,AD_SERVER)
     if request.method == "POST":
         try:
             data = json.loads(request.body)
@@ -270,12 +308,14 @@ def get_nodes_by_type(request):
     logger.info(f"Fetching nodes of type: {node_type}")
     node_type = urllib.parse.unquote(node_type)
 
+    
     # Формируем URL для запроса
+   
     url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
 
     try:
-        response = requests.get(url, auth=('root','guregure'))
-
+        response = requests.get(url, auth=('root','guregure'), proxies={"http":None, "https":None})
+        logger.info(f"{response}, {url}")
         if response.status_code == 200:
             logger.info(f"Successfully fetched data for type: {node_type}")
 
@@ -427,7 +467,8 @@ def get_answer(request):
                     config_settings.ORIENT_COMMAND_URL,
                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                     headers={"Content-Type": "application/json"},
-                    json={"command": query}
+                    json={"command": query},
+		    proxies = None
                 )
                 logger.info(f"Response status: {response.status_code}.")
 
