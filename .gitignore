@@ -13,3 +13,4 @@ app/logs/django_debug.log
 */.DS_Store
 app/models_ai/rubert_model/
 app/models_ai/rubert_tokenizer/
+models_ai/

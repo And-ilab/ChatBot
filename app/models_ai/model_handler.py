@@ -6,6 +6,8 @@ from nltk.stem import WordNetLemmatizer
 from sklearn.metrics.pairwise import cosine_similarity
 from concurrent.futures import ThreadPoolExecutor
 from transformers import BertTokenizer, BertModel
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from huggingface_hub import snapshot_download
 
 nltk.download('punkt_tab')
 nltk.download('punkt')
@@ -89,3 +91,50 @@ class ModelHandler:
         similarities = [cosine_similarity(query_embedding, q_emb)[0][0] for q_emb in question_embeddings]
         max_similarity = max(similarities)
         return max_similarity, key
+
+
+class NeuralHandler:
+    def __init__(self, model_name="h2oai/h2ogpt-4096-llama2-7b-chat",
+                 local_model_path="models_ai/h2ogpt-4096-llama2-7b-chat"):
+        self.model_name = model_name
+        self.local_model_path = local_model_path
+
+        snapshot_download(
+            repo_id=self.model_name,
+            local_dir=self.local_model_path,
+            resume_download=True,
+        )
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.local_model_path,
+            use_fast=False,
+            padding_side="left",
+            trust_remote_code=True,
+            legacy=True,
+        )
+
+        self.model = AutoModelForCausalLM.from_pretrained(
+            self.local_model_path,
+            torch_dtype="auto",
+            device_map="auto",
+            trust_remote_code=True,
+        )
+
+        self.generate_text = pipeline(
+            "text-generation",
+            model=self.model,
+            tokenizer=self.tokenizer,
+        )
+
+    def generate_response(self, user_input, **kwargs):
+        default_kwargs = {
+            "min_new_tokens": 2,
+            "max_new_tokens": 1024,
+            "do_sample": False,
+            "num_beams": 1,
+            "temperature": 0.3,
+            "repetition_penalty": 1.2,
+        }
+        default_kwargs.update(kwargs)
+        res = self.generate_text(user_input, **default_kwargs)
+        return res[0]["generated_text"]
