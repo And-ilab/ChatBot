@@ -85,6 +85,7 @@ const fetchNodes = async (type) => {
 };
 
 const fetchNodesWithRelation = async (startNodeType, startNodeName, finishNodeType) => {
+    console.log(startNodeType, startNodeName, finishNodeType);
     const encodeStartNodeType = encodeURIComponent(startNodeType);
     const encodeStartNodeName = encodeURIComponent(startNodeName);
     const encodeFinishNodeType = encodeURIComponent(finishNodeType);
@@ -199,6 +200,8 @@ const showSectionButtons = async () => {
 
 const showTopicButtons = async (sectionName) => {
     const nodes = await fetchNodesWithRelation('Section', sectionName, 'Topic');
+    console.log(sectionName);
+    console.log(nodes);
     createButtonsFromNodes(nodes, async (selectedNode) => {
         appendMessage('user', selectedNode.name, getTimestamp());
         await sendMessageToAPI(state['dialog_id'], 'user', 'message', selectedNode.name, getTimestamp());
@@ -414,6 +417,32 @@ const sendFeedback = async (messageType, answerContent = null) => {
     }
 };
 
+async function sendMessageToNeuralModel(message) {
+    const data = {
+        message: message,
+    };
+
+    try {
+        const response = await fetch('/api/generate-neural-response/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Ответ от сервера:', result.response);
+        return result.response;
+    } catch (error) {
+        console.error('Произошла ошибка:', error);
+    }
+}
+
 const sendThanksFeedbackMessage = async () => {
     let message = 'Спасибо за Ваш отзыв!';
     appendMessage('bot', message, getTimestamp());
@@ -423,9 +452,10 @@ const sendThanksFeedbackMessage = async () => {
 }
 
 const sendFeedbackRequest = async () => {
-    let message = 'Подскажите, что я могу улучшить в своем ответе?';
-    appendMessage('bot', message, getTimestamp());
-    await sendBotMessage(message);
+    sendMessageToNeuralModel('Привет, как дела?');
+//    let message = 'Подскажите, что я могу улучшить в своем ответе?';
+//    appendMessage('bot', message, getTimestamp());
+//    await sendBotMessage(message);
     setTimeout(scrollToBottom, 0);
     enableUserActions();
 };

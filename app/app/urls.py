@@ -77,6 +77,7 @@ urlpatterns = [
     path("api/refused-data/", chat_views.refused_data, name="refused_data"),
     path("api/popular-requests/", chat_views.popular_requests_data, name="popular_requests_data"),
     path("api/add-popular-request/", chat_views.add_popular_request, name="add_popular_request"),
+    path('api/generate-neural-response/', chat_views.generate_neural_response, name='generate_neural_response'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:

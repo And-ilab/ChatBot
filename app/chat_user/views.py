@@ -331,35 +331,27 @@ def get_nodes_by_type(request):
 def get_nodes_by_type_with_relation(request):
     """Fetch nodes of a specific type related to another node type based on a relationship."""
     if request.method == 'GET':
-        # Получаем параметры startNodeType, startNodeName и finishNodeType из запроса
         start_node_type = urllib.parse.unquote(request.GET.get('startNodeType'))
         start_node_name = urllib.parse.unquote(request.GET.get('startNodeName'))
         finish_node_type = urllib.parse.unquote(request.GET.get('finishNodeType'))
 
-        # Проверяем, что все параметры переданы
         if start_node_type and start_node_name and finish_node_type:
             logger.info(f"Fetching nodes with type of start node: {start_node_type}")
 
-            # Формируем запрос с учётом кавычек вокруг start_node_name
-            url = (f"{config_settings.ORIENT_QUERY_URL}/SELECT FROM {finish_node_type} "
+            url = (f"{config_settings.ORIENT_COMMAND_URL}/SELECT FROM {finish_node_type} "
                    f"WHERE @rid IN (SELECT OUT('Includes') "
                    f"FROM (SELECT FROM {start_node_type} WHERE content = '{start_node_name}'))")
-
-
             try:
                 response = requests.get(url, auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
 
-                # Проверка на успешность ответа
                 if not response.ok:
                     logger.warning("Base node not found.")
                     return JsonResponse([], safe=False, status=200)
 
-                # Пытаемся распарсить JSON ответ
                 data = response.json()
                 if 'result' in data:
                     nodes_data = []
                     for node in data['result']:
-                        # Проверяем, есть ли в узле необходимые поля
                         if 'content' in node and '@rid' in node:
                             nodes_data.append({'id': node['@rid'], 'name': node['content']})
 
@@ -879,3 +871,33 @@ def delete_last_chat_message(request, dialog_id):
         return JsonResponse({"status": "error", "message": "No messages found."}, status=404)
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+@csrf_exempt
+def generate_neural_response(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_input = data.get('message', '')
+
+            if not user_input:
+                return JsonResponse({'error': 'No message provided'}, status=400)
+
+            generate_text = settings.ChatConfig.generate_text
+
+            res = generate_text(
+                user_input,
+                min_new_tokens=2,
+                max_new_tokens=1024,
+                do_sample=False,
+                num_beams=1,
+                temperature=0.3,
+                repetition_penalty=1.2,
+            )
+
+            return JsonResponse({'response': res[0]["generated_text"]})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
