@@ -365,6 +365,42 @@ def get_nodes_by_type_with_relation(request):
                 logger.error(f"Error fetching data: {e}")
                 return JsonResponse({"error": "Failed to fetch data"}, status=500)
 
+def get_all_questions(request):
+    """Fetch all nodes of type 'question' from OrientDB."""
+    if request.method == 'GET':
+        logger.info("Fetching all nodes of type 'question'.")
+ЫЫЫЯЯЯЯ
+        url = f"{config_settings.ORIENT_QUERY_URL}{config_settings.ORIENT_DATABASE}/SELECT * FROM question"
+
+        try:
+            response = requests.get(
+                url,
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+                headers={"Accept": "application/json"}
+            if not response.ok:
+                logger.warning("Failed to fetch data from OrientDB.")
+                return JsonResponse([], safe=False, status=200)
+
+
+            if 'result' in data:
+                questions_data = []
+                for question in data['result']:
+                    if 'content' in question and '@rid' in question:
+                        questions_data.append({
+                            'id': question['@rid'],
+                            'content': question['content']
+                        })
+
+                logger.info(f"Found {len(questions_data)} questions.")
+                return JsonResponse({'result': questions_data}, safe=False)
+            else:
+                logger.error("Unexpected response format.")
+                return JsonResponse({"error": "Unexpected response format"}, status=500)
+
+        except Exception as e:
+            logger.error(f"Error fetching data: {e}")
+            return JsonResponse({"error": "Failed to fetch data"}, status=500)
+
 
 def get_question_id_by_content(request):
     """Fetch question for a specific question ID."""
@@ -886,8 +922,6 @@ def generate_neural_response(request):
 
             generate_text = settings.NEURAL_HANDLER.generate_text
 
-            print(generate_text)
-
             res = generate_text(
                 user_input,
                 min_new_tokens=2,
@@ -897,8 +931,6 @@ def generate_neural_response(request):
                 temperature=0.3,
                 repetition_penalty=1.2,
             )
-
-            print(res)
 
             return JsonResponse({'response': res[0]["generated_text"]})
 

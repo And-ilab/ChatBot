@@ -132,7 +132,7 @@ class NeuralHandler:
             "max_new_tokens": 1024,
             "do_sample": False,
             "num_beams": 1,
-            "temperature": 0.3,
+            # "temperature": 0.3,
             "repetition_penalty": 1.2,
         }
         default_kwargs.update(kwargs)

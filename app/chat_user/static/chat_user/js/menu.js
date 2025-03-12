@@ -451,11 +451,36 @@ const sendThanksFeedbackMessage = async () => {
     await showSectionButtons();
 }
 
+async function fetchAllQuestions() {
+    try {
+        const response = await fetch('/api/get-all-questions/');
+
+        if (!response.ok) {
+            throw new Error('Ошибка при запросе данных');
+        }
+
+        const data = await response.json();
+        console.log(data);
+
+        if (data.result && data.result.length > 0) {
+            console.log('Найдены вопросы:', data.result);
+            return data.result;
+        } else {
+            console.log('Вопросы не найдены.');
+            return [];
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        throw error;
+    }
+}
+
 const sendFeedbackRequest = async () => {
-    sendMessageToNeuralModel('Привет, как дела?');
-//    let message = 'Подскажите, что я могу улучшить в своем ответе?';
-//    appendMessage('bot', message, getTimestamp());
-//    await sendBotMessage(message);
+//    sendMessageToNeuralModel('Привет, как дела?');
+    await fetchAllQuestions();
+    let message = 'Подскажите, что я могу улучшить в своем ответе?';
+    appendMessage('bot', message, getTimestamp());
+    await sendBotMessage(message);
     setTimeout(scrollToBottom, 0);
     enableUserActions();
 };

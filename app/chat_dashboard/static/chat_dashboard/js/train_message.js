@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const smileyDropdown = document.getElementById('smiley-dropdown');
     const answerInput = document.getElementById("admin-response");
     const replyBtn = document.getElementById("reply-btn");
-//    const replyAndTrainBtn = document.getElementById("reply-and-train-btn");
+    const replyAndTrainBtn = document.getElementById("reply-and-train-btn");
     const userMessageInput = document.getElementById("train-input");
 
     document.querySelectorAll('.tab-button').forEach((button) => {
@@ -115,9 +115,9 @@ document.addEventListener('DOMContentLoaded', function () {
         handleResponse("reply");
     });
 
-//    replyAndTrainBtn.addEventListener("click", function () {
-//        handleResponse("reply_and_train");
-//    });
+    replyAndTrainBtn.addEventListener("click", function () {
+        handleResponse("reply_and_train");
+    });
 
     smileyButton.addEventListener('click', function (event) {
         event.stopPropagation();

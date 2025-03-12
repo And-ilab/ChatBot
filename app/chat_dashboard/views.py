@@ -140,7 +140,7 @@ custom_stop_words = {"может", "могут", "какой", "какая", "к
                      "почему"}
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def training_dashboard(request):
     """Displays the training dashboard."""
     logger.info("Accessing training dashboard.")
@@ -157,19 +157,19 @@ def training_dashboard(request):
         'unread_messages': list(unread_messages),
         'ignored_messages': list(ignored_messages),
     }
-    user_action.info(
-        'Accessing training dashboard',
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'Accessing training dashboard',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"{user.first_name} {user.last_name}' get access to training dashboard",
-            })
-
-        }
-    )
+    # user_action.info(
+    #     'Accessing training dashboard',
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'Accessing training dashboard',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"{user.first_name} {user.last_name}' get access to training dashboard",
+    #         })
+    #
+    #     }
+    # )
     logger.debug(f"Unread messages: {list(unread_messages)}, Ignored messages: {list(ignored_messages)}")
     return render(request, 'chat_dashboard/training.html', context)
 
@@ -273,26 +273,26 @@ def mark_question_trained(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def train_message(request, message_id):
     """Displays a message for training."""
     logger.info(f"Accessing training page for message ID: {message_id}")
     user_message = get_object_or_404(TrainingMessage, id=message_id)
     logger.debug(f"Training message retrieved: {user_message.content}")
     user = request.user
-    user_action.info(
-        'f"Accessing training page for message ID: {message_id}"',
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'accessing train_message',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"{user.first_name} {user.last_name}' get accessing training page for message ID: {message_id}",
-            })
-
-        }
-    )
+    # user_action.info(
+    #     'f"Accessing training page for message ID: {message_id}"',
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'accessing train_message',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"{user.first_name} {user.last_name}' get accessing training page for message ID: {message_id}",
+    #         })
+    #
+    #     }
+    # )
     return render(request, 'chat_dashboard/train_message.html',
                   {'user_message': user_message,
                    'recognized_question': 'Здесь будет распознанный вопрос',
@@ -987,7 +987,7 @@ def get_last_message_subquery(field):
     return Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values(field)[:1]
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def archive(request):
     user = request.user
     logger.info(f"Accessing archive page by user {user}.")
