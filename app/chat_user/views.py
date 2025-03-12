@@ -369,18 +369,16 @@ def get_all_questions(request):
     """Fetch all nodes of type 'question' from OrientDB."""
     if request.method == 'GET':
         logger.info("Fetching all nodes of type 'question'.")
-ЫЫЫЯЯЯЯ
         url = f"{config_settings.ORIENT_QUERY_URL}{config_settings.ORIENT_DATABASE}/SELECT * FROM question"
 
         try:
             response = requests.get(
                 url,
                 auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
-                headers={"Accept": "application/json"}
+                headers={"Accept": "application/json"})
             if not response.ok:
                 logger.warning("Failed to fetch data from OrientDB.")
                 return JsonResponse([], safe=False, status=200)
-
 
             if 'result' in data:
                 questions_data = []

@@ -78,7 +78,7 @@ urlpatterns = [
     path("api/popular-requests/", chat_views.popular_requests_data, name="popular_requests_data"),
     path("api/add-popular-request/", chat_views.add_popular_request, name="add_popular_request"),
     path('api/generate-neural-response/', chat_views.generate_neural_response, name='generate_neural_response'),
-    path('api/get-all-questions/', dashboard_views.get_all_questions, name='get_all_questions'),
+    path('api/get-all-questions/', chat_views.get_all_questions, name='get_all_questions'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:
