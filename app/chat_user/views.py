@@ -22,6 +22,8 @@ from rest_framework.response import Response
 from ldap3 import Server, ALL, NTLM
 from ldap3 import Connection as conn
 import ssl
+import re
+
 logger = logging.getLogger('chat_user')
 
 
@@ -38,7 +40,7 @@ SSL_CERT_PATH = '/etc/nginx/ssl/BB_issuing_true.pem'
 
 def get_user_info(username,AD_USERNAME, AD_PASSWORD, AD_SERVER):
     server = Server(AD_SERVER, use_ssl=True, get_info=ALL)
-    connection = Connection(server, user=AD_USERNAME,password=AD_PASSWORD)
+    connection = conn(server, user=AD_USERNAME,password=AD_PASSWORD)
 
     if not connection.bind():
         return JsonResponse({"error":"failed bind"})
@@ -53,7 +55,7 @@ def get_user_info(username,AD_USERNAME, AD_PASSWORD, AD_SERVER):
         last_name = display_name_encoded[0]
         first_name = display_name_encoded[1]
       #  display_name_decoded = base64.b64decode(display_name_encoded).decode('utf-8')
-        email = connection.entries[0].mail.value
+        email = connection.entries[0].mail.value or 'example@exammple.bb.asb'
         return email, last_name, first_name
     else:
         return None
@@ -68,16 +70,6 @@ def chat_login(request):
     username = request.META.get("HTTP_X_KERBEROS_USER")
     email,last_name, first_name = get_user_info(username, AD_USERNAME, AD_PASSWORD,AD_SERVER)
     if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            first_name = data.get("first_name")
-            last_name = data.get("last_name")
-            email = data.get("email")
-            logger.info(f"Received login request: first_name={first_name}, last_name={last_name}, email={email}")
-        except KeyError as e:
-            logger.error(f"KeyError: Missing key {str(e)} in request data.")
-            return JsonResponse({"status": "error", "message": "Invalid data."}, status=400)
-
         try:
             user, created = ChatUser.objects.get_or_create(email=email, defaults={
                 "first_name": first_name,
@@ -148,7 +140,7 @@ def check_session(request):
                     "expires_at": session.expires_at,
                 }, status=200)
             else:
-                logger.warning(f"Session for user {session.user.email} need be expired or create a new one.")
+                #logger.warning(f"Session for user {session.user.email} need be expired or create a new one.")
                 return JsonResponse({
                     "status": "expired",
                     "message": "Сессия истекла. Необходимо создать новую."
@@ -220,14 +212,12 @@ def extend_session(request):
 
 @csrf_exempt
 def close_session(request):
-    """
-    Устанавливает expires_at на текущее время для закрытия сессии.
-    """
     if request.method != "POST":
         logger.warning("Attempted to access close_session with a non-POST request.")
         return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
 
     session_token = request.headers.get("Authorization")
+    logger.warning = (f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! : {session_token}")
     if not session_token:
         logger.info("Session token not provided.")
         return JsonResponse({"status": "error", "message": "Session token is required."}, status=400)
@@ -387,7 +377,7 @@ def get_nodes_by_type_with_relation(request):
 
 
             try:
-                response = requests.get(url, auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
+                response = requests.get(url, auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),proxies={"http":None, "https":None})
 
                 # Проверка на успешность ответа
                 if not response.ok:

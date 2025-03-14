@@ -30,5 +30,5 @@ class Settings:
     ORIENT_LOGIN = os.getenv("ORIENT_LOGIN")
     ORIENT_PASS = os.getenv("ORIENT_PASS")
 
-
 config_settings = Settings()
+

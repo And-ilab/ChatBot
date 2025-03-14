@@ -37,8 +37,9 @@ document.addEventListener("DOMContentLoaded", function () {
         switch (session.status) {
             case "login":
                 console.log("Сессия отсутствует. Пожалуйста, войдите.");
-                showLoginWindow();
+//                showLoginWindow();
                 disableUserActions();
+                autoLogin();
                 break;
             case "success":
                 console.log("Добро пожаловать! Продолжайте работу.");
@@ -57,6 +58,37 @@ document.addEventListener("DOMContentLoaded", function () {
 
             default:
                 console.error("Неизвестный статус:", session.status);
+        }
+    }
+
+    async function autoLogin(){
+        try {
+            const response = await fetch("/api/chat-login/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                }
+            });
+
+            const result = await response.json();
+            console.log(result);
+
+            if (!response.ok) {
+                throw new Error(result.message || "Ошибка авторизации");
+            }
+
+            const sessionToken = result.session_token;
+            localStorage.setItem("sessionToken", sessionToken);
+
+            await fillStateWithUserData(createNewDialog);
+
+            chatMessagesArea.innerHTML = '';
+            await showGreetingMessages();
+            enableUserActions();
+        } catch (error) {
+            console.error(error.message);
+            alert("Ошибка авторизации");
         }
     }
 

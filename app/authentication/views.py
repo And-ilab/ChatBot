@@ -38,13 +38,15 @@ import ssl
 logger = logging.getLogger('authentication')
 user_action = logging.getLogger('user_actions')
 
-AD_SERVER = 'ldaps://10.200.125.16' 
-AD_DOMAIN = 'bb.asb'  
+
+AD_SERVER = 'ldaps://10.200.125.16'
+AD_DOMAIN = 'bb.asb'
 AD_USERNAME = 'su_hrhelpbot'
-AD_PASSWORD = 'G1H0cvnb%^zaxs'  
+AD_PASSWORD = 'G1H0cvnb%^zaxs'
 AD_BIND_DN = 'CN=su_hrhelpbot,OU=hrHelpBot,OU=Linux,OU=DIT,OU=7,OU=Servers,OU=BB,DC=bb,DC=asb'
-AD_BASE_DN = 'DC=bb,DC=asb'  
-SSL_CERT_PATH = '/etc/nginx/ssl/BB_issuing_true.pem' 
+AD_BASE_DN = 'DC=bb,DC=asb'
+SSL_CERT_PATH = '/etc/nginx/ssl/BB_issuing_true.pem'
+
 
 def get_user_info(username,AD_USERNAME, AD_PASSWORD, AD_SERVER):
     server = Server(AD_SERVER, use_ssl=True, get_info=ALL) 
@@ -57,20 +59,20 @@ def get_user_info(username,AD_USERNAME, AD_PASSWORD, AD_SERVER):
     connection.search('DC=bb,DC=asb', search_filter, attributes=['displayName','mail'])
 
     if connection.entries:
-        display_name_encoded = connection.entries[0].displayName.value
+        display_name_encoded = connection.entries[0].displayName.value or ""
         display_name_encoded = display_name_encoded.strip()
         display_name_encoded = re.split(r'\s+',display_name_encoded)
-        last_name = display_name_encoded[0]
-        first_name = display_name_encoded[1]
+        last_name = display_name_encoded[0] if len(display_name_encoded) > 0 else "Unknown"
+        first_name = display_name_encoded[1] if len(display_name_encoded) > 1 else "Unknown"
       #  display_name_decoded = base64.b64decode(display_name_encoded).decode('utf-8')
-        email = connection.entries[0].mail.value
+        email = connection.entries[0].mail.value  or "unknownemail@asb.bb"
         return email, last_name, first_name
     else:
         return None
 
 def debug_auth(request):
     username = request.META.get("HTTP_X_KERBEROS_USER")
-    test, email, last_name, first_name = get_user_info(username, AD_USERNAME, AD_PASSWORD,AD_SERVER)
+    email, last_name, first_name = get_user_info(username, AD_USERNAME, AD_PASSWORD,AD_SERVER)
     return JsonResponse({
         "email":email,
         "fist_name": first_name,

@@ -85,6 +85,7 @@ async function closeSession() {
             headers: {
                 "Authorization": sessionToken,
                 "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
             }
         });
 
