@@ -84,14 +84,25 @@ class NeuralModel:
             logger.info(f"Tokenized data: {data}")
 
             data = {k: v.to(self.model.device) for k, v in data.items()}
+
+            # Логируем данные перед генерацией
+            logger.info(f"Data for generation: {data}")
+
+            # Генерируем ответ
             output_ids = self.model.generate(
                 **data,
                 generation_config=self.generation_config
             )[0]
-            output_ids = output_ids[len(data["input_ids"][0]):]
-            output = self.tokenizer.decode(output_ids, skip_special_tokens=True)
 
-            # Логируем декодированный ответ
+            # Логируем output_ids
+            logger.info(f"Output IDs: {output_ids}")
+
+            # Обрезаем output_ids
+            output_ids = output_ids[len(data["input_ids"][0]):]
+            logger.info(f"Trimmed output IDs: {output_ids}")
+
+            # Декодируем ответ
+            output = self.tokenizer.decode(output_ids, skip_special_tokens=True)
             logger.info(f"Decoded output: {output}")
 
             if not output:
@@ -990,9 +1001,6 @@ def delete_last_chat_message(request, dialog_id):
 @csrf_exempt
 def generate_chat_response(request):
     try:
-        # Логируем тело запроса
-        logger.info(f"Request body: {request.body}")
-
         data = json.loads(request.body)
         logger.info(f"Get data for nn model: {data}")
         user_input = data.get('message')
@@ -1004,14 +1012,16 @@ def generate_chat_response(request):
         neural_model = NeuralModel()
         response = neural_model.generate_response(user_input)
 
-        # Логируем ответ модели
-        logger.info(f"NN model response: {response}")
+        # Проверяем, что ответ может быть сериализован в JSON
+        try:
+            json.dumps({'response': response})
+        except TypeError as e:
+            logger.error(f"JSON serialization error: {str(e)}")
+            return JsonResponse({'error': 'Invalid response format'}, status=500)
 
+        logger.info(f"NN model response: {response}")
         return JsonResponse({'response': response})
 
-    except json.JSONDecodeError as e:
-        logger.error(f"JSON decode error: {str(e)}")
-        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
