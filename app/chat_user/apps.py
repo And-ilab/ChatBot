@@ -14,6 +14,3 @@ class ChatConfig(AppConfig):
     def ready(self):
         if not hasattr(settings, 'MODEL_HANDLER'):
             settings.MODEL_HANDLER = ModelHandler(questions_list)
-
-        if not hasattr(settings, 'NEURAL_HANDLER'):
-            settings.NEURAL_MODEL = NeuralModel()
