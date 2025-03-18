@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 from django.conf import settings
-from models_ai.model_handler import ModelHandler, NeuralModel
+from models_ai.model_handler import ModelHandler
 from chat_user.questions import questions_list
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
