@@ -913,7 +913,7 @@ def generate_chat_response(request):
     try:
         data = json.loads(request.body)
         logger.info(f"Get data for nn model: {data}")
-        user_input = data.get('user_input')
+        user_input = data.get('message')
         logger.info(f"User input for nn model: {user_input}")
 
         if not user_input:
