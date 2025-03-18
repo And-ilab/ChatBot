@@ -79,7 +79,7 @@ urlpatterns = [
     path("api/add-popular-request/", chat_views.add_popular_request, name="add_popular_request"),
     path("api/get-documents/", dashboard_views.get_documents, name="get_documents"),
     path("api/get-links/", dashboard_views.get_links, name="get_links"),
-    path('api/generate-neural-response/', chat_views.generate_neural_response, name='generate_neural_response'),
+    path('api/generate-neural-response/', chat_views.generate_chat_response, name='generate_chat_response'),
     path('api/get-all-questions/', chat_views.get_all_questions, name='get_all_questions'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
