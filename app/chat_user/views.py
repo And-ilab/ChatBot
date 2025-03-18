@@ -926,7 +926,7 @@ def generate_neural_response(request):
 
             logger.info(f"Neural model result {res}")
 
-            return JsonResponse({'response': res[0]["generated_text"]})
+            return JsonResponse({'response': res})
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
