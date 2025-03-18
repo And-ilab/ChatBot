@@ -42,39 +42,26 @@ class NeuralModel:
         self.system_prompt = system_prompt
         self.offload_folder = offload_folder
 
-        logger.info(f"Creating offload folder at {self.offload_folder}")
         os.makedirs(self.offload_folder, exist_ok=True)
 
-        logger.info(f"Loading model configuration from {self.model_name}")
         self.config = PeftConfig.from_pretrained(self.model_name)
-
-        logger.info(f"Loading base model from {self.config.base_model_name_or_path}")
         self.model = AutoModelForCausalLM.from_pretrained(
             self.config.base_model_name_or_path,
-            torch_dtype=torch.float32,  # Используем float32 для CPU
-            device_map=None,  # Убираем device_map
-            offload_folder=self.offload_folder
+            torch_dtype=torch.float16,
+            device_map="auto"
         )
-        self.model.to("cpu")  # Явно перемещаем модель на CPU
-
-        logger.info(f"Applying PEFT model from {self.model_name}")
         self.model = PeftModel.from_pretrained(
             self.model,
             self.model_name,
-            torch_dtype=torch.float32,  # Используем float32 для CPU
+            torch_dtype=torch.float16,
             offload_folder=self.offload_folder
         )
-        self.model.to("cpu")  # Явно перемещаем модель на CPU
         self.model.eval()
 
-        logger.info(f"Loading tokenizer from {self.model_name}")
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=False)
-
-        logger.info(f"Loading generation configuration from {self.model_name}")
         self.generation_config = GenerationConfig.from_pretrained(self.model_name)
 
     def generate_response(self, user_input):
-        print("Generating response for user input")
         messages = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": user_input}
@@ -84,18 +71,13 @@ class NeuralModel:
             prompt += self.message_template.format(**message)
         prompt += self.response_template
 
-        print(f"Tokenizing prompt")
         data = self.tokenizer(prompt, return_tensors="pt", add_special_tokens=False)
-        data = {k: v.to("cpu") for k, v in data.items()}  # Перемещаем данные на CPU
-
-        logger.info("Generating output ids")
+        data = {k: v.to(self.model.device) for k, v in data.items()}
         output_ids = self.model.generate(
             **data,
             generation_config=self.generation_config
         )[0]
         output_ids = output_ids[len(data["input_ids"][0]):]
-
-        logger.info("Decoding output ids to text")
         output = self.tokenizer.decode(output_ids, skip_special_tokens=True)
         return output.strip()
 
