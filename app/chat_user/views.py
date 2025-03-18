@@ -72,7 +72,7 @@ class NeuralModel:
         self.generation_config = GenerationConfig.from_pretrained(self.model_name)
 
     def generate_response(self, user_input):
-        print("Generating response for user input")
+        logger.info("Generating response for user input")
         messages = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": user_input}
@@ -82,7 +82,7 @@ class NeuralModel:
             prompt += self.message_template.format(**message)
         prompt += self.response_template
 
-        print(f"Tokenizing prompt")
+        logger.info(f"Tokenizing prompt")
         data = self.tokenizer(prompt, return_tensors="pt", add_special_tokens=False)
         data = {k: v.to(self.model.device) for k, v in data.items()}
 
@@ -986,18 +986,18 @@ def delete_last_chat_message(request, dialog_id):
 def generate_chat_response(request):
     try:
         data = json.loads(request.body)
-        print(f"Get data for nn model: {data}")
+        logger.info(f"Get data for nn model: {data}")
         user_input = data.get('message')
-        print(f"User input for nn model: {user_input}")
+        logger.info(f"User input for nn model: {user_input}")
 
         if not user_input:
             return JsonResponse({'error': 'user_input is required'}, status=400)
 
         neural_model = NeuralModel()
         response = neural_model.generate_response(user_input)
-        print(f"NN model response: {response}")
+        logger.info(f"NN model response: {response}")
         return JsonResponse({'response': response})
 
     except Exception as e:
-        print(str(e))
+        logger.info(str(e))
         return JsonResponse({'error': str(e)}, status=500)
