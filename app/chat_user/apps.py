@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 from django.conf import settings
-from models_ai.model_handler import ModelHandler, NeuralHandler
+from models_ai.model_handler import ModelHandler, NeuralModel
 from chat_user.questions import questions_list
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
@@ -16,4 +16,4 @@ class ChatConfig(AppConfig):
             settings.MODEL_HANDLER = ModelHandler(questions_list)
 
         if not hasattr(settings, 'NEURAL_HANDLER'):
-            settings.NEURAL_HANDLER = NeuralHandler()
+            settings.NEURAL_MODEL = NeuralModel()

@@ -475,55 +475,55 @@ def create_node(request):
 
             if response.status_code == 200:
                 logger.info(f"Node created successfully: {response.text}")
-                user_action.info(
-                    f"Node created successfully: {response.text}",
-                    extra={
-                        'user_id': user.id,
-                        'user_name': user.first_name + ' ' + user.last_name,
-                        'action_type': 'create_node',
-                        'time': datetime.now(),
-                        'details': json.dumps({
-                            'status': f"{user.first_name} {user.last_name}' create node successfully",
-                        })
-                    }
-                )
+                # user_action.info(
+                #     f"Node created successfully: {response.text}",
+                #     extra={
+                #         'user_id': user.id,
+                #         'user_name': user.first_name + ' ' + user.last_name,
+                #         'action_type': 'create_node',
+                #         'time': datetime.now(),
+                #         'details': json.dumps({
+                #             'status': f"{user.first_name} {user.last_name}' create node successfully",
+                #         })
+                #     }
+                # )
                 try:
                     response_data = response.json()
                     return JsonResponse({'status': 'success', 'data': response_data['result']}, status=201)
 
                 except ValueError as e:
                     logger.error(f"Error parsing JSON response: {e}")
-                    user_action.error(
-                        f"Error parsing JSON response: {e}",
-                        extra={
-                            'user_id': user.id,
-                            'user_name': user.first_name + ' ' + user.last_name,
-                            'action_type': 'create_node',
-                            'time': datetime.now(),
-                            'details': json.dumps({
-                                'status': f"Error parsing JSON response: {e}",
-                            })
-
-                        }
-                    )
+                    # user_action.error(
+                    #     f"Error parsing JSON response: {e}",
+                    #     extra={
+                    #         'user_id': user.id,
+                    #         'user_name': user.first_name + ' ' + user.last_name,
+                    #         'action_type': 'create_node',
+                    #         'time': datetime.now(),
+                    #         'details': json.dumps({
+                    #             'status': f"Error parsing JSON response: {e}",
+                    #         })
+                    #
+                    #     }
+                    # )
 
                     return JsonResponse({'error': 'Failed to parse response'}, status=500)
 
             else:
                 logger.error(f"Error fetching data: HTTP {response.status_code} - {response.text}")
-                user_action.error(
-                    f"Error fetching data: HTTP {response.status_code} - {response.text}",
-                    extra={
-                        'user_id': user.id,
-                        'user_name': user.first_name + ' ' + user.last_name,
-                        'action_type': 'create_node',
-                        'time': datetime.now(),
-                        'details': json.dumps({
-                            'status': f"Error fetching data: HTTP {response.status_code} - {response.text}",
-                        })
-
-                    }
-                )
+                # user_action.error(
+                #     f"Error fetching data: HTTP {response.status_code} - {response.text}",
+                #     extra={
+                #         'user_id': user.id,
+                #         'user_name': user.first_name + ' ' + user.last_name,
+                #         'action_type': 'create_node',
+                #         'time': datetime.now(),
+                #         'details': json.dumps({
+                #             'status': f"Error fetching data: HTTP {response.status_code} - {response.text}",
+                #         })
+                #
+                #     }
+                # )
                 return JsonResponse({'error': f"Error {response.status_code}: {response.text}"},
                                     status=response.status_code)
 
@@ -547,56 +547,68 @@ def create_node(request):
 
 @csrf_exempt
 def create_relation(request):
-    """Creates a relation between two nodes."""
     user = request.user
     if request.method == 'POST':
         logger.info("Creating a new relation between nodes.")
         try:
             data = json.loads(request.body)
 
-            # relation_type = data.get('type').lower()
             start_node_id = data.get('start_node_id')
             end_node_id = data.get('end_node_id')
 
             if not start_node_id or not end_node_id:
                 logger.warning("Missing required fields for relation creation.")
-                user_action.info(
-                    f"Missing required fields for relation creation.",
-                    extra={
-                        'user_id': user.id,
-                        'user_name': user.first_name + ' ' + user.last_name,
-                        'action_type': 'create_relation',
-                        'time': datetime.now(),
-                        'details': json.dumps({
-                            'status': f"Missing required fields for relation creation.",
-                        })
-
-                    }
-                )
+                # user_action.info(
+                #     f"Missing required fields for relation creation.",
+                #     extra={
+                #         'user_id': user.id,
+                #         'user_name': user.first_name + ' ' + user.last_name,
+                #         'action_type': 'create_relation',
+                #         'time': datetime.now(),
+                #         'details': json.dumps({
+                #             'status': f"Missing required fields for relation creation.",
+                #         })
+                #     }
+                # )
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
-            command = f"CREATE EDGE Includes FROM {start_node_id} TO {end_node_id}"
+            check_relation_command = f"SELECT FROM Includes WHERE out = {start_node_id} AND in = {end_node_id}"
             headers = {'Content-Type': 'application/json'}
-            json_data = {"command": command}
+            json_data = {"command": check_relation_command}
 
-            response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
-                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
+            check_response = requests.post(
+                config_settings.ORIENT_COMMAND_URL,
+                headers=headers,
+                json=json_data,
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
+            )
+
+            if not check_response.ok:
+                logger.error("Failed to check relation existence.")
+                return JsonResponse({'error': 'Failed to check relation existence'}, status=500)
+
+            check_data = check_response.json()
+            if 'result' in check_data and len(check_data['result']) > 0:
+                logger.info(f"Relation already exists between nodes {start_node_id} and {end_node_id}.")
+                return JsonResponse({'message': 'Relation already exists'}, status=201)
+
+            create_relation_command = f"CREATE EDGE Includes FROM {start_node_id} TO {end_node_id}"
+            json_data = {"command": create_relation_command}
+
+            create_response = requests.post(
+                config_settings.ORIENT_COMMAND_URL,
+                headers=headers,
+                json=json_data,
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
+            )
+
+            if not create_response.ok:
+                logger.error("Failed to create relation.")
+                return JsonResponse({'error': 'Failed to create relation'}, status=500)
 
             logger.info(f"Relation created between nodes {start_node_id} and {end_node_id}.")
-            user_action.info(
-                f"Relation created between nodes {start_node_id} and {end_node_id}.",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'create_relation',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': f"Relation created between nodes {start_node_id} and {end_node_id}.",
-                    })
-
-                }
-            )
             return JsonResponse({'message': 'Relation successfully created'}, status=201)
+
         except Exception as e:
             logger.exception("An error occurred while creating a relation.")
             user_action.error(
@@ -609,7 +621,6 @@ def create_relation(request):
                     'details': json.dumps({
                         'status': "An error occurred while creating a relation.",
                     })
-
                 }
             )
             return JsonResponse({'error': str(e)}, status=400)
@@ -626,19 +637,19 @@ def delete_node(request):
 
             if not node_id_to_delete:
                 logger.warning("Missing required fields for relation creation.")
-                user_action.warning(
-                    f"Missing required fields for relation creation.",
-                    extra={
-                        'user_id': user.id,
-                        'user_name': user.first_name + ' ' + user.last_name,
-                        'action_type': 'delete_node',
-                        'time': datetime.now(),
-                        'details': json.dumps({
-                            'status': f"Missing required fields for relation creation.",
-                        })
-
-                    }
-                )
+                # user_action.warning(
+                #     f"Missing required fields for relation creation.",
+                #     extra={
+                #         'user_id': user.id,
+                #         'user_name': user.first_name + ' ' + user.last_name,
+                #         'action_type': 'delete_node',
+                #         'time': datetime.now(),
+                #         'details': json.dumps({
+                #             'status': f"Missing required fields for relation creation.",
+                #         })
+                #
+                #     }
+                # )
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
             command = f"DELETE VERTEX {node_id_to_delete}"
@@ -648,19 +659,19 @@ def delete_node(request):
             response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
                                      auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
 
-            user_action.info(
-                f"Node successfully deleted",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'delete_node',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': f"Node successfully deleted.",
-                    })
-
-                }
-            )
+            # user_action.info(
+            #     f"Node successfully deleted",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'delete_node',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': f"Node successfully deleted.",
+            #         })
+            #
+            #     }
+            # )
 
             return JsonResponse({'message': 'Node successfully deleted'}, status=201)
         except Exception as e:
@@ -1040,20 +1051,20 @@ def archive(request):
     })
 
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def create_or_edit_content(request):
     user = request.user
-    user_action.info(
-        f"Accessing create_or_edit_content page by user {user}.",
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'access to create_or_edit_content',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"Accessing create_or_edit_content page by user {user}.",
-            })
-        })
+    # user_action.info(
+    #     f"Accessing create_or_edit_content page by user {user}.",
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'access to create_or_edit_content',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"Accessing create_or_edit_content page by user {user}.",
+    #         })
+    #     })
     return render(request, 'chat_dashboard/edit_content.html')
 
 
@@ -1421,50 +1432,109 @@ def update_session_duration(request):
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Корневая директория проекта
 
+
 @csrf_exempt
 def upload_document(request):
-    global DOCUMENTS_DICT
+    """Uploads a document to the server and database."""
     user = request.user
     if request.method == 'POST' and request.FILES.get('file'):
         uploaded_file = request.FILES['file']
         file_name = uploaded_file.name
         file_path = os.path.join(settings.MEDIA_ROOT, 'documents', file_name)
         document_uuid = str(uuid.uuid4())
-        new_document = Documents.objects.create(
-            document_name=file_name,
-            document_uuid=document_uuid
-        )
 
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        with open(file_path, 'wb+') as destination:
-            for chunk in uploaded_file.chunks():
-                destination.write(chunk)
+        # Проверка, существует ли документ в базе данных
+        if Documents.objects.filter(document_name=file_name).exists():
+            logger.warning(f"Document '{file_name}' already exists in the database.")
+            return JsonResponse(
+                {'message': 'Документ уже существует в базе данных!', 'data': {'file_name': file_name}},
+                status=400  # Возвращаем статус 400 (ошибка)
+            )
 
-        user_action.info(
-            f"Trying upload document by user {user} success",
-            extra={
-                'user_id': user.id,
-                'user_name': user.first_name + ' ' + user.last_name,
-                'action_type': 'upload document',
-                'time': datetime.now(),
-                'details': json.dumps({
-                    'status': f"Trying upload document by user {user} success",
-                })
-            })
+        # Проверка, существует ли файл локально
+        if os.path.exists(file_path):
+            logger.warning(f"Document '{file_name}' already exists locally.")
+            return JsonResponse(
+                {'message': 'Документ уже существует локально!', 'data': {'file_name': file_name}},
+                status=400  # Возвращаем статус 400 (ошибка)
+            )
 
-        return JsonResponse({'message': 'Файл успешно загружен!', 'data': {'file_name': file_name, 'file_id': document_uuid}}, status=200)
-    user_action.info(
-        f"Trying upload document by user {user} unsuccess",
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'upload document',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"Trying upload document by user {user} unsuccess",
-            })
-        })
+        # Если документ не существует, создаем его
+        try:
+            new_document = Documents.objects.create(
+                document_name=file_name,
+                document_uuid=document_uuid
+            )
 
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, 'wb+') as destination:
+                for chunk in uploaded_file.chunks():
+                    destination.write(chunk)
+
+            logger.info(f"Document '{file_name}' successfully uploaded.")
+            # user_action.info(
+            #     f"Document '{file_name}' uploaded by user {user}.",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'upload document',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': f"Document '{file_name}' uploaded by user {user}.",
+            #         })
+            #     }
+            # )
+
+            return JsonResponse(
+                {'message': 'Файл успешно загружен!', 'data': {'file_name': file_name, 'file_id': document_uuid}},
+                status=200
+            )
+
+        except Exception as e:
+            logger.error(f"Error uploading document '{file_name}': {e}")
+            # user_action.error(
+            #     f"Error uploading document '{file_name}' by user {user}.",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'upload document',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': f"Error uploading document '{file_name}' by user {user}.",
+            #         })
+            #     }
+            # )
+            return JsonResponse({'message': 'Ошибка при загрузке файла!'}, status=500)
+
+    # Если файл не был передан
+    logger.warning("No file provided for upload.")
+    # user_action.info(
+    #     f"Trying upload document by user {user} unsuccess",
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'upload document',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"Trying upload document by user {user} unsuccess",
+    #         })
+    #     }
+    # )
+    return JsonResponse({'message': 'Файл не загружен!'}, status=400)
+
+    logger.warning("No file provided for upload.")
+    # user_action.info(
+    #     f"Trying upload document by user {user} unsuccess",
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'upload document',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"Trying upload document by user {user} unsuccess",
+    #         })
+    #     }
+    # )
     return JsonResponse({'message': 'Файл не загружен!'}, status=400)
 
 
@@ -1481,5 +1551,75 @@ def get_document_link_by_uuid(request, uuid):
 
             return JsonResponse({'file_url': file_url}, status=200)
 
-    # Если файл не найден
     return JsonResponse({'error': 'Файл не найден'}, status=404)
+
+def get_documents(request):
+    if request.method == 'GET':
+        logger.info("Fetching all nodes of type 'document'.")
+        url = f"{config_settings.ORIENT_QUERY_URL}/SELECT * FROM document LIMIT -1"
+
+        try:
+            response = requests.get(
+                url,
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+                headers={"Accept": "application/json"}
+            )
+            if not response.ok:
+                logger.warning("Failed to fetch data from OrientDB.")
+                return JsonResponse([], safe=False, status=200)
+
+            data = response.json()
+            if 'result' in data:
+                documents_data = []
+                for document in data['result']:
+                    if 'name' in document and '@rid' in document:
+                        documents_data.append({
+                            'id': document['@rid'],
+                            'name': document['name']
+                        })
+
+                logger.info(f"Found {len(documents_data)} documents.")
+                return JsonResponse({'result': documents_data}, safe=False)
+            else:
+                logger.error("Unexpected response format.")
+                return JsonResponse({"error": "Unexpected response format"}, status=500)
+
+        except Exception as e:
+            logger.error(f"Error fetching data: {e}")
+            return JsonResponse({"error": "Failed to fetch data"}, status=500)
+
+
+def get_links(request):
+    if request.method == 'GET':
+        logger.info("Fetching all nodes of type 'link'.")
+        url = f"{config_settings.ORIENT_QUERY_URL}/SELECT * FROM link LIMIT -1"
+
+        try:
+            response = requests.get(
+                url,
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+                headers={"Accept": "application/json"}
+            )
+            if not response.ok:
+                logger.warning("Failed to fetch data from OrientDB.")
+                return JsonResponse([], safe=False, status=200)
+
+            data = response.json()
+            if 'result' in data:
+                links_data = []
+                for link in data['result']:
+                    if 'name' in link and '@rid' in link:
+                        links_data.append({
+                            'id': link['@rid'],
+                            'name': link['name']
+                        })
+
+                logger.info(f"Found {len(links_data)} documents.")
+                return JsonResponse({'result': links_data}, safe=False)
+            else:
+                logger.error("Unexpected response format.")
+                return JsonResponse({"error": "Unexpected response format"}, status=500)
+
+        except Exception as e:
+            logger.error(f"Error fetching data: {e}")
+            return JsonResponse({"error": "Failed to fetch data"}, status=500)

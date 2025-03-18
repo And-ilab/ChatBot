@@ -919,18 +919,10 @@ def generate_neural_response(request):
             if not user_input:
                 return JsonResponse({'error': 'No message provided'}, status=400)
 
-            generate_text = settings.NEURAL_HANDLER.generate_text
+            generate_text = settings.NEURAL_MODEL.generate_response
             logger.info(f"Neural model gen text function {generate_text}")
 
-            res = generate_text(
-                user_input,
-                min_new_tokens=2,
-                max_new_tokens=1024,
-                do_sample=False,
-                num_beams=1,
-                temperature=0.3,
-                repetition_penalty=1.2,
-            )
+            res = generate_text(user_input)
 
             logger.info(f"Neural model result {res}")
 

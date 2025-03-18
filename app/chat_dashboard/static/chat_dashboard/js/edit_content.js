@@ -99,6 +99,34 @@ const fetchDocuments = async (answerID) => {
     }
 };
 
+const fetchExistingLinks = async () => {
+    try {
+        const response = await fetch('/api/get-links/', { method: 'GET' });
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке ссылок');
+        }
+        const data = await response.json();
+        return data.result || [];
+    } catch (error) {
+        console.error('Ошибка при загрузке ссылок:', error);
+        return [];
+    }
+};
+
+const fetchExistingDocuments = async () => {
+    try {
+        const response = await fetch('/api/get-documents/', { method: 'GET' });
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке документов');
+        }
+        const data = await response.json();
+        return data.result || [];
+    } catch (error) {
+        console.error('Ошибка при загрузке документов:', error);
+        return [];
+    }
+};
+
 const updateDocumentList = (documents) => {
     documentList.innerHTML = '';
     documents.forEach((doc) => {
@@ -145,9 +173,6 @@ const updateDocumentList = (documents) => {
     });
 };
 
-
-
-
 const updateLinkList = (links) => {
     linkList.innerHTML = '';
 
@@ -193,6 +218,41 @@ const updateLinkList = (links) => {
     });
 };
 
+const populateExistingLinks = async () => {
+    const existingLinkSelect = document.getElementById('existing-link');
+    existingLinkSelect.innerHTML = '<option value="" disabled selected>Выберите ссылку</option>';
+
+    try {
+        const links = await fetchExistingLinks();
+        links.forEach(link => {
+            const option = document.createElement('option');
+            option.value = link.id;
+            option.textContent = link.name;
+            existingLinkSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Ошибка при загрузке ссылок:', error);
+    }
+};
+
+const populateDocumentSelect = async () => {
+    const documentSelect = document.getElementById('existing-document');
+    documentSelect.innerHTML = '<option value="" disabled selected>Выберите документ</option>';
+
+    try {
+        const documents = await fetchExistingDocuments();
+        console.log(documents);
+        documents.forEach(doc => {
+            const option = document.createElement('option');
+            option.value = doc['id'];
+            option.textContent = doc.name;
+            documentSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Ошибка при заполнении списка документов:', error);
+    }
+};
+
 const updateArtifacts = async (answer_id) => {
     const links = [];
     const documents = [];
@@ -226,92 +286,175 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let isAnswerEditing = false;
 
-    document.getElementById('add-link').addEventListener('click', function() {
+    document.getElementById('add-link').addEventListener('click', async function() {
+        await populateExistingLinks();
         var myModal = new bootstrap.Modal(document.getElementById('addLinkModal'));
         myModal.show();
     });
 
-    document.getElementById('add-document').addEventListener('click', function() {
+    document.getElementById('add-document').addEventListener('click', async function() {
+        await populateDocumentSelect();
         var myModal = new bootstrap.Modal(document.getElementById('addDocumentModal'));
         myModal.show();
     });
 
+    // Обработчики для переключателей в модальном окне добавления ссылки
+    const selectExistingLink = document.getElementById('selectExistingLink');
+    const addNewLink = document.getElementById('addNewLink');
+    const existingLinkSection = document.getElementById('existingLinkSection');
+    const newLinkSection = document.getElementById('newLinkSection');
+
+    if (selectExistingLink && addNewLink && existingLinkSection && newLinkSection) {
+        selectExistingLink.addEventListener('change', function() {
+            if (this.checked) {
+                existingLinkSection.style.display = 'block';
+                newLinkSection.style.display = 'none';
+            }
+        });
+
+        addNewLink.addEventListener('change', function() {
+            if (this.checked) {
+                existingLinkSection.style.display = 'none';
+                newLinkSection.style.display = 'block';
+            }
+        });
+    }
+
+    // Обработчики для переключателей в модальном окне добавления документа
+    const selectExistingDocument = document.getElementById('selectExistingDocument');
+    const addNewDocument = document.getElementById('addNewDocument');
+    const existingDocumentSection = document.getElementById('existingDocumentSection');
+    const newDocumentSection = document.getElementById('newDocumentSection');
+
+    if (selectExistingDocument && addNewDocument && existingDocumentSection && newDocumentSection) {
+        selectExistingDocument.addEventListener('change', function() {
+            if (this.checked) {
+                existingDocumentSection.style.display = 'block';
+                newDocumentSection.style.display = 'none';
+            }
+        });
+
+        addNewDocument.addEventListener('change', function() {
+            if (this.checked) {
+                existingDocumentSection.style.display = 'none';
+                newDocumentSection.style.display = 'block';
+            }
+        });
+    }
+
     addDocumentButton.addEventListener("click", async (e) => {
-        const formData = new FormData();
-        const fileTitle = document.getElementById("document-title").value;
-        const file = document.getElementById("document-file").files[0];
-        const fileName = file.name;
-        let documentID;
+        const isNewDocument = document.getElementById('addNewDocument').checked;
 
+        if (isNewDocument) {
+            const formData = new FormData();
+            const fileTitle = document.getElementById("document-title").value;
+            const file = document.getElementById("document-file").files[0];
 
-        formData.append("title", fileTitle);
-        formData.append("file", file);
+            if (!fileTitle || !file) {
+                alert('Пожалуйста, заполните все поля перед добавлением документа.');
+                return;
+            }
 
-        try {
-            const response = await fetch("/api/upload-document/", {
-                method: "POST",
-                body: formData,
-            });
+            formData.append("title", fileTitle);
+            formData.append("file", file);
 
-            if (response.ok) {
-                const result = await response.json();
+            try {
+                const response = await fetch("/api/upload-document/", {
+                    method: "POST",
+                    body: formData,
+                });
 
-                try {
-                    const createDocumentResponse = await fetch('/api/create-node/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCookie('csrftoken'),
-                        },
-                        body: JSON.stringify({
-                            class: 'document',
-                            name: fileTitle,
-                            content: '',
-                            uuid: result.data.file_id
-                        }),
-                    });
-
-                    const responseData = await createDocumentResponse.json();
-                    console.log('Node created with ID:', responseData['data'][0]['@rid']);
-                    documentID = responseData['data'][0]['@rid'];
-
-                    console.log(answerID, documentID);
+                 if (response.ok) {
+                    const result = await response.json();
 
                     try {
-                        const createRelationResponse = await fetch('/api/create-relation/', {
+                        const createDocumentResponse = await fetch('/api/create-node/', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'X-CSRFToken': getCookie('csrftoken'),
                             },
                             body: JSON.stringify({
-                                start_node_id: answerID,
-                                end_node_id: documentID,
+                                class: 'document',
+                                name: fileTitle,
+                                content: '',
+                                uuid: result.data.file_id
                             }),
                         });
-                        if (createRelationResponse.status === 201) {
-                            await updateArtifacts(answerID);
-                        }
-                        else {
-                            console.error('Ошибка при создании связи:', await createRelationResponse.json());
-                            alert('Не удалось создать связь.');
+
+                        const responseData = await createDocumentResponse.json();
+                        console.log('Node created with ID:', responseData['data'][0]['@rid']);
+                        documentID = responseData['data'][0]['@rid'];
+
+                        console.log(answerID, documentID);
+
+                        try {
+                            const createRelationResponse = await fetch('/api/create-relation/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getCookie('csrftoken'),
+                                },
+                                body: JSON.stringify({
+                                    start_node_id: answerID,
+                                    end_node_id: documentID,
+                                }),
+                            });
+                            if (createRelationResponse.status === 201) {
+                                await updateArtifacts(answerID);
+                            }
+                            else {
+                                console.error('Ошибка при создании связи:', await createRelationResponse.json());
+                                alert('Не удалось создать связь.');
+                            }
+                        } catch (error) {
+                            console.error('Ошибка при создании связи:', error);
                         }
                     } catch (error) {
-                        console.error('Ошибка при создании связи:', error);
+                        console.error('Error creating entity:', error);
                     }
-                } catch (error) {
-                    console.error('Error creating entity:', error);
-                }
 
-                const modal = bootstrap.Modal.getInstance(document.getElementById("addDocumentModal"));
-                document.getElementById("document-title").value= '';
-                document.getElementById("document-file").value = '';
-                modal.hide();
-            } else {
-                console.error("Ошибка при загрузке файла.");
+                    const modal = bootstrap.Modal.getInstance(document.getElementById("addDocumentModal"));
+                    document.getElementById("document-title").value= '';
+                    document.getElementById("document-file").value = '';
+                    modal.hide();
+                } else {
+                    alert('Файл уже существует');
+                    console.error("Ошибка при загрузке файла.");
+                }
+            } catch (error) {
+                console.error("Произошла ошибка:", error);
             }
-        } catch (error) {
-            console.error("Произошла ошибка:", error);
+        } else {
+            const selectedDocumentId = document.getElementById('existing-document').value;
+
+            if (!selectedDocumentId) {
+                alert('Пожалуйста, выберите документ из списка.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/create-relation/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({
+                        start_node_id: answerID,
+                        end_node_id: selectedDocumentId,
+                    }),
+                });
+
+                if (response.status === 201) {
+                    console.log("Связь успешно создана.");
+                    await updateArtifacts(answerID);
+                } else {
+                    console.error('Ошибка при создании связи:', await response.json());
+                }
+            } catch (error) {
+                console.error('Ошибка при создании связи:', error);
+            }
         }
     });
 
