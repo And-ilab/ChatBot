@@ -427,6 +427,7 @@ async function sendMessageToNeuralModel(message) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                "X-CSRFToken": csrfToken
             },
             body: JSON.stringify(data),
         });
