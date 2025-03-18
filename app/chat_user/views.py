@@ -19,6 +19,7 @@ from config import config_settings
 from rest_framework import status, generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from models_ai.model_instance import neural_model
 
 logger = logging.getLogger('chat_user')
 
@@ -908,27 +909,19 @@ def delete_last_chat_message(request, dialog_id):
 
 
 @csrf_exempt
-def generate_neural_response(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            logger.info(f"Neural model get data {data}")
-            user_input = data.get('message', '')
-            logger.info(f"Neural model user input {user_input}")
+def generate_chat_response(request):
+    try:
+        data = json.loads(request.body)
+        logger.info(f"Get data for nn model: {data}")
+        user_input = data.get('user_input')
+        logger.info(f"User input for nn model: {user_input}")
 
-            if not user_input:
-                return JsonResponse({'error': 'No message provided'}, status=400)
+        if not user_input:
+            return JsonResponse({'error': 'user_input is required'}, status=400)
 
-            generate_text = settings.NEURAL_MODEL.generate_response
-            logger.info(f"Neural model gen text function {generate_text}")
+        response = neural_model.generate_response(user_input)
+        logger.info(f"NN model response: {response}")
+        return JsonResponse({'response': response})
 
-            res = generate_text(user_input)
-
-            logger.info(f"Neural model result {res}")
-
-            return JsonResponse({'response': res})
-
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
