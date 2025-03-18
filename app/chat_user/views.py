@@ -45,41 +45,62 @@ class NeuralModel:
         os.makedirs(self.offload_folder, exist_ok=True)
 
         self.config = PeftConfig.from_pretrained(self.model_name)
+        logger.info(f"Loading base model from {self.config.base_model_name_or_path}")
         self.model = AutoModelForCausalLM.from_pretrained(
             self.config.base_model_name_or_path,
             torch_dtype=torch.float16,
             device_map="auto"
         )
+        logger.info(f"Model loaded: {self.model}")
+
+        logger.info(f"Applying PEFT model from {self.model_name}")
         self.model = PeftModel.from_pretrained(
             self.model,
             self.model_name,
             torch_dtype=torch.float16,
             offload_folder=self.offload_folder
         )
+        logger.info(f"PEFT model applied: {self.model}")
         self.model.eval()
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=False)
         self.generation_config = GenerationConfig.from_pretrained(self.model_name)
 
     def generate_response(self, user_input):
-        messages = [
-            {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": user_input}
-        ]
-        prompt = ""
-        for message in messages:
-            prompt += self.message_template.format(**message)
-        prompt += self.response_template
+        try:
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": user_input}
+            ]
+            prompt = ""
+            for message in messages:
+                prompt += self.message_template.format(**message)
+            prompt += self.response_template
 
-        data = self.tokenizer(prompt, return_tensors="pt", add_special_tokens=False)
-        data = {k: v.to(self.model.device) for k, v in data.items()}
-        output_ids = self.model.generate(
-            **data,
-            generation_config=self.generation_config
-        )[0]
-        output_ids = output_ids[len(data["input_ids"][0]):]
-        output = self.tokenizer.decode(output_ids, skip_special_tokens=True)
-        return output.strip()
+            # Логируем промт
+            logger.info(f"Prompt: {prompt}")
+
+            data = self.tokenizer(prompt, return_tensors="pt", add_special_tokens=False)
+            logger.info(f"Tokenized data: {data}")
+
+            data = {k: v.to(self.model.device) for k, v in data.items()}
+            output_ids = self.model.generate(
+                **data,
+                generation_config=self.generation_config
+            )[0]
+            output_ids = output_ids[len(data["input_ids"][0]):]
+            output = self.tokenizer.decode(output_ids, skip_special_tokens=True)
+
+            # Логируем декодированный ответ
+            logger.info(f"Decoded output: {output}")
+
+            if not output:
+                raise ValueError("Model returned an empty response")
+
+            return output.strip()
+        except Exception as e:
+            logger.error(f"Error in generate_response: {str(e)}")
+            raise
 
 
 def user_chat(request):
@@ -969,6 +990,9 @@ def delete_last_chat_message(request, dialog_id):
 @csrf_exempt
 def generate_chat_response(request):
     try:
+        # Логируем тело запроса
+        logger.info(f"Request body: {request.body}")
+
         data = json.loads(request.body)
         logger.info(f"Get data for nn model: {data}")
         user_input = data.get('message')
@@ -979,9 +1003,15 @@ def generate_chat_response(request):
 
         neural_model = NeuralModel()
         response = neural_model.generate_response(user_input)
+
+        # Логируем ответ модели
         logger.info(f"NN model response: {response}")
+
         return JsonResponse({'response': response})
 
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error: {str(e)}")
+        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
     except Exception as e:
-        logger.info(str(e))
+        logger.error(f"Error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
