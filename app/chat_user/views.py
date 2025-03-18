@@ -26,6 +26,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig
 
 logger = logging.getLogger('chat_user')
 
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+
 
 class NeuralModel:
     def __init__(
@@ -77,24 +80,26 @@ class NeuralModel:
                 prompt += self.message_template.format(**message)
             prompt += self.response_template
 
-            # Логируем промт
             logger.info(f"Prompt: {prompt}")
 
             data = self.tokenizer(prompt, return_tensors="pt", add_special_tokens=False)
             logger.info(f"Tokenized data: {data}")
 
-            data = {k: v.to(self.model.device) for k, v in data.items()}
-
-            # Логируем данные перед генерацией
-            logger.info(f"Data for generation: {data}")
+            # Перемещаем данные на устройство модели
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            self.model.to(device)
+            data = {k: v.to(device) for k, v in data.items()}
+            logger.info(f"Data device: {data['input_ids'].device}")
 
             # Генерируем ответ
-            output_ids = self.model.generate(
-                **data,
-                generation_config=self.generation_config
-            )[0]
+            with torch.no_grad():
+                output_ids = self.model.generate(
+                    **data,
+                    generation_config=self.generation_config,
+                    max_new_tokens=50,  # Ограничьте количество токенов
+                    num_beams=1,  # Уменьшите количество beams
+                )[0]
 
-            # Логируем output_ids
             logger.info(f"Output IDs: {output_ids}")
 
             # Обрезаем output_ids
@@ -110,7 +115,7 @@ class NeuralModel:
 
             return output.strip()
         except Exception as e:
-            logger.error(f"Error in generate_response: {str(e)}")
+            logger.error(f"Error in generate_response: {str(e)}", exc_info=True)
             raise
 
 
