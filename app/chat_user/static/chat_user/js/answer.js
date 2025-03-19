@@ -85,8 +85,8 @@ async function recognizeAndProcessMessage(cleanedMessage) {
         hideMenu();
         disableUserActions();
         typingBlock.style.display = 'flex';
+        state['message_to_operator'] = cleanedMessage;
         const recognizedQuestion = await recognizeQuestion(cleanedMessage);
-        qurrentMessageToRecognize = recognizedQuestion;
         if (recognizedQuestion) {
             await processRecognizedQuestion(recognizedQuestion);
         } else {
@@ -141,87 +141,39 @@ async function processRecognizedQuestion(questionContent) {
     }
 }
 
-async function deleteOperatorButton() {
+
+async function sendRequestToFastAPI(userInput) {
+    const url = "https://www.chatbot.digitranslab.com/fastapi/generate/";
+    const data = {
+        text: userInput
+    };
+
     try {
-        const response = await fetch(`/api/delete_last_chat_message/${state['dialog_id']}/`, {
-            method: 'DELETE',
+        const response = await fetch(url, {
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
+                "Content-Type": "application/json",
             },
+            body: JSON.stringify(data),
         });
 
-        const data = await response.json();
-        console.log(data);
-
-        if (response.ok) {
-            return data;
-        } else {
-            console.error(data.message);
-            throw new Error(data.message);
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
         }
+
+        const result = await response.json();
+        return result.response;
     } catch (error) {
-        console.error('Ошибка при удалении последнего сообщения:', error);
-        throw error;
-    }
-}
-
-async function addOperatorButton(message, to_send, is_disabled) {
-    const operatorButtonContainer = document.createElement('div');
-    operatorButtonContainer.className = 'operator-button-container';
-    operatorButtonContainer.innerHTML = `
-        <button class="operator-button"">
-            <i class="fas fa-headset"></i>
-            Отправить оператору
-        </button>
-    `;
-
-    if (to_send) {
-        await sendMessageToAPI(state['dialog_id'], 'bot', 'operator', 'Send to operator', getTimestamp());
-    }
-    chatMessagesArea.appendChild(operatorButtonContainer);
-    setTimeout(scrollToBottom, 0);
-    await showSectionButtons();
-
-    const operatorButton = operatorButtonContainer.querySelector('.operator-button');
-    if (is_disabled) {
-        operatorButton.disabled = true;
-    } else {
-        operatorButton.addEventListener('click', async (e) => {
-            try {
-                await fetch("/api/create-training-message/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": csrfToken,
-                    },
-                    body: JSON.stringify({
-                        sender_id: state['user_id'],
-                        content: message,
-                        status: 'sent_to_operator'
-                    }),
-                });
-            } catch (error) {
-                console.error("Ошибка при отправке оператору:", error);
-            }
-            const confirmMessage = operatorConfirmationMessages[
-                Math.floor(Math.random() * operatorConfirmationMessages.length)
-            ];
-            await deleteOperatorButton();
-            operatorButtonContainer.remove();
-
-            appendMessage('bot', confirmMessage, getTimestamp());
-            await sendBotMessage(confirmMessage);
-            setTimeout(scrollToBottom, 0);
-        });
+        console.error("Ошибка при отправке запроса:", error);
+        return "Произошла ошибка при обработке запроса.";
     }
 }
 
 async function handleUnrecognizedMessage(message) {
-    const botAnswerMessage = customResponses[Math.floor(Math.random() * customResponses.length)];
-    appendMessage('bot', botAnswerMessage, getTimestamp(), false);
-    await sendBotMessage(botAnswerMessage);
-
-    await addOperatorButton(message, true, false);
-    enableUserActions();
+    typingBlock.style.display = 'flex';
+    const neuralMessage = await sendRequestToFastAPI(message);
+    appendMessage('bot', neuralMessage, getTimestamp(), false);
+    await sendBotMessage(neuralMessage);
+    typingBlock.style.display = 'none';
+    await createFeedbackElements();
 }
