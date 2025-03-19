@@ -18,22 +18,26 @@ class NeuralModel:
         self.system_prompt = system_prompt
         self.offload_folder = offload_folder
 
-        os.makedirs(self.offload_folder, exist_ok=True)
-
+        # Загружаем конфигурацию модели
         self.config = PeftConfig.from_pretrained(self.model_name)
+
+        # Загружаем базовую модель на CPU
         self.model = AutoModelForCausalLM.from_pretrained(
             self.config.base_model_name_or_path,
-            torch_dtype=torch.float16,
-            device_map="auto"
+            torch_dtype=torch.float16,  # Используем float16 для экономии памяти
+            device_map=None  # Это гарантирует, что модель будет загружена на CPU
         )
+
+        # Загружаем PEFT-модель на CPU
         self.model = PeftModel.from_pretrained(
             self.model,
             self.model_name,
             torch_dtype=torch.float16,
-            use_safetensors=False
+            use_safetensors=False  # Отключаем использование safetensors
         )
         self.model.eval()
 
+        # Загружаем токенизатор и конфигурацию генерации
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=False)
         self.generation_config = GenerationConfig.from_pretrained(self.model_name)
 
@@ -47,8 +51,11 @@ class NeuralModel:
             prompt += self.message_template.format(**message)
         prompt += self.response_template
 
+        # Токенизируем входные данные
         data = self.tokenizer(prompt, return_tensors="pt", add_special_tokens=False)
         data = {k: v.to(self.model.device) for k, v in data.items()}
+
+        # Генерируем ответ
         output_ids = self.model.generate(
             **data,
             generation_config=self.generation_config
@@ -58,4 +65,5 @@ class NeuralModel:
         return output.strip()
 
 
+# Создаем экземпляр модели
 nn_model_instance = NeuralModel()
