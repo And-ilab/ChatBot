@@ -19,7 +19,7 @@ from config import config_settings
 from rest_framework import status, generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .nn_model_loader import nn_model_instance
+# from .nn_model_loader import nn_model_instance
 
 
 logger = logging.getLogger('chat_user')
@@ -909,28 +909,28 @@ def delete_last_chat_message(request, dialog_id):
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
-@csrf_exempt
-def generate_chat_response(request):
-    try:
-        data = json.loads(request.body)
-        logger.info(f"Get data for nn model: {data}")
-        user_input = data.get('message')
-        logger.info(f"User input for nn model: {user_input}")
-
-        if not user_input:
-            return JsonResponse({'error': 'user_input is required'}, status=400)
-
-        response = nn_model_instance.generate_response("Кто ты?")
-
-        try:
-            json.dumps({'response': response})
-        except TypeError as e:
-            logger.error(f"JSON serialization error: {str(e)}")
-            return JsonResponse({'error': 'Invalid response format'}, status=500)
-
-        logger.info(f"NN model response: {response}")
-        return JsonResponse({'response': response})
-
-    except Exception as e:
-        logger.error(f"Error: {str(e)}")
-        return JsonResponse({'error': str(e)}, status=500)
+# @csrf_exempt
+# def generate_chat_response(request):
+#     try:
+#         data = json.loads(request.body)
+#         logger.info(f"Get data for nn model: {data}")
+#         user_input = data.get('message')
+#         logger.info(f"User input for nn model: {user_input}")
+#
+#         if not user_input:
+#             return JsonResponse({'error': 'user_input is required'}, status=400)
+#
+#         response = nn_model_instance.generate_response("Кто ты?")
+#
+#         try:
+#             json.dumps({'response': response})
+#         except TypeError as e:
+#             logger.error(f"JSON serialization error: {str(e)}")
+#             return JsonResponse({'error': 'Invalid response format'}, status=500)
+#
+#         logger.info(f"NN model response: {response}")
+#         return JsonResponse({'response': response})
+#
+#     except Exception as e:
+#         logger.error(f"Error: {str(e)}")
+#         return JsonResponse({'error': str(e)}, status=500)

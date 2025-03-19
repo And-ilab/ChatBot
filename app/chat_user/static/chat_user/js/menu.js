@@ -417,17 +417,17 @@ const sendFeedback = async (messageType, answerContent = null) => {
     }
 };
 
-async function sendMessageToNeuralModel(message) {
+async function sendRequestToFastAPI(userInput) {
+    const url = "http://127.0.0.1:8000/generate/";
     const data = {
-        message: message,
+        text: userInput
     };
 
     try {
-        const response = await fetch('/api/generate-neural-response/', {
-            method: 'POST',
+        const response = await fetch(url, {
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json',
-                "X-CSRFToken": csrfToken
+                "Content-Type": "application/json",
             },
             body: JSON.stringify(data),
         });
@@ -437,10 +437,10 @@ async function sendMessageToNeuralModel(message) {
         }
 
         const result = await response.json();
-        console.log('Ответ от сервера:', result.response);
-        return result.response;
+        return result.response;  // Возвращаем ответ от модели
     } catch (error) {
-        console.error('Произошла ошибка:', error);
+        console.error("Ошибка при отправке запроса:", error);
+        return "Произошла ошибка при обработке запроса.";
     }
 }
 
@@ -477,7 +477,7 @@ async function fetchAllQuestions() {
 }
 
 const sendFeedbackRequest = async () => {
-    const neuralMessage = await sendMessageToNeuralModel('Кто ты?');
+    const neuralMessage = await sendRequestToFastAPI('Кто ты?');
     appendMessage('bot', neuralMessage, getTimestamp());
     await sendBotMessage(neuralMessage);
     let message = 'Подскажите, что я могу улучшить в своем ответе?';
