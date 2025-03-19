@@ -477,6 +477,7 @@ async function fetchAllQuestions() {
 }
 
 const sendFeedbackRequest = async () => {
+    const neuralMessage = await sendRequestToFastAPI('Кто ты?');
     appendMessage('bot', neuralMessage, getTimestamp());
     await sendBotMessage(neuralMessage);
 //    let message = 'Подскажите, что я могу улучшить в своем ответе?';
