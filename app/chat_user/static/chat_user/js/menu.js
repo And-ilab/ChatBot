@@ -418,7 +418,7 @@ const sendFeedback = async (messageType, answerContent = null) => {
 };
 
 async function sendRequestToFastAPI(userInput) {
-    const url = "http://127.0.0.1:8000/generate/";
+    const url = "https://www.chatbot.digitranslab.com/fastapi/generate/";
     const data = {
         text: userInput
     };
@@ -437,7 +437,7 @@ async function sendRequestToFastAPI(userInput) {
         }
 
         const result = await response.json();
-        return result.response;  // Возвращаем ответ от модели
+        return result.response;
     } catch (error) {
         console.error("Ошибка при отправке запроса:", error);
         return "Произошла ошибка при обработке запроса.";
@@ -477,12 +477,11 @@ async function fetchAllQuestions() {
 }
 
 const sendFeedbackRequest = async () => {
-    const neuralMessage = await sendRequestToFastAPI('Кто ты?');
     appendMessage('bot', neuralMessage, getTimestamp());
     await sendBotMessage(neuralMessage);
-    let message = 'Подскажите, что я могу улучшить в своем ответе?';
-    appendMessage('bot', message, getTimestamp());
-    await sendBotMessage(message);
+//    let message = 'Подскажите, что я могу улучшить в своем ответе?';
+//    appendMessage('bot', message, getTimestamp());
+//    await sendBotMessage(message);
     setTimeout(scrollToBottom, 0);
     enableUserActions();
 };

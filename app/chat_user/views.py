@@ -908,7 +908,6 @@ def delete_last_chat_message(request, dialog_id):
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-
 # @csrf_exempt
 # def generate_chat_response(request):
 #     try:
