@@ -25,6 +25,17 @@ function getCookie(name) {
     return cookieValue;
 }
 
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert ${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
+    notification.innerText = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 2000);
+}
+
 const fetchNodes = async (type) => {
     const encodedType = encodeURIComponent(type);
     try {
@@ -268,6 +279,25 @@ const updateArtifacts = async (answer_id) => {
     updateLinkList(links);
 };
 
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        const bootstrapModal = bootstrap.Modal.getInstance(modal);
+        if (bootstrapModal) {
+            bootstrapModal.hide();
+        }
+    }
+
+    if (modalId === "addDocumentModal") {
+        document.getElementById("document-title").value = '';
+        document.getElementById("document-file").value = '';
+    } else if (modalId === "addLinkModal") {
+        document.getElementById("link-title").value = '';
+        document.getElementById("link-url").value = '';
+    }
+}
+
+
 
 document.addEventListener('DOMContentLoaded', async () => {
     const answerTextarea = document.getElementById('answer');
@@ -281,6 +311,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const questionInput = document.getElementById('question-input');
     const saveButton = document.getElementById('save-question');
     const addDocumentButton = document.getElementById('save-document');
+    const addLinkButton = document.getElementById('save-link');
     const documentButton = document.getElementById('add-document');
     const linkButton = document.getElementById('add-link');
 
@@ -351,7 +382,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const file = document.getElementById("document-file").files[0];
 
             if (!fileTitle || !file) {
-                alert('Пожалуйста, заполните все поля перед добавлением документа.');
+                showNotification('Пожалуйста, заполните все поля перед добавлением документа.', 'alert-danger');
                 return;
             }
 
@@ -364,7 +395,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     body: formData,
                 });
 
-                 if (response.ok) {
+                if (response.ok) {
                     const result = await response.json();
 
                     try {
@@ -383,10 +414,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
 
                         const responseData = await createDocumentResponse.json();
-                        console.log('Node created with ID:', responseData['data'][0]['@rid']);
                         documentID = responseData['data'][0]['@rid'];
-
-                        console.log(answerID, documentID);
 
                         try {
                             const createRelationResponse = await fetch('/api/create-relation/', {
@@ -400,36 +428,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     end_node_id: documentID,
                                 }),
                             });
+
                             if (createRelationResponse.status === 201) {
                                 await updateArtifacts(answerID);
-                            }
-                            else {
-                                console.error('Ошибка при создании связи:', await createRelationResponse.json());
-                                alert('Не удалось создать связь.');
+                                showNotification('Документ успешно добавлен!', 'alert-success');
+
+                                closeModal("addDocumentModal");
+                            } else {
+                                showNotification('Не удалось создать связь.', 'alert-danger');
                             }
                         } catch (error) {
-                            console.error('Ошибка при создании связи:', error);
+                            showNotification('Ошибка при создании связи.', 'alert-danger');
                         }
                     } catch (error) {
-                        console.error('Error creating entity:', error);
+                        showNotification('Ошибка при создании документа.', 'alert-danger');
                     }
-
-                    const modal = bootstrap.Modal.getInstance(document.getElementById("addDocumentModal"));
-                    document.getElementById("document-title").value= '';
-                    document.getElementById("document-file").value = '';
-                    modal.hide();
                 } else {
-                    alert('Файл уже существует');
-                    console.error("Ошибка при загрузке файла.");
+                    showNotification('Файл уже существует.', 'alert-warning');
                 }
             } catch (error) {
-                console.error("Произошла ошибка:", error);
+                showNotification('Произошла ошибка при загрузке файла.', 'alert-danger');
             }
         } else {
             const selectedDocumentId = document.getElementById('existing-document').value;
 
             if (!selectedDocumentId) {
-                alert('Пожалуйста, выберите документ из списка.');
+                showNotification('Пожалуйста, выберите документ из списка.', 'alert-danger');
                 return;
             }
 
@@ -447,80 +471,138 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
 
                 if (response.status === 201) {
-                    console.log("Связь успешно создана.");
+                    showNotification('Документ успешно добавлен!', 'alert-success');
                     await updateArtifacts(answerID);
+
+                    closeModal("addDocumentModal");
+                } else if (response.status === 409) {
+                    showNotification('Документ уже существует.', 'alert-warning');
+                    closeModal("addDocumentModal");
                 } else {
-                    console.error('Ошибка при создании связи:', await response.json());
+                    showNotification('Ошибка при добавлении документа.', 'alert-danger');
+                    closeModal("addDocumentModal");
                 }
             } catch (error) {
-                console.error('Ошибка при создании связи:', error);
+                showNotification('Ошибка при добавлении документа.', 'alert-danger');
+                closeModal("addDocumentModal");
             }
         }
     });
 
+    addLinkButton.addEventListener('click', async function () {
+        const isNewLink = document.getElementById('addNewLink').checked;
 
-    document.getElementById('save-link').addEventListener('click', async function () {
-        let title = document.getElementById('link-title').value.trim();
-        let url = document.getElementById('link-url').value.trim();
-        let linkID;
+        if (isNewLink) {
+            let title = document.getElementById('link-title').value.trim();
+            let url = document.getElementById('link-url').value.trim();
+            let linkID;
 
-        if (!title || !url) {
-            alert('Пожалуйста, заполните все поля перед добавлением ссылки.');
-            return;
-        }
-
-        try {
-            const createLinkResponse = await fetch('/api/create-node/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: JSON.stringify({
-                    class: 'link',
-                    name: title,
-                    content: url,
-                }),
-            });
-
-            if (createLinkResponse.ok) {
-                const responseData = await createLinkResponse.json();
-                console.log('Node created with ID:', responseData['data'][0]['@rid']);
-                linkID = responseData['data'][0]['@rid'];
-            } else {
-                console.error('Failed to create node:', createLinkResponse.statusText);
+            if (!title || !url) {
+                showNotification('Пожалуйста, заполните все поля перед добавлением ссылки.', 'alert-danger');
+                return;
             }
-        } catch (error) {
-            console.error('Error creating entity:', error);
-        }
 
-        try {
-            const response = await fetch('/api/create-relation/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: JSON.stringify({
-                    start_node_id: answerID,
-                    end_node_id: linkID,
-                }),
-            });
-            if (response.status === 201) {
-                await updateArtifacts(answerID);
-            }
-            else {
-                console.error('Ошибка при создании связи:', await response.json());
-                alert('Не удалось создать связь.');
-            }
-        } catch (error) {
-            console.error('Ошибка при создании связи:', error);
-        }
+            try {
+                const createLinkResponse = await fetch('/api/create-node/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({
+                        class: 'link',
+                        name: title,
+                        content: url,
+                    }),
+                });
 
-        document.getElementById('link-title').value = '';
-        document.getElementById('link-url').value = '';
-        var myModal = bootstrap.Modal.getInstance(document.getElementById('addLinkModal'));
-        myModal.hide();
+                if (createLinkResponse.status === 409) {
+                    showNotification('Такая ссылка уже существует.', 'alert-warning');
+                    closeModal('addLinkModal');
+                    return;
+                }
+
+                if (createLinkResponse.ok) {
+                    const responseData = await createLinkResponse.json();
+                    linkID = responseData['data'][0]['@rid'];
+                } else {
+                    showNotification('Не удалось создать ссылку.', 'alert-danger');
+                    closeModal('addLinkModal');
+                    return;
+                }
+            } catch (error) {
+                showNotification('Ошибка при создании ссылки.', 'alert-danger');
+                closeModal('addLinkModal');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/create-relation/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({
+                        start_node_id: answerID,
+                        end_node_id: linkID,
+                    }),
+                });
+
+                if (response.status === 201) {
+                    await updateArtifacts(answerID);
+                    showNotification('Ссылка успешно добавлена!', 'alert-success');
+                    closeModal('addLinkModal');
+                } else {
+                    showNotification('Не удалось создать связь.', 'alert-danger');
+                    closeModal('addLinkModal');
+                }
+            } catch (error) {
+                showNotification('Ошибка при создании ссылки.', 'alert-danger');
+                closeModal('addLinkModal');
+            }
+            document.getElementById('link-title').value = '';
+            document.getElementById('link-url').value = '';
+
+            closeModal('addLinkModal');
+        } else {
+            const selectedLinkId = document.getElementById('existing-link').value;
+
+            if (!selectedLinkId) {
+                showNotification('Пожалуйста, выберите ссылку из списка.', 'alert-danger');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/create-relation/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({
+                        start_node_id: answerID,
+                        end_node_id: selectedLinkId,
+                    }),
+                });
+
+                if (response.status === 201) {
+                    showNotification('Ссылка успешно добавлена!', 'alert-success');
+                    await updateArtifacts(answerID);
+
+                    closeModal("addLinkModal");
+                } else if (response.status === 409) {
+                    showNotification('Ссылка уже существует.', 'alert-warning');
+                    closeModal("addLinkModal");
+                } else {
+                    showNotification('Ошибка при добавлении ссылки.', 'alert-danger');
+                    closeModal("addLinkModal");
+                }
+            } catch (error) {
+                showNotification('Ошибка при добавлении ссылки.', 'alert-danger');
+                closeModal("addLinkModal");
+            }
+        }
     });
 
     deleteAnswerButton.addEventListener('click', async () => {

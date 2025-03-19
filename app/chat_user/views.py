@@ -19,6 +19,7 @@ from config import config_settings
 from rest_framework import status, generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from .nn_model_loader import nn_model_instance
 
 
 logger = logging.getLogger('chat_user')
@@ -919,7 +920,7 @@ def generate_chat_response(request):
         if not user_input:
             return JsonResponse({'error': 'user_input is required'}, status=400)
 
-        response = settings.NEURAL_HANDLER.generate_response("Кто ты?")
+        response = nn_model_instance.generate_response("Кто ты?")
 
         try:
             json.dumps({'response': response})

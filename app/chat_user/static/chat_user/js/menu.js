@@ -417,32 +417,32 @@ const sendFeedback = async (messageType, answerContent = null) => {
     }
 };
 
-async function sendMessageToNeuralModel(message) {
-    const data = {
-        message: message,
-    };
-
-    try {
-        const response = await fetch('/api/generate-neural-response/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                "X-CSRFToken": csrfToken
-            },
-            body: JSON.stringify(data),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Ошибка HTTP: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log('Ответ от сервера:', result.response);
-        return result.response;
-    } catch (error) {
-        console.error('Произошла ошибка:', error);
-    }
-}
+//async function sendMessageToNeuralModel(message) {
+//    const data = {
+//        message: message,
+//    };
+//
+//    try {
+//        const response = await fetch('/api/generate-neural-response/', {
+//            method: 'POST',
+//            headers: {
+//                'Content-Type': 'application/json',
+//                "X-CSRFToken": csrfToken
+//            },
+//            body: JSON.stringify(data),
+//        });
+//
+//        if (!response.ok) {
+//            throw new Error(`Ошибка HTTP: ${response.status}`);
+//        }
+//
+//        const result = await response.json();
+//        console.log('Ответ от сервера:', result.response);
+//        return result.response;
+//    } catch (error) {
+//        console.error('Произошла ошибка:', error);
+//    }
+//}
 
 const sendThanksFeedbackMessage = async () => {
     let message = 'Спасибо за Ваш отзыв!';
@@ -477,7 +477,7 @@ async function fetchAllQuestions() {
 }
 
 const sendFeedbackRequest = async () => {
-    const neuralMessage = await sendMessageToNeuralModel('Кто ты?');
+//    const neuralMessage = await sendMessageToNeuralModel('Кто ты?');
     appendMessage('bot', neuralMessage, getTimestamp());
     await sendBotMessage(neuralMessage);
     let message = 'Подскажите, что я могу улучшить в своем ответе?';

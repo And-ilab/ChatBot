@@ -34,7 +34,7 @@ import uuid
 logger = logging.getLogger('chat_dashboard')
 user_action = logging.getLogger('user_actions')
 
-@role_required(['admin', 'operator'])
+# @role_required(['admin', 'operator'])
 def analytics(request):
     user = request.user
     user_action.info(
@@ -461,7 +461,33 @@ def create_node(request):
             if not node_class or not node_name:
                 return JsonResponse({'error': 'Missing required fields: class or name'}, status=400)
 
-            logger.info(f"node class: {node_class}")
+            if node_class == 'link':
+                check_sql = f"SELECT FROM {node_class} WHERE name = '{node_name}'"
+                check_response = requests.post(
+                    config_settings.ORIENT_COMMAND_URL,
+                    headers={'Content-Type': 'application/json'},
+                    json={"command": check_sql},
+                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
+                )
+
+                if check_response.status_code == 200:
+                    existing_nodes = check_response.json().get('result', [])
+                    if existing_nodes:
+                        return JsonResponse({'error': 'Node with this name already exists'}, status=409)
+
+                check_sql = f"SELECT FROM {node_class} WHERE content = '{node_content}'"
+                check_response = requests.post(
+                    config_settings.ORIENT_COMMAND_URL,
+                    headers={'Content-Type': 'application/json'},
+                    json={"command": check_sql},
+                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
+                )
+
+                if check_response.status_code == 200:
+                    existing_nodes = check_response.json().get('result', [])
+                    if existing_nodes:
+                        return JsonResponse({'error': 'Node with this content already exists'}, status=409)
+
             sql_command = f"CREATE VERTEX {node_class} SET name = '{node_name}'"
             if node_content:
                 sql_command += f", content = '{node_content}'"
@@ -589,8 +615,8 @@ def create_relation(request):
 
             check_data = check_response.json()
             if 'result' in check_data and len(check_data['result']) > 0:
-                logger.info(f"Relation already exists between nodes {start_node_id} and {end_node_id}.")
-                return JsonResponse({'message': 'Relation already exists'}, status=201)
+                logger.warning(f"Relation already exists between nodes {start_node_id} and {end_node_id}.")
+                return JsonResponse({'error': 'Relation already exists'}, status=409)
 
             create_relation_command = f"CREATE EDGE Includes FROM {start_node_id} TO {end_node_id}"
             json_data = {"command": create_relation_command}
@@ -1016,8 +1042,6 @@ def archive(request):
                 })
             })
 
-
-    # Получение данных о диалогах с аннотацией последнего сообщения и его отправителя
     dialogs = Dialog.objects.annotate(
         has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
         username=Concat(
@@ -1435,7 +1459,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Кор
 
 @csrf_exempt
 def upload_document(request):
-    """Uploads a document to the server and database."""
     user = request.user
     if request.method == 'POST' and request.FILES.get('file'):
         uploaded_file = request.FILES['file']
@@ -1443,20 +1466,20 @@ def upload_document(request):
         file_path = os.path.join(settings.MEDIA_ROOT, 'documents', file_name)
         document_uuid = str(uuid.uuid4())
 
-        # Проверка, существует ли документ в базе данных
-        if Documents.objects.filter(document_name=file_name).exists():
-            logger.warning(f"Document '{file_name}' already exists in the database.")
-            return JsonResponse(
-                {'message': 'Документ уже существует в базе данных!', 'data': {'file_name': file_name}},
-                status=400  # Возвращаем статус 400 (ошибка)
-            )
-
         # Проверка, существует ли файл локально
         if os.path.exists(file_path):
             logger.warning(f"Document '{file_name}' already exists locally.")
             return JsonResponse(
                 {'message': 'Документ уже существует локально!', 'data': {'file_name': file_name}},
-                status=400  # Возвращаем статус 400 (ошибка)
+                status=400
+            )
+
+        # Проверка, существует ли документ в базе данных
+        if Documents.objects.filter(document_name=file_name).exists():
+            logger.warning(f"Document '{file_name}' already exists in the database.")
+            return JsonResponse(
+                {'message': 'Документ уже существует в базе данных!', 'data': {'file_name': file_name}},
+                status=400
             )
 
         # Если документ не существует, создаем его
