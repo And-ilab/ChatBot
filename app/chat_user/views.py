@@ -920,7 +920,6 @@ def generate_chat_response(request):
         if not user_input:
             return JsonResponse({'error': 'user_input is required'}, status=400)
 
-        neural_model = NeuralModel()
         response = neural_model.generate_response("Кто ты?")
 
         try:
