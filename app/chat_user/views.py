@@ -19,7 +19,6 @@ from config import config_settings
 from rest_framework import status, generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .model_initializer import neural_model
 
 
 logger = logging.getLogger('chat_user')
