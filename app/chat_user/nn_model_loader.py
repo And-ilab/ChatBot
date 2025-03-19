@@ -5,38 +5,37 @@ import os
 
 class NeuralModel:
     def __init__(
-        self,
-        model_name="IlyaGusev/saiga_mistral_7b",
-        message_template="<s>{role}\n{content}</s>",
-        response_template="<s>bot\n",
-        system_prompt="Ты — чат-бот, русскоязычный автоматический ассистент для работников банка. Ты разговариваешь с людьми и помогаешь им.",
-        offload_folder="./offload"
+            self,
+            model_name="IlyaGusev/saiga_mistral_7b",
+            message_template="<s>{role}\n{content}</s>",
+            response_template="<s>bot\n",
+            system_prompt="Ты — чат-бот, русскоязычный автоматический ассистент для работников банка. Ты разговариваешь с людьми и помогаешь им.",
     ):
         self.model_name = model_name
         self.message_template = message_template
         self.response_template = response_template
         self.system_prompt = system_prompt
-        self.offload_folder = offload_folder
 
-        os.makedirs(self.offload_folder, exist_ok=True)
-
+        # Load PeftConfig
         self.config = PeftConfig.from_pretrained(self.model_name)
+
+        # Load base model without offload_folder
         self.model = AutoModelForCausalLM.from_pretrained(
             self.config.base_model_name_or_path,
             torch_dtype=torch.float16,
             device_map="auto",
-            offload_folder=self.offload_folder,
             use_safetensors=True
         )
+
+        # Load Peft adapter without offload_folder
         self.model = PeftModel.from_pretrained(
             self.model,
             self.model_name,
-            torch_dtype=torch.float16,
-            offload_folder=self.offload_folder
+            torch_dtype=torch.float16
         )
         self.model.eval()
 
-        # Загружаем токенизатор
+        # Load tokenizer and generation config
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=False)
         self.generation_config = GenerationConfig.from_pretrained(self.model_name)
 
