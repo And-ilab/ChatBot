@@ -1,41 +1,39 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig
-from peft import PeftModel, PeftConfig
 import torch
+from peft import PeftModel, PeftConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig
 import os
 
 class NeuralModel:
     def __init__(
-            self,
-            model_name="IlyaGusev/saiga_mistral_7b",
-            message_template="<s>{role}\n{content}</s>",
-            response_template="<s>bot\n",
-            system_prompt="Ты — чат-бот, русскоязычный автоматический ассистент для работников банка. Ты разговариваешь с людьми и помогаешь им.",
+        self,
+        model_name="IlyaGusev/saiga_mistral_7b",
+        message_template="<s>{role}\n{content}</s>",
+        response_template="<s>bot\n",
+        system_prompt="Ты — чат-бот, русскоязычный автоматический ассистент для работников банка. Ты разговариваешь с людьми и помогаешь им.",
+        offload_folder="./offload"
     ):
         self.model_name = model_name
         self.message_template = message_template
         self.response_template = response_template
         self.system_prompt = system_prompt
+        self.offload_folder = offload_folder
 
-        # Load PeftConfig
+        os.makedirs(self.offload_folder, exist_ok=True)
+
         self.config = PeftConfig.from_pretrained(self.model_name)
-
-        # Load base model without offload_folder
         self.model = AutoModelForCausalLM.from_pretrained(
             self.config.base_model_name_or_path,
             torch_dtype=torch.float16,
-            device_map="auto",
-            use_safetensors=True
+            device_map="auto"
         )
-
-        # Load Peft adapter without offload_folder
         self.model = PeftModel.from_pretrained(
             self.model,
             self.model_name,
-            torch_dtype=torch.float16
+            torch_dtype=torch.float16,
+            use_safetensors=False
         )
         self.model.eval()
 
-        # Load tokenizer and generation config
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=False)
         self.generation_config = GenerationConfig.from_pretrained(self.model_name)
 
