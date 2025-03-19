@@ -86,6 +86,7 @@ async function recognizeAndProcessMessage(cleanedMessage) {
         disableUserActions();
         typingBlock.style.display = 'flex';
         const recognizedQuestion = await recognizeQuestion(cleanedMessage);
+        qurrentMessageToRecognize = recognizedQuestion;
         if (recognizedQuestion) {
             await processRecognizedQuestion(recognizedQuestion);
         } else {

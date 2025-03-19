@@ -477,7 +477,9 @@ async function fetchAllQuestions() {
 }
 
 const sendFeedbackRequest = async () => {
-    await sendMessageToNeuralModel('Привет, как у тебя дела?');
+    const neuralMessage = await sendMessageToNeuralModel('Кто ты?');
+    appendMessage('bot', neuralMessage, getTimestamp());
+    await sendBotMessage(neuralMessage);
     let message = 'Подскажите, что я могу улучшить в своем ответе?';
     appendMessage('bot', message, getTimestamp());
     await sendBotMessage(message);
