@@ -907,36 +907,36 @@ def delete_last_chat_message(request, dialog_id):
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 
-@csrf_exempt
-def generate_neural_response(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            logger.info(f"Neural model get data {data}")
-            user_input = data.get('message', '')
-            logger.info(f"Neural model user input {user_input}")
-
-            if not user_input:
-                return JsonResponse({'error': 'No message provided'}, status=400)
-
-            generate_text = settings.NEURAL_HANDLER.generate_text
-            logger.info(f"Neural model gen text function {generate_text}")
-
-            res = generate_text(
-                user_input,
-                min_new_tokens=2,
-                max_new_tokens=1024,
-                do_sample=False,
-                num_beams=1,
-                temperature=0.3,
-                repetition_penalty=1.2,
-            )
-
-            logger.info(f"Neural model result {res}")
-
-            return JsonResponse({'response': res[0]["generated_text"]})
-
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+# @csrf_exempt
+# def generate_neural_response(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             logger.info(f"Neural model get data {data}")
+#             user_input = data.get('message', '')
+#             logger.info(f"Neural model user input {user_input}")
+#
+#             if not user_input:
+#                 return JsonResponse({'error': 'No message provided'}, status=400)
+#
+#             generate_text = settings.NEURAL_HANDLER.generate_text
+#             logger.info(f"Neural model gen text function {generate_text}")
+#
+#             res = generate_text(
+#                 user_input,
+#                 min_new_tokens=2,
+#                 max_new_tokens=1024,
+#                 do_sample=False,
+#                 num_beams=1,
+#                 temperature=0.3,
+#                 repetition_penalty=1.2,
+#             )
+#
+#             logger.info(f"Neural model result {res}")
+#
+#             return JsonResponse({'response': res[0]["generated_text"]})
+#
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+#
+#     return JsonResponse({'error': 'Invalid request method'}, status=405)

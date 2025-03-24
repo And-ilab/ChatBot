@@ -95,80 +95,80 @@ class ModelHandler:
         max_similarity = max(similarities)
         return max_similarity, key
 
-
-class NeuralHandler:
-    def __init__(self, model_name="h2oai/h2ogpt-4096-llama2-7b-chat",
-                 local_model_path="models_ai/h2ogpt-4096-llama2-7b-chat"):
-        self.model_name = model_name
-        self.local_model_path = local_model_path
-
-        snapshot_download(
-            repo_id=self.model_name,
-            local_dir=self.local_model_path,
-            resume_download=True,
-        )
-
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.local_model_path,
-            use_fast=False,
-            padding_side="left",
-            trust_remote_code=True,
-            legacy=True,
-        )
-
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.local_model_path,
-            torch_dtype="auto",
-            device_map="auto",
-            trust_remote_code=True,
-        )
-
-        self.generate_text = pipeline(
-            "text-generation",
-            model=self.model,
-            tokenizer=self.tokenizer,
-        )
-
-    def generate_response(self, user_input, **kwargs):
-        try:
-            # Логируем входные данные
-            logger.info(f"Starting text generation for user input: {user_input}")
-            logger.info(f"Additional kwargs received: {kwargs}")
-
-            # Устанавливаем параметры по умолчанию
-            default_kwargs = {
-                "min_new_tokens": 2,
-                "max_new_tokens": 1024,
-                "do_sample": False,
-                "num_beams": 1,
-                "temperature": 0.3,
-                "repetition_penalty": 1.2,
-            }
-            logger.info(f"Default kwargs: {default_kwargs}")
-
-            # Обновляем параметры по умолчанию переданными kwargs
-            default_kwargs.update(kwargs)
-            logger.info(f"Merged kwargs for text generation: {default_kwargs}")
-
-            # Логируем начало генерации текста
-            logger.info("Calling generate_text pipeline...")
-
-            # Вызываем генерацию текста
-            res = self.generate_text(user_input, **default_kwargs)
-            logger.info(f"Raw result from generate_text: {res}")
-
-            # Проверяем, что результат не пустой и имеет ожидаемую структуру
-            if not res or not isinstance(res, list) or not res[0].get("generated_text"):
-                logger.error(f"Unexpected result format: {res}")
-                raise ValueError("Unexpected result format from generate_text")
-
-            # Логируем окончательный результат
-            generated_text = res[0]["generated_text"]
-            logger.info(f"Generated text: {generated_text}")
-
-            return generated_text
-
-        except Exception as e:
-            # Логируем исключение с трассировкой стека
-            logger.error(f"Error in generate_response: {str(e)}", exc_info=True)
-            raise  # Повторно поднимаем исключение для обработки в вызывающем коде
+#
+# class NeuralHandler:
+#     def __init__(self, model_name="h2oai/h2ogpt-4096-llama2-7b-chat",
+#                  local_model_path="models_ai/h2ogpt-4096-llama2-7b-chat"):
+#         self.model_name = model_name
+#         self.local_model_path = local_model_path
+#
+#         snapshot_download(
+#             repo_id=self.model_name,
+#             local_dir=self.local_model_path,
+#             resume_download=True,
+#         )
+#
+#         self.tokenizer = AutoTokenizer.from_pretrained(
+#             self.local_model_path,
+#             use_fast=False,
+#             padding_side="left",
+#             trust_remote_code=True,
+#             legacy=True,
+#         )
+#
+#         self.model = AutoModelForCausalLM.from_pretrained(
+#             self.local_model_path,
+#             torch_dtype="auto",
+#             device_map="auto",
+#             trust_remote_code=True,
+#         )
+#
+#         self.generate_text = pipeline(
+#             "text-generation",
+#             model=self.model,
+#             tokenizer=self.tokenizer,
+#         )
+#
+#     def generate_response(self, user_input, **kwargs):
+#         try:
+#             # Логируем входные данные
+#             logger.info(f"Starting text generation for user input: {user_input}")
+#             logger.info(f"Additional kwargs received: {kwargs}")
+#
+#             # Устанавливаем параметры по умолчанию
+#             default_kwargs = {
+#                 "min_new_tokens": 2,
+#                 "max_new_tokens": 1024,
+#                 "do_sample": False,
+#                 "num_beams": 1,
+#                 "temperature": 0.3,
+#                 "repetition_penalty": 1.2,
+#             }
+#             logger.info(f"Default kwargs: {default_kwargs}")
+#
+#             # Обновляем параметры по умолчанию переданными kwargs
+#             default_kwargs.update(kwargs)
+#             logger.info(f"Merged kwargs for text generation: {default_kwargs}")
+#
+#             # Логируем начало генерации текста
+#             logger.info("Calling generate_text pipeline...")
+#
+#             # Вызываем генерацию текста
+#             res = self.generate_text(user_input, **default_kwargs)
+#             logger.info(f"Raw result from generate_text: {res}")
+#
+#             # Проверяем, что результат не пустой и имеет ожидаемую структуру
+#             if not res or not isinstance(res, list) or not res[0].get("generated_text"):
+#                 logger.error(f"Unexpected result format: {res}")
+#                 raise ValueError("Unexpected result format from generate_text")
+#
+#             # Логируем окончательный результат
+#             generated_text = res[0]["generated_text"]
+#             logger.info(f"Generated text: {generated_text}")
+#
+#             return generated_text
+#
+#         except Exception as e:
+#             # Логируем исключение с трассировкой стека
+#             logger.error(f"Error in generate_response: {str(e)}", exc_info=True)
+#             raise  # Повторно поднимаем исключение для обработки в вызывающем коде

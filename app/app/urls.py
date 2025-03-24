@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from imghdr import test_pbm
+import debug_toolbar
 
 from django.contrib import admin
 from django.urls import path, include
@@ -77,9 +78,14 @@ urlpatterns = [
     path("api/refused-data/", chat_views.refused_data, name="refused_data"),
     path("api/popular-requests/", chat_views.popular_requests_data, name="popular_requests_data"),
     path("api/add-popular-request/", chat_views.add_popular_request, name="add_popular_request"),
-    path('api/generate-neural-response/', chat_views.generate_neural_response, name='generate_neural_response'),
+#    path('api/generate-neural-response/', chat_views.generate_neural_response, name='generate_neural_response'),
     path('api/get-all-questions/', chat_views.get_all_questions, name='get_all_questions'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
+# if settings.DEBUG:
+#     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns = [
+        path('__debug__/', include(debug_toolbar.urls)),
+    ] + urlpatterns + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
