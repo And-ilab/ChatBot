@@ -4,5 +4,8 @@ from . import views
 app_name = 'chat_user'
 
 urlpatterns = [
+    path('embed.js', views.embed_script, name='embed_script'),
     path('', views.user_chat, name='chat'),
+    path('widget', views.user_chat_widget, name='widget'),
+
 ]
