@@ -9,9 +9,7 @@
   var container = document.createElement("div");
   container.id = "embedded-chat-widget";
   document.body.appendChild(container);
-  document.getElementsByTagName('head')[0].innerHTML += 
-  '<meta http-equiv="Content-Security-Policy" content="default-src gap://ready file://* *; style-src \'self\' http://* https://* \'unsafe-inline\'; script-src \'self\' http://* https://* \'unsafe-inline\' \'unsafe-eval\'; connect-src \'self\' https://*.static.domains https://static.app https://www.chatbot.digitranslab.com;">';
-  
+
   var cssFiles = [
     "https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css",
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css",
