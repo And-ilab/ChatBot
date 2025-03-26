@@ -25,6 +25,19 @@
     document.head.appendChild(link);
   });
 
+
+  var jsHeadFiles = [
+    config.staticFilesUrl + "chat_user/js/apiFetch.js",
+  ];
+  
+  jsHeadFiles.forEach(function (url) {
+    var script = document.createElement("script");
+    script.src = url;
+    script.type = "text/javascript";
+    script.defer = true;
+    document.head.appendChild(script);
+  });
+
   var jsFiles = [
     "https://unpkg.com/jwt-decode@3.1.2/build/jwt-decode.js",
     config.staticFilesUrl + "chat_user/js/consts.js",
