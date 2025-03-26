@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRFToken': getCookie('csrftoken'),
+                                'HTTP_X_CSRFTOKEN': getCookie('csrftoken'),
                             },
                             body: JSON.stringify({
                                 class: 'document',
@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
-                                    'X-CSRFToken': getCookie('csrftoken'),
+                                    'HTTP_X_CSRFTOKEN': getCookie('csrftoken'),
                                 },
                                 body: JSON.stringify({
                                     start_node_id: answerID,
@@ -462,7 +462,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken'),
+                        'HTTP_X_CSRFTOKEN': getCookie('csrftoken'),
                     },
                     body: JSON.stringify({
                         start_node_id: answerID,
@@ -507,7 +507,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken'),
+                        'HTTP_X_CSRFTOKEN': getCookie('csrftoken'),
                     },
                     body: JSON.stringify({
                         class: 'link',
@@ -541,7 +541,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken'),
+                        'HTTP_X_CSRFTOKEN': getCookie('csrftoken'),
                     },
                     body: JSON.stringify({
                         start_node_id: answerID,
@@ -578,7 +578,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken'),
+                        'HTTP_X_CSRFTOKEN': getCookie('csrftoken'),
                     },
                     body: JSON.stringify({
                         start_node_id: answerID,

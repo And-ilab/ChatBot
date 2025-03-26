@@ -50,7 +50,7 @@ const sendMessageToAPI = async (dialog_id, senderType, messageType, content, tim
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
+                'HTTP_X_CSRFTOKEN': csrfToken,
             },
             body: JSON.stringify({
                 sender_type: senderType,
