@@ -70,6 +70,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'http_x_csrftoken',
+]
+
 
 CORS_ALLOWED_ORIGINS = [
     # "http://localhost:5000",
