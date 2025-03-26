@@ -8,7 +8,7 @@ const createNewDialog = async () => {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": csrfToken,
+                "HTTP_X_CSRFTOKEN": csrfToken,
             },
         });
 

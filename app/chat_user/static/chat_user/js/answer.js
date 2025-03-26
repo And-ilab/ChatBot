@@ -105,7 +105,7 @@ async function recognizeQuestion(message) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": csrfToken,
+                "HTTP_X_CSRFTOKEN": csrfToken,
             },
             body: JSON.stringify({ message }),
         });

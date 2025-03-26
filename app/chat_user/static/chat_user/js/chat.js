@@ -276,7 +276,7 @@ loginForm.addEventListener("submit", async function (e) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken,
+      "HTTP_X_CSRFTOKEN": csrfToken,
     },
     body: JSON.stringify(jsonData),
   });
@@ -369,7 +369,7 @@ const sendMessageToAPI = async (
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken,
+      "HTTP_X_CSRFTOKEN": csrfToken,
     },
     body: JSON.stringify({
       sender_type: senderType,
@@ -642,7 +642,7 @@ const userResponseHandler = async (message) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRFToken": csrfToken,
+        "HTTP_X_CSRFTOKEN": csrfToken,
       },
       body: JSON.stringify({ message: cleanedMessage }),
     });
@@ -730,7 +730,7 @@ const userResponseHandler = async (message) => {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": csrfToken,
+                "HTTP_X_CSRFTOKEN": csrfToken,
               },
               body: JSON.stringify({
                 sender_id: userID,
@@ -980,7 +980,7 @@ async function createNewDialog(userId) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRFToken": csrfToken,
+        "HTTP_X_CSRFTOKEN": csrfToken,
       },
     });
 
@@ -1013,7 +1013,7 @@ async function extendSession() {
       headers: {
         Authorization: sessionToken,
         "Content-Type": "application/json",
-        "X-CSRFToken": csrfToken,
+        "HTTP_X_CSRFTOKEN": csrfToken,
       },
     });
 
