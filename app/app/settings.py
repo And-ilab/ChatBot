@@ -86,11 +86,26 @@ CSRF_TRUSTED_ORIGINS = [
     "https://chabot-embed-test.vercel.app"
 ]
 
-CSRF_COOKIE_DOMAIN = 'chabot-embed-test.vercel.app'
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_PARTITIONED = True 
-CSRF_COOKIE_SECURE = True  # Only for HTTPS
-SESSION_COOKIE_SECURE = True  # Only for HTTPS
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None' 
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_PARTITIONED = True
+CSRF_HEADER_NAME = 'X-СSRFToken'
+
+CORS_ALLOWED_ORIGINS = [
+    "https://www.digitranslab.com",
+    "https://chabot-embed-test.vercel.app"
+]
+CORS_ALLOW_CREDENTIALS = True
+CORS_EXPOSE_HEADERS = ['Set-Cookie']
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://www.digitranslab.com",
+    "https://chabot-embed-test.vercel.app"
+]
+
+SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = 'None'
 
 ROOT_URLCONF = 'app.urls'
