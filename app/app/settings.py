@@ -1,4 +1,3 @@
-
 """
 Django settings for app project.
 
@@ -74,15 +73,17 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     # "http://localhost:5000",
-    "https://www.digitranslab.com"
+    "https://www.digitranslab.com",
+    "https://reasonable-giraffe.static.domains"
 ]
 
 # CORS_ALLOW_ALL_ORIGINS = True
 # CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://www.digitranslab.com",
     # "http://localhost:5000",
+    "https://www.digitranslab.com",
+    "https://reasonable-giraffe.static.domains"
 ]
 
 # CSRF_COOKIE_SAMESITE = 'None'
@@ -201,5 +202,6 @@ EMAIL_HOST_USER = config_settings.EMAIL_HOST_USER
 EMAIL_HOST_PASSWORD = config_settings.EMAIL_HOST_PASSWORD
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+PROD_SITE_URL = 'https://www.chatbot.digitranslab.com'
 SITE_URL = 'http://localhost:8000'
 X_FRAME_OPTIONS = 'https:/www.digitranslab.com'

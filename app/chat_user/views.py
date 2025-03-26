@@ -28,8 +28,8 @@ logger = logging.getLogger('chat_user')
 @xframe_options_exempt
 def embed_script(request):
     return render(request, 'user_chat/embed.js', {
-        'static_url': settings.SITE_URL + settings.STATIC_URL, 
-        'chat_server_url': settings.SITE_URL  
+        'static_url': settings.PROD_SITE_URL + settings.STATIC_URL, 
+        'chat_server_url': settings.PROD_SITE_URL  
     }, content_type='application/javascript')
     return render(request, 'user_chat/embed.js', context, content_type='application/javascript')
 
@@ -37,9 +37,11 @@ def embed_script(request):
 def user_chat(request):
     logger.info("Rendering user chat page.")
     return render(request, 'user_chat/user_chat.html')
+
 def user_chat_widget(request):
     logger.info("Rendering user chat widget.")
     return render(request, 'user_chat/widget.html')
+
 def chat_login(request):
     if request.method == "POST":
         try:
