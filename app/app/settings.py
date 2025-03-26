@@ -74,7 +74,7 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     # "http://localhost:5000",
     "https://www.digitranslab.com",
-    "https://reasonable-giraffe.static.domains"
+    "https://chabot-embed-test.vercel.app"
 ]
 
 # CORS_ALLOW_ALL_ORIGINS = True
@@ -83,7 +83,7 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = [
     # "http://localhost:5000",
     "https://www.digitranslab.com",
-    "https://reasonable-giraffe.static.domains"
+    "https://chabot-embed-test.vercel.app"
 ]
 
 # CSRF_COOKIE_SAMESITE = 'None'
