@@ -36,7 +36,7 @@ async function sendPopularRequest(requestType) {
     };
 
     try {
-        const response = await fetch(url, {
+        const response = await apiFetch(url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -60,7 +60,7 @@ async function sendPopularRequest(requestType) {
 const fetchNodes = async (type) => {
     const encodedType = encodeURIComponent(type);
     try {
-        const response = await fetch(`/api/get-nodes-by-type/?type=${encodedType}`, { method: 'GET' });
+        const response = await apiFetch(`/api/get-nodes-by-type/?type=${encodedType}`, { method: 'GET' });
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -90,7 +90,7 @@ const fetchNodesWithRelation = async (startNodeType, startNodeName, finishNodeTy
     const encodeStartNodeName = encodeURIComponent(startNodeName);
     const encodeFinishNodeType = encodeURIComponent(finishNodeType);
     try {
-        const response = await fetch(`/api/get-nodes-by-type-with-relation/?startNodeType=${encodeStartNodeType}&startNodeName=${encodeStartNodeName}&finishNodeType=${encodeFinishNodeType}`, { method: 'GET' });
+        const response = await apiFetch(`/api/get-nodes-by-type-with-relation/?startNodeType=${encodeStartNodeType}&startNodeName=${encodeStartNodeName}&finishNodeType=${encodeFinishNodeType}`, { method: 'GET' });
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -110,7 +110,7 @@ const fetchNodesWithRelation = async (startNodeType, startNodeName, finishNodeTy
 const fetchAnswer = async (questionID) => {
     const encodedQuestionID = encodeURIComponent(questionID);
     try {
-        const response = await fetch(`/api/get-answer/?questionId=${encodedQuestionID}`, { method: 'GET' });
+        const response = await apiFetch(`/api/get-answer/?questionId=${encodedQuestionID}`, { method: 'GET' });
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -128,7 +128,7 @@ const fetchAnswer = async (questionID) => {
 const fetchArtifacts = async (answerID) => {
     const encodedAnswerID = encodeURIComponent(answerID);
     try {
-        const response = await fetch(`/api/get-artifacts/?answerID=${encodedAnswerID}`, { method: 'GET' });
+        const response = await apiFetch(`/api/get-artifacts/?answerID=${encodedAnswerID}`, { method: 'GET' });
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Error fetching answer: ${response.status} - ${errorText}`);
@@ -293,7 +293,7 @@ const createArtifactsBlock = async (artifacts) => {
             `;
 
             try {
-                const response = await fetch(`/api/get-document-link-by-uuid/${doc.uuid}/`);
+                const response = await apiFetch(`/api/get-document-link-by-uuid/${doc.uuid}/`);
                 if (!response.ok) {
                     throw new Error('Не удалось получить ссылку на файл');
                 }
@@ -391,7 +391,7 @@ const showArtifacts = async (answerID) => {
 
 const sendFeedback = async (messageType, answerContent = null) => {
     try {
-        const response = await fetch('/api/add-feedback/', {
+        const response = await apiFetch('/api/add-feedback/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -428,7 +428,7 @@ const sendThanksFeedbackMessage = async () => {
 
 async function fetchAllQuestions() {
     try {
-        const response = await fetch('/api/get-all-questions/');
+        const response = await apiFetch('/api/get-all-questions/');
 
         if (!response.ok) {
             throw new Error('Ошибка при запросе данных');
@@ -452,7 +452,7 @@ async function fetchAllQuestions() {
 
 async function deleteOperatorButton() {
     try {
-        const response = await fetch(`/api/delete_last_chat_message/${state['dialog_id']}/`, {
+        const response = await apiFetch(`/api/delete_last_chat_message/${state['dialog_id']}/`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -500,7 +500,7 @@ async function addOperatorButton(message, to_send, is_disabled) {
     } else {
         operatorButton.addEventListener('click', async (e) => {
             try {
-                await fetch("/api/create-training-message/", {
+                await apiFetch("/api/create-training-message/", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
