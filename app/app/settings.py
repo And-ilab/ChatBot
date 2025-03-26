@@ -86,7 +86,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://chabot-embed-test.vercel.app"
 ]
 
-CSRF_COOKIE_DOMAIN = 'https://chabot-embed-test.vercel.app'
+CSRF_COOKIE_DOMAIN = 'chabot-embed-test.vercel.app'
 CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_PARTITIONED = True 
 CSRF_COOKIE_SECURE = True  # Only for HTTPS
