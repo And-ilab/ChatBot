@@ -142,7 +142,7 @@ function chat_new(){
       console.log(jsonData);
 
       try {
-          const response = await fetch("/api/chat-login/", {
+          const response = await apiFetch("/api/chat-login/", {
               method: "POST",
               headers: {
                   "Content-Type": "application/json",
