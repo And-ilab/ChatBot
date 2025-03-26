@@ -73,6 +73,7 @@ MIDDLEWARE = [
 CORS_ALLOW_HEADERS = [
     'content-type',
     'http_x_csrftoken',
+    'X-Requested-With'
 ]
 
 
