@@ -146,7 +146,7 @@ function chat_new(){
               method: "POST",
               headers: {
                   "Content-Type": "application/json",
-                  "HTTP_X_CSRFTOKEN": csrfToken
+                  "X_CSRFTOKEN": csrfToken
               },
               body: JSON.stringify(jsonData),
           });

@@ -40,7 +40,7 @@ async function sendPopularRequest(requestType) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "HTTP_X_CSRFTOKEN": csrfToken
+                "X_CSRFTOKEN": csrfToken
             },
             body: JSON.stringify(requestData)
         });
@@ -396,7 +396,7 @@ const sendFeedback = async (messageType, answerContent = null) => {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Token ${localStorage.getItem('token')}`,
-                "HTTP_X_CSRFTOKEN": csrfToken
+                "X_CSRFTOKEN": csrfToken
             },
             body: JSON.stringify({
                 user: state['user_id'],
@@ -456,7 +456,7 @@ async function deleteOperatorButton() {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'HTTP_X_CSRFTOKEN': csrfToken,
+                'X_CSRFTOKEN': csrfToken,
             },
         });
 
@@ -504,7 +504,7 @@ async function addOperatorButton(message, to_send, is_disabled) {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "HTTP_X_CSRFTOKEN": csrfToken,
+                        "X_CSRFTOKEN": csrfToken,
                     },
                     body: JSON.stringify({
                         sender_id: state['user_id'],
