@@ -70,6 +70,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 CORS_ALLOW_HEADERS = [
     'content-type',
     'http_x_csrftoken',
@@ -81,7 +82,8 @@ CORS_ALLOWED_ORIGINS = [
     # "http://localhost:5000",
     "https://www.digitranslab.com",
     "https://chabot-embed-test.vercel.app",
-    "https://personalnew.asb.by"
+    "http://personal.test.asb"
+
 ]
 
 # CORS_ALLOW_ALL_ORIGINS = True
@@ -91,15 +93,17 @@ CSRF_TRUSTED_ORIGINS = [
     # "http://localhost:5000",
     "https://www.digitranslab.com",
     "https://chabot-embed-test.vercel.app",
-    "https://personalnew.asb.by"
+    "http://personal.test.asb"
 ]
 
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
-CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_PARTITIONED = True 
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
 SESSION_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+
+
 
 ROOT_URLCONF = 'app.urls'
 
