@@ -86,7 +86,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'HTTP_X_CSRFTOKEN': '{{ csrf_token }}'
+                'X_CSRFTOKEN': '{{ csrf_token }}'
             },
             body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
         })
@@ -121,7 +121,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'HTTP_X_CSRFTOKEN': '{{ csrf_token }}'
+                'X_CSRFTOKEN': '{{ csrf_token }}'
             },
             body: `email=${encodeURIComponent(email)}`
         })

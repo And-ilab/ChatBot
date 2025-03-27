@@ -73,7 +73,7 @@ MIDDLEWARE = [
 
 CORS_ALLOW_HEADERS = [
     'content-type',
-    'http_x_csrftoken',
+    'x_csrftoken',
     'X-Requested-With'
 ]
 
@@ -96,7 +96,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://personal.test.asb"
 ]
 
-CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_HEADER_NAME = 'X_CSRFTOKEN'
 CSRF_COOKIE_PARTITIONED = True 
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
