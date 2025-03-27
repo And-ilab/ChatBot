@@ -36,7 +36,7 @@ from config import config_settings
 logger = logging.getLogger('authentication')
 user_action = logging.getLogger('user_actions')
 
-@csrf_exempt
+
 def register_view(request):
     logger.info("User registration page accessed.")
     if request.method == 'POST':
@@ -62,7 +62,7 @@ def get_ad_authentication_enabled():
     settings_obj = Settings.objects.first()
     return settings_obj.ad_enabled
 
-@csrf_exempt
+
 def login_view(request):
     logger.info("User login page accessed.")
     if request.method == 'POST':

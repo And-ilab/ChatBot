@@ -80,7 +80,8 @@ CORS_ALLOW_HEADERS = [
 CORS_ALLOWED_ORIGINS = [
     # "http://localhost:5000",
     "https://www.digitranslab.com",
-    "https://chabot-embed-test.vercel.app"
+    "https://chabot-embed-test.vercel.app",
+    "https://personalnew.asb.by"
 ]
 
 # CORS_ALLOW_ALL_ORIGINS = True
@@ -89,7 +90,8 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     # "http://localhost:5000",
     "https://www.digitranslab.com",
-    "https://chabot-embed-test.vercel.app"
+    "https://chabot-embed-test.vercel.app",
+    "https://personalnew.asb.by"
 ]
 
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
