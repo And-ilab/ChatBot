@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X_CSRFTOKEN': getCookie('csrftoken'),
                 },
                 body: JSON.stringify({ message_id: messageId, sender_id: senderId, answer: answer })
             });

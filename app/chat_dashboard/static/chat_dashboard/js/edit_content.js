@@ -1013,7 +1013,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X_CSRFTOKEN': getCookie('csrftoken'),
                     },
                     body: JSON.stringify({
                         class: 'document',
@@ -1120,7 +1120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X_CSRFTOKEN': getCookie('csrftoken'),
                     },
                     body: JSON.stringify({
                         class: 'link',
@@ -1137,14 +1137,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const linkData = await linkResponse.json();
                 const linkID = linkData.data[0]['@rid'];
 
-                // Создаем связь
                 await createRelation(answer.id, linkID);
-
                 await updateArtifacts(answer.id);
                 showNotification('Ссылка добавлена!', 'alert-success');
                 clearLinkModal();
                 closeModal('addLinkModal');
-
             } else {
                 const selectedLinkId = document.getElementById('existing-link').value;
                 if (!selectedLinkId) {
@@ -1152,7 +1149,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
 
-                // Создаем связь
                 await createRelation(answer.id, selectedLinkId);
 
                 await updateArtifacts(answer.id);

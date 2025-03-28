@@ -7,8 +7,7 @@
         <h2 class="text-center">Подтверждение удаления</h2>
         <p class="text-center">Вы уверены, что хотите удалить пользователя {{ user.first_name }} {{ user.second_name }}?</p>
         <form method="post">
-            {% csrf_token %}
-            <div class="d-flex justify-content-center">
+{% csrf_token %}            <div class="d-flex justify-content-center">
                 <div class="btn-group">
                     <button type="submit" class="btn btn-danger me-2">Удалить</button>
                     <a href="{% url 'chat_dashboard:user_list' %}" class="btn btn-secondary">Отмена</a>

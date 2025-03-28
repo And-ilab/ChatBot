@@ -103,11 +103,11 @@ async function recognizeAndProcessMessage(cleanedMessage) {
 
 async function recognizeQuestion(message) {
     try {
-        const response = await fetch("/api/recognize-question/", {
+        const response = await apiFetch("/api/recognize-question/", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": csrfToken,
+                "X_CSRFTOKEN": csrfToken,
             },
             body: JSON.stringify({ message }),
         });
@@ -128,7 +128,7 @@ async function recognizeQuestion(message) {
 async function processRecognizedQuestion(questionContent) {
     try {
         const encodedContent = encodeURIComponent(questionContent);
-        const response = await fetch(`/api/get-question-id-by-content/?questionContent=${encodedContent}`, { method: 'GET' });
+        const response = await apiFetch(`/api/get-question-id-by-content/?questionContent=${encodedContent}`, { method: 'GET' });
 
         if (!response.ok) {
             throw new Error(`Ошибка при получении ID вопроса: ${response.status} - ${await response.text()}`);
@@ -151,7 +151,7 @@ async function sendRequestToFastAPI(userInput) {
     };
 
     try {
-        const response = await fetch(url, {
+        const response = await apiFetch(url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

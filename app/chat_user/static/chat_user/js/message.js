@@ -46,11 +46,11 @@ const appendMessage = (sender, content, timestamp, showButton = false) => {
 
 const sendMessageToAPI = async (dialog_id, senderType, messageType, content, timestamp) => {
     try {
-        const response = await fetch(`/api/send-message/${dialog_id}/`, {
+        const response = await apiFetch(`/api/send-message/${dialog_id}/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
+                'X_CSRFTOKEN': csrfToken,
             },
             body: JSON.stringify({
                 sender_type: senderType,
@@ -110,7 +110,7 @@ async function drawDocument(content) {
     `;
 
     try {
-        const response = await fetch(`/api/get-document-link-by-uuid/${docUUID}/`);
+        const response = await apiFetch(`/api/get-document-link-by-uuid/${docUUID}/`);
         if (!response.ok) {
             throw new Error('Не удалось получить ссылку на файл');
         }
@@ -161,7 +161,7 @@ function drawLink(content) {
 
 const loadMessages = async () => {
     try {
-        const messagesResponse = await fetch(`/api/messages/${state['dialog_id']}/`);
+        const messagesResponse = await apiFetch(`/api/messages/${state['dialog_id']}/`);
         const data = await messagesResponse.json();
         chatMessagesArea.innerHTML = '';
 

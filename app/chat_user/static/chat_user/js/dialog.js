@@ -4,11 +4,11 @@ const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 const createNewDialog = async () => {
     try {
 
-        const response = await fetch(`/api/dialogs/create/${state["user_id"]}/`, {
+        const response = await apiFetch(`/api/dialogs/create/${state["user_id"]}/`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": csrfToken,
+                "X_CSRFTOKEN": csrfToken,
             },
         });
 
@@ -29,7 +29,7 @@ const createNewDialog = async () => {
 
 async function getLatestDialog() {
     try {
-        const response = await fetch(`/api/dialogs/latest/${state['user_id']}/`, {
+        const response = await apiFetch(`/api/dialogs/latest/${state['user_id']}/`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",

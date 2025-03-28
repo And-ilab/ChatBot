@@ -1,4 +1,3 @@
-
 """
 Django settings for app project.
 
@@ -72,22 +71,37 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'x_csrftoken',
+    'X-Requested-With'
+]
+
+
 CORS_ALLOWED_ORIGINS = [
     # "http://localhost:5000",
-    "https://www.digitranslab.com"
+    "https://www.digitranslab.com",
+    "https://chabot-embed-test.vercel.app",
+    "http://personal.test.asb"
+
 ]
 
 # CORS_ALLOW_ALL_ORIGINS = True
-# CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://www.digitranslab.com",
     # "http://localhost:5000",
+    "https://www.digitranslab.com",
+    "https://chabot-embed-test.vercel.app",
+    "http://personal.test.asb"
 ]
 
-# CSRF_COOKIE_SAMESITE = 'None'
-# CSRF_COOKIE_SECURE = True  # Только для HTTPS!
-# SESSION_COOKIE_SECURE = True  # Только для HTTPS!
+CSRF_HEADER_NAME = 'X_CSRFTOKEN'
+CSRF_COOKIE_PARTITIONED = True 
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+
+
 
 ROOT_URLCONF = 'app.urls'
 
@@ -201,5 +215,6 @@ EMAIL_HOST_USER = config_settings.EMAIL_HOST_USER
 EMAIL_HOST_PASSWORD = config_settings.EMAIL_HOST_PASSWORD
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+PROD_SITE_URL = 'https://www.chatbot.digitranslab.com'
 SITE_URL = 'http://localhost:8000'
 X_FRAME_OPTIONS = 'https:/www.digitranslab.com'

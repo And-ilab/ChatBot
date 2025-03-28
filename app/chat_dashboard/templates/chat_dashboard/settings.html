@@ -173,7 +173,7 @@
             body: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': csrftoken
+                'X_CSRFTOKEN': csrftoken
             }
         })
             .then(response => response.json())

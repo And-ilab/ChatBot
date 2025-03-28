@@ -7,7 +7,7 @@ async function checkSession() {
     }
 
     try {
-        const response = await fetch("/api/check-session/", {
+        const response = await apiFetch("/api/check-session/", {
             method: "GET",
             headers: {
                 "Authorization": sessionToken,
@@ -51,12 +51,12 @@ async function extendSession() {
     }
 
     try {
-        const response = await fetch("/api/extend-session/", {
+        const response = await apiFetch("/api/extend-session/", {
             method: "POST",
             headers: {
                 "Authorization": sessionToken,
                 "Content-Type": "application/json",
-                "X-CSRFToken": csrfToken,
+                "X_CSRFTOKEN": csrfToken,
             },
         });
 
@@ -80,7 +80,7 @@ async function closeSession() {
     }
 
     try {
-        const response = await fetch("/api/close-session/", {
+        const response = await apiFetch("/api/close-session/", {
             method: "POST",
             headers: {
                 "Authorization": sessionToken,

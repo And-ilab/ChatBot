@@ -17,8 +17,7 @@
         {% endif %}
 
         <form method="post" id="userForm">
-            {% csrf_token %}
-            <div class="mb-3">
+{% csrf_token %}            <div class="mb-3">
                 {{ form.id.label }}
                 {{ form.id }}
             </div>
