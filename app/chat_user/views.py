@@ -930,7 +930,7 @@ def update_topic(request):
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-
+@csrf_exempt
 def recognize_question(request):
     if request.method == 'POST':
         try:
@@ -960,6 +960,7 @@ def recognize_question(request):
     logger.warning("Invalid request method")
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
+@csrf_exempt
 @api_view(["POST"])
 def add_feedback(request):
     serializer = FeedbackSerializer(data=request.data)
