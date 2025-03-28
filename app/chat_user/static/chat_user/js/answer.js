@@ -88,6 +88,8 @@ async function recognizeAndProcessMessage(cleanedMessage) {
         state['message_to_operator'] = cleanedMessage;
         const recognizedQuestion = await recognizeQuestion(cleanedMessage);
         if (recognizedQuestion) {
+            state['recognition_response_message'] = recognizedQuestion;
+            console.log(recognizedQuestion);
             await processRecognizedQuestion(recognizedQuestion);
         } else {
             await handleUnrecognizedMessage(cleanedMessage);
@@ -174,6 +176,7 @@ async function handleUnrecognizedMessage(message) {
     const neuralMessage = await sendRequestToFastAPI(message);
     appendMessage('bot', neuralMessage, getTimestamp(), false);
     await sendBotMessage(neuralMessage);
+    state['neural_response_message'] = neuralMessage;
     typingBlock.style.display = 'none';
     await createFeedbackElements();
 }

@@ -4,11 +4,16 @@ const questionSelect = document.getElementById('question');
 const documentList = document.getElementById('document-list');
 const linkList = document.getElementById('link-list');
 
-let answerID;
-let questionID;
-let questionName;
-let topicID;
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert ${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
+    notification.innerText = message;
+    document.body.appendChild(notification);
 
+    setTimeout(() => {
+        notification.remove();
+    }, 2000);
+}
 
 function getCookie(name) {
     let cookieValue = null;
@@ -23,17 +28,6 @@ function getCookie(name) {
         }
     }
     return cookieValue;
-}
-
-function showNotification(message, type) {
-    const notification = document.createElement('div');
-    notification.className = `alert ${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
-    notification.innerText = message;
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.remove();
-    }, 2000);
 }
 
 const fetchNodes = async (type) => {
@@ -139,18 +133,29 @@ const fetchExistingDocuments = async () => {
 };
 
 const updateDocumentList = (documents) => {
+    const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
+    if (!selectedQuestion || !selectedQuestion.value) {
+        documentList.innerHTML = '<li class="list-group-item text-muted">Выберите вопрос для просмотра документов</li>';
+        return;
+    }
+
     documentList.innerHTML = '';
+
+    if (documents.length === 0) {
+        documentList.innerHTML = '<li class="list-group-item text-muted">Нет прикрепленных документов</li>';
+        return;
+    }
+
     documents.forEach((doc) => {
         const listItem = document.createElement('li');
         listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
 
         listItem.innerHTML = `
-            <span>${doc.name}</span>
+            <span>${escapeHtml(doc.name)}</span>
             <div class="d-flex gap-2">
-                <button
-                    type="button"
-                    class="btn btn-sm btn-outline-danger delete-doc-btn"
-                    data-id="${doc.id}">
+                ${doc.url ? `<a href="${doc.url}" class="btn btn-sm btn-outline-primary" download title="Скачать"><i class="bi bi-download"></i></a>` : ''}
+                <button type="button" class="btn btn-sm btn-outline-danger delete-doc-btn"
+                        data-id="${doc.id}" title="Удалить">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
@@ -159,71 +164,121 @@ const updateDocumentList = (documents) => {
         documentList.appendChild(listItem);
     });
 
-    const deleteButtons = document.querySelectorAll('.delete-doc-btn');
-    deleteButtons.forEach((button) => {
+    document.querySelectorAll('.delete-doc-btn').forEach((button) => {
         button.addEventListener('click', async (event) => {
+            if (!confirm('Вы уверены, что хотите удалить этот документ?')) return;
+
             const documentId = button.getAttribute('data-id');
+            const currentQuestion = questionSelect.options[questionSelect.selectedIndex];
+
+            if (!currentQuestion || !currentQuestion.value) {
+                showNotification('Не выбран вопрос', 'alert-danger');
+                return;
+            }
+
             try {
-                const response = await fetch(`/api/delete-node/`, {
+                const answer = await fetchAnswer(currentQuestion.value);
+                if (!answer || !answer.id) throw new Error('Ответ не найден');
+
+                const response = await fetch('/api/delete-node/', {
                     method: 'POST',
-                    body: JSON.stringify({
-                        node_id: documentId
-                    }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({ node_id: documentId }),
                 });
 
-                if (response.ok) {
-                    console.log(`Документ с ID ${documentId} удалён.`);
-                    await updateArtifacts(answerID);
-                } else {
-                    console.error(`Ошибка при удалении документа с ID ${documentId}`);
-                }
+                if (!response.ok) throw new Error(await response.text());
+
+                await updateArtifacts(answer.id);
+                showNotification('Документ удален', 'alert-success');
+
             } catch (error) {
-                console.error(`Ошибка при попытке удалить документ с ID ${documentId}:`, error);
+                console.error('Ошибка удаления:', error);
+                showNotification(`Ошибка удаления: ${error.message}`, 'alert-danger');
             }
         });
     });
 };
 
+// Вспомогательная функция для экранирования HTML
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 const updateLinkList = (links) => {
     linkList.innerHTML = '';
+    const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
+
+    if (!selectedQuestion || !selectedQuestion.value) {
+        linkList.innerHTML = '<li class="list-group-item text-muted">Выберите вопрос для просмотра ссылок</li>';
+        return;
+    }
+
+    if (links.length === 0) {
+        linkList.innerHTML = '<li class="list-group-item text-muted">Нет прикрепленных ссылок</li>';
+        return;
+    }
 
     links.forEach((link) => {
         const listItem = document.createElement('li');
         listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+
         listItem.innerHTML = `
-            <span>${link.name}</span>
+            <a href="${link.content}" target="_blank" rel="noopener noreferrer" title="Открыть ссылку">
+                ${escapeHtml(link.name)}
+            </a>
             <div class="d-flex gap-2">
-                <button
-                    type="button"
-                    class="btn btn-sm btn-outline-danger delete-link-btn"
-                    data-id="${link.id}">
+                <button type="button" class="btn btn-sm btn-outline-danger delete-link-btn"
+                        data-id="${link.id}" title="Удалить">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
         `;
+
         linkList.appendChild(listItem);
     });
 
-    const deleteButtons = document.querySelectorAll('.delete-link-btn');
-    deleteButtons.forEach((button) => {
+    document.querySelectorAll('.delete-link-btn').forEach((button) => {
         button.addEventListener('click', async (event) => {
+            if (!confirm('Вы уверены, что хотите удалить эту ссылку?')) return;
+
             const linkId = button.getAttribute('data-id');
+            const currentQuestion = questionSelect.options[questionSelect.selectedIndex];
+
+            if (!currentQuestion || !currentQuestion.value) {
+                showNotification('Не выбран вопрос', 'alert-danger');
+                return;
+            }
+
             try {
-                const response = await fetch(`/api/delete-node/`, {
+                const answer = await fetchAnswer(currentQuestion.value);
+                if (!answer || !answer.id) throw new Error('Ответ не найден');
+
+                // 2. Удаляем ссылку
+                const response = await fetch('/api/delete-node/', {
                     method: 'POST',
-                    body: JSON.stringify({
-                        node_id: linkId
-                    }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({ node_id: linkId }),
                 });
 
-                if (response.ok) {
-                    console.log(`Ссылка с ID ${linkId} удалена.`);
-                    await updateArtifacts(answerID);
-                } else {
-                    console.error(`Ошибка при удалении ссылки с ID ${linkId}`);
-                }
+                if (!response.ok) throw new Error(await response.text());
+
+                await updateArtifacts(answer.id);
+                showNotification('Ссылка удалена', 'alert-success');
+
             } catch (error) {
-                console.error(`Ошибка при попытке удалить ссылку с ID ${linkId}:`, error);
+                console.error('Ошибка удаления:', error);
+                showNotification(`Ошибка удаления: ${error.message}`, 'alert-danger');
             }
         });
     });
@@ -252,7 +307,6 @@ const populateDocumentSelect = async () => {
 
     try {
         const documents = await fetchExistingDocuments();
-        console.log(documents);
         documents.forEach(doc => {
             const option = document.createElement('option');
             option.value = doc['id'];
@@ -279,6 +333,24 @@ const updateArtifacts = async (answer_id) => {
     updateLinkList(links);
 };
 
+const clearLinkModal = () => {
+    document.getElementById('link-title').value = '';
+    document.getElementById('link-url').value = '';
+    document.getElementById('existing-link').selectedIndex = 0;
+    document.getElementById('selectExistingLink').checked = true;
+    document.getElementById('existingLinkSection').style.display = 'block';
+    document.getElementById('newLinkSection').style.display = 'none';
+};
+
+const clearDocumentModal = () => {
+    document.getElementById('document-title').value = '';
+    document.getElementById('document-file').value = '';
+    document.getElementById('existing-document').selectedIndex = 0;
+    document.getElementById('selectExistingDocument').checked = true;
+    document.getElementById('existingDocumentSection').style.display = 'block';
+    document.getElementById('newDocumentSection').style.display = 'none';
+};
+
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -289,51 +361,577 @@ function closeModal(modalId) {
     }
 
     if (modalId === "addDocumentModal") {
-        document.getElementById("document-title").value = '';
-        document.getElementById("document-file").value = '';
+        clearDocumentModal();
     } else if (modalId === "addLinkModal") {
-        document.getElementById("link-title").value = '';
-        document.getElementById("link-url").value = '';
+        clearLinkModal();
     }
 }
-
 
 
 document.addEventListener('DOMContentLoaded', async () => {
     const answerTextarea = document.getElementById('answer');
     const editAnswerButton = document.getElementById('edit-answer');
     const deleteAnswerButton = document.getElementById('delete-answer');
-    const sectionSelect = document.getElementById('section');
-    const topicSelect = document.getElementById('topic');
     const editQuestionButton = document.getElementById('edit-question');
-    const questionSelect = document.getElementById('question');
-    const modal = new bootstrap.Modal(document.getElementById('editQuestionModal'));
-    const questionInput = document.getElementById('question-input');
-    const saveButton = document.getElementById('save-question');
-    const addDocumentButton = document.getElementById('save-document');
-    const addLinkButton = document.getElementById('save-link');
+    const editTopicButton = document.getElementById('edit-topic');
+    const editSectionButton = document.getElementById('edit-section');
     const documentButton = document.getElementById('add-document');
     const linkButton = document.getElementById('add-link');
 
+    const questionModal = new bootstrap.Modal(document.getElementById('editQuestionModal'));
+    const topicModal = new bootstrap.Modal(document.getElementById('editTopicModal'));
+    const sectionModal = new bootstrap.Modal(document.getElementById('editSectionModal'));
+
+    const questionInput = document.getElementById('question-input');
+    const topicInput = document.getElementById('topic-input');
+    const sectionInput = document.getElementById('section-input');
+
+    const saveQuestionButton = document.getElementById('save-question');
+    const saveTopicButton = document.getElementById('save-topic');
+    const saveSectionButton = document.getElementById('save-section');
+
+    // Инициализация модальных окон
+    const confirmDeleteSectionModal = new bootstrap.Modal(document.getElementById('confirmDeleteSectionModal'));
+    const addSectionModal = new bootstrap.Modal(document.getElementById('addSectionModal'));
+    const confirmDeleteTopicModal = new bootstrap.Modal(document.getElementById('confirmDeleteTopicModal'));
+    const addTopicModal = new bootstrap.Modal(document.getElementById('addTopicModal'));
+    const confirmDeleteQuestionModal = new bootstrap.Modal(document.getElementById('confirmDeleteQuestionModal'));
+    const addQuestionModal = new bootstrap.Modal(document.getElementById('addQuestionModal'));
+
+    try {
+        const sections = await fetchNodes('Section');
+        sectionSelect.innerHTML = '<option value="" disabled selected>Выберите раздел</option>';
+        sections.forEach(section => {
+            const option = document.createElement('option');
+            option.value = section.id;
+            option.textContent = section.name;
+            sectionSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading sections:', error);
+    }
+
+
+    // Обработчик кнопки добавления раздела
+    document.getElementById('add-section').addEventListener('click', () => {
+        document.getElementById('new-section-name').value = '';
+        addSectionModal.show();
+    });
+
+    // Обработчик кнопки сохранения нового раздела
+    document.getElementById('save-new-section').addEventListener('click', async () => {
+        const newSectionName = document.getElementById('new-section-name').value.trim();
+
+        if (!newSectionName) {
+            alert('Пожалуйста, введите название раздела');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/create-node/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    class: 'Section',
+                    name: '',
+                    content: newSectionName,
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const option = document.createElement('option');
+                option.value = data.data[0]['@rid'];
+                option.textContent = newSectionName;
+                sectionSelect.appendChild(option);
+                sectionSelect.value = option.value;
+                sectionSelect.dispatchEvent(new Event('change'));
+
+                addSectionModal.hide();
+                showNotification('Раздел успешно добавлен!', 'alert-success');
+            } else {
+                throw new Error('Ошибка при создании раздела');
+            }
+        } catch (error) {
+            console.error('Ошибка при добавлении раздела:', error);
+            addSectionModal.hide();
+            showNotification('Ошибка при добавлении раздела', 'alert-danger');
+        }
+    });
+
+     saveSectionButton.addEventListener('click', async () => {
+        const updatedSection = sectionInput.value.trim();
+        const selectedOption = sectionSelect.options[sectionSelect.selectedIndex];
+
+        if (updatedSection && selectedOption && selectedOption.value) {
+            try {
+                const response = await fetch(`/api/update-section/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sectionID: selectedOption.value,
+                        content: updatedSection,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Ошибка при обновлении раздела: ${response.status} - ${errorText}`);
+                }
+
+                alert('Раздел успешно обновлен!');
+                selectedOption.textContent = updatedSection;
+                sectionModal.hide();
+            } catch (error) {
+                console.error('Ошибка при обновлении раздела:', error.message);
+                alert('Ошибка при обновлении раздела.');
+            }
+        } else {
+            alert('Пожалуйста, введите новое название раздела.');
+        }
+    });
+
+    // Обработчик кнопки удаления раздела
+    document.getElementById('delete-section').addEventListener('click', () => {
+        const selectedOption = sectionSelect.options[sectionSelect.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            alert('Пожалуйста, выберите раздел для удаления');
+            return;
+        }
+
+        // Устанавливаем название раздела в модальное окно
+        document.getElementById('section-to-delete-name').textContent = selectedOption.textContent;
+        confirmDeleteSectionModal.show();
+    });
+
+    // Обработчик подтверждения удаления раздела
+    document.getElementById('confirm-delete-section').addEventListener('click', async () => {
+        const selectedOption = sectionSelect.options[sectionSelect.selectedIndex];
+        const sectionId = selectedOption.value;
+
+        try {
+            const response = await fetch('/api/delete-node/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    node_id: sectionId
+                }),
+            });
+
+            if (response.ok) {
+                // Удаляем раздел из select
+                sectionSelect.remove(selectedOption.index);
+
+                // Сбрасываем тему и вопрос
+                topicSelect.innerHTML = '<option value="" disabled selected>Выберите тему</option>';
+                questionSelect.innerHTML = '<option value="" disabled selected>Выберите вопрос</option>';
+                answerTextarea.value = '';
+                updateDocumentList([]);
+                updateLinkList([]);
+
+                confirmDeleteSectionModal.hide();
+                showNotification('Раздел успешно удален!', 'alert-success');
+            } else {
+                throw new Error('Ошибка при удалении раздела');
+            }
+        } catch (error) {
+            console.error('Ошибка при удалении раздела:', error);
+            showNotification('Ошибка при удалении раздела', 'alert-danger');
+        }
+    });
+
+    // Обработчики для тем
+    document.getElementById('add-topic').addEventListener('click', () => {
+        if (!sectionSelect.value) {
+            alert('Пожалуйста, сначала выберите раздел');
+            return;
+        }
+        document.getElementById('new-topic-name').value = '';
+        addTopicModal.show();
+    });
+
+    document.getElementById('save-new-topic').addEventListener('click', async () => {
+        const newTopicName = document.getElementById('new-topic-name').value.trim();
+        const sectionId = sectionSelect.value;
+
+        if (!newTopicName) {
+            alert('Пожалуйста, введите название темы');
+            return;
+        }
+
+        try {
+            // Сначала создаем тему
+            const createResponse = await fetch('/api/create-node/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    class: 'Topic',
+                    name: '',
+                    content: newTopicName,
+                }),
+            });
+
+            if (createResponse.ok) {
+                const createData = await createResponse.json();
+                const topicId = createData.data[0]['@rid'];
+
+                // Затем создаем связь с разделом
+                const relationResponse = await fetch('/api/create-relation/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({
+                        start_node_id: sectionId,
+                        end_node_id: topicId,
+                    }),
+                });
+
+                if (relationResponse.ok) {
+                    // Добавляем новую тему в select
+                    const option = document.createElement('option');
+                    option.value = topicId;
+                    option.textContent = newTopicName;
+                    topicSelect.appendChild(option);
+
+                    // Выбираем новую тему
+                    topicSelect.value = option.value;
+                    topicSelect.dispatchEvent(new Event('change'));
+
+                    addTopicModal.hide();
+                    showNotification('Тема успешно добавлена!', 'alert-success');
+                } else {
+                    throw new Error('Ошибка при создании связи темы с разделом');
+                }
+            } else {
+                throw new Error('Ошибка при создании темы');
+            }
+        } catch (error) {
+            console.error('Ошибка при добавлении темы:', error);
+            showNotification('Ошибка при добавлении темы', 'alert-danger');
+        }
+    });
+
+    document.getElementById('delete-topic').addEventListener('click', () => {
+        const selectedOption = topicSelect.options[topicSelect.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            alert('Пожалуйста, выберите тему для удаления');
+            return;
+        }
+
+        document.getElementById('topic-to-delete-name').textContent = selectedOption.textContent;
+        confirmDeleteTopicModal.show();
+    });
+
+    document.getElementById('confirm-delete-topic').addEventListener('click', async () => {
+        const selectedOption = topicSelect.options[topicSelect.selectedIndex];
+        const topicId = selectedOption.value;
+
+        try {
+            const response = await fetch('/api/delete-node/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    node_id: topicId
+                }),
+            });
+
+            if (response.ok) {
+                // Удаляем тему из select
+                topicSelect.remove(selectedOption.index);
+
+                // Сбрасываем вопрос
+                questionSelect.innerHTML = '<option value="" disabled selected>Выберите вопрос</option>';
+                answerTextarea.value = '';
+                updateDocumentList([]);
+                updateLinkList([]);
+
+                confirmDeleteTopicModal.hide();
+                showNotification('Тема успешно удалена!', 'alert-success');
+            } else {
+                throw new Error('Ошибка при удалении темы');
+            }
+        } catch (error) {
+            console.error('Ошибка при удалении темы:', error);
+            showNotification('Ошибка при удалении темы', 'alert-danger');
+        }
+    });
+
+    // Обработчики для вопросов
+    document.getElementById('add-question').addEventListener('click', () => {
+        if (!topicSelect.value) {
+            alert('Пожалуйста, сначала выберите тему');
+            return;
+        }
+        document.getElementById('new-question-name').value = '';
+        addQuestionModal.show();
+    });
+
+    document.getElementById('save-new-question').addEventListener('click', async () => {
+        const newQuestionName = document.getElementById('new-question-name').value.trim();
+        const topicId = topicSelect.value;
+
+        if (!newQuestionName) {
+            alert('Пожалуйста, введите текст вопроса');
+            return;
+        }
+
+        try {
+            // Сначала создаем вопрос
+            const createResponse = await fetch('/api/create-node/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    class: 'Question',
+                    name: '',
+                    content: newQuestionName,
+                }),
+            });
+
+            if (createResponse.ok) {
+                const createData = await createResponse.json();
+                const questionId = createData.data[0]['@rid'];
+
+                // Затем создаем связь с темой
+                const relationResponse = await fetch('/api/create-relation/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({
+                        start_node_id: topicId,
+                        end_node_id: questionId,
+                    }),
+                });
+
+                if (relationResponse.ok) {
+                    // Добавляем новый вопрос в select
+                    const option = document.createElement('option');
+                    option.value = questionId;
+                    option.textContent = newQuestionName;
+                    questionSelect.appendChild(option);
+
+                    // Выбираем новый вопрос
+                    questionSelect.value = option.value;
+                    questionSelect.dispatchEvent(new Event('change'));
+
+                    addQuestionModal.hide();
+                    showNotification('Вопрос успешно добавлен!', 'alert-success');
+                } else {
+                    throw new Error('Ошибка при создании связи вопроса с темой');
+                }
+            } else {
+                throw new Error('Ошибка при создании вопроса');
+            }
+        } catch (error) {
+            console.error('Ошибка при добавлении вопроса:', error);
+            showNotification('Ошибка при добавлении вопроса', 'alert-danger');
+        }
+    });
+
+    document.getElementById('delete-question').addEventListener('click', () => {
+        const selectedOption = questionSelect.options[questionSelect.selectedIndex];
+
+        if (!selectedOption || !selectedOption.value) {
+            alert('Пожалуйста, выберите вопрос для удаления');
+            return;
+        }
+
+        document.getElementById('question-to-delete-name').textContent = selectedOption.textContent;
+        confirmDeleteQuestionModal.show();
+    });
+
+    document.getElementById('confirm-delete-question').addEventListener('click', async () => {
+        const selectedOption = questionSelect.options[questionSelect.selectedIndex];
+        const questionId = selectedOption.value;
+
+        try {
+            const response = await fetch('/api/delete-node/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    node_id: questionId
+                }),
+            });
+
+            if (response.ok) {
+                // Удаляем вопрос из select
+                questionSelect.remove(selectedOption.index);
+
+                // Сбрасываем ответ
+                answerTextarea.value = '';
+                updateDocumentList([]);
+                updateLinkList([]);
+
+                confirmDeleteQuestionModal.hide();
+                showNotification('Вопрос успешно удален!', 'alert-success');
+            } else {
+                throw new Error('Ошибка при удалении вопроса');
+            }
+        } catch (error) {
+            console.error('Ошибка при удалении вопроса:', error);
+            showNotification('Ошибка при удалении вопроса', 'alert-danger');
+        }
+    });
+
     let isAnswerEditing = false;
 
-    document.getElementById('add-link').addEventListener('click', async function() {
+    linkButton.addEventListener('click', async function() {
         await populateExistingLinks();
+        clearLinkModal();
         var myModal = new bootstrap.Modal(document.getElementById('addLinkModal'));
         myModal.show();
     });
 
-    document.getElementById('add-document').addEventListener('click', async function() {
+    documentButton.addEventListener('click', async function() {
         await populateDocumentSelect();
+        clearDocumentModal();
         var myModal = new bootstrap.Modal(document.getElementById('addDocumentModal'));
         myModal.show();
     });
 
-    // Обработчики для переключателей в модальном окне добавления ссылки
+    editSectionButton.addEventListener('click', () => {
+        const selectedOption = sectionSelect.options[sectionSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            sectionInput.value = selectedOption.textContent.trim();
+            sectionModal.show();
+        } else {
+            alert('Пожалуйста, выберите раздел для редактирования.');
+        }
+    });
+
+    editTopicButton.addEventListener('click', () => {
+        const selectedOption = topicSelect.options[topicSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            topicInput.value = selectedOption.textContent.trim();
+            topicModal.show();
+        } else {
+            alert('Пожалуйста, выберите тему для редактирования.');
+        }
+    });
+
+    saveTopicButton.addEventListener('click', async () => {
+        const selectedOption = topicSelect.options[topicSelect.selectedIndex];
+        const updatedTopic = topicInput.value.trim();
+        if (updatedTopic && selectedOption && selectedOption.value) {
+            try {
+                const response = await fetch(`/api/update-topic/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        topicID: selectedOption.value,
+                        content: updatedTopic,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Ошибка при обновлении темы: ${response.status} - ${errorText}`);
+                }
+
+                alert('Тема успешно обновлена!');
+                const updatedOption = topicSelect.querySelector(`option[value="${selectedOption.value}"]`);
+                if (updatedOption) {
+                    updatedOption.textContent = updatedTopic;
+                }
+                topicModal.hide();
+            } catch (error) {
+                console.error('Ошибка при обновлении темы:', error.message);
+                alert('Ошибка при обновлении темы.');
+            }
+        } else {
+            alert('Пожалуйста, введите новый текст темы.');
+        }
+    });
+
+    editQuestionButton.addEventListener('click', () => {
+        const selectedOption = questionSelect.options[questionSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            questionInput.value = selectedOption.textContent.trim();
+            questionModal.show();
+        } else {
+            alert('Пожалуйста, выберите вопрос для редактирования.');
+        }
+    });
+
+    saveQuestionButton.addEventListener('click', async () => {
+        // Получаем выбранный вопрос из select
+        const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
+
+        const updatedQuestion = questionInput.value.trim();
+
+        if (!updatedQuestion) {
+            showNotification('Пожалуйста, введите текст вопроса', 'alert-danger');
+            return;
+        }
+
+        if (!selectedQuestion || !selectedQuestion.value) {
+            showNotification('Не выбран вопрос для редактирования', 'alert-danger');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/update-question/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'), // Добавляем CSRF-токен
+                },
+                body: JSON.stringify({
+                    questionID: selectedQuestion.value,
+                    content: updatedQuestion,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Ошибка обновления вопроса');
+            }
+
+            showNotification('Вопрос успешно обновлен!', 'alert-success');
+
+            // Обновляем текст в select
+            selectedQuestion.textContent = updatedQuestion;
+            questionModal.hide();
+
+        } catch (error) {
+            console.error('Ошибка обновления вопроса:', error);
+            showNotification(`Ошибка: ${error.message}`, 'alert-danger');
+        }
+    });
+
     const selectExistingLink = document.getElementById('selectExistingLink');
     const addNewLink = document.getElementById('addNewLink');
     const existingLinkSection = document.getElementById('existingLinkSection');
     const newLinkSection = document.getElementById('newLinkSection');
+    const saveDocumentButton = document.getElementById('save-document');
+    const saveLinkButton = document.getElementById('save-link');
 
     if (selectExistingLink && addNewLink && existingLinkSection && newLinkSection) {
         selectExistingLink.addEventListener('change', function() {
@@ -351,7 +949,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Обработчики для переключателей в модальном окне добавления документа
     const selectExistingDocument = document.getElementById('selectExistingDocument');
     const addNewDocument = document.getElementById('addNewDocument');
     const existingDocumentSection = document.getElementById('existingDocumentSection');
@@ -373,7 +970,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    addDocumentButton.addEventListener("click", async (e) => {
+    saveDocumentButton.addEventListener("click", async (e) => {
+        // Получаем текущий выбранный вопрос
+        const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
+        if (!selectedQuestion || !selectedQuestion.value) {
+            showNotification('Пожалуйста, выберите вопрос', 'alert-danger');
+            return;
+        }
+
         const isNewDocument = document.getElementById('addNewDocument').checked;
 
         if (isNewDocument) {
@@ -382,128 +986,137 @@ document.addEventListener('DOMContentLoaded', async () => {
             const file = document.getElementById("document-file").files[0];
 
             if (!fileTitle || !file) {
-                showNotification('Пожалуйста, заполните все поля перед добавлением документа.', 'alert-danger');
+                showNotification('Пожалуйста, заполните все поля', 'alert-danger');
                 return;
             }
 
-            formData.append("title", fileTitle);
-            formData.append("file", file);
-
             try {
-                const response = await fetch("/api/upload-document/", {
+                // 1. Загружаем файл
+                const uploadResponse = await fetch("/api/upload-document/", {
                     method: "POST",
                     body: formData,
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-
-                    try {
-                        const createDocumentResponse = await fetch('/api/create-node/', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X_CSRFTOKEN': getCookie('csrftoken'),
-                            },
-                            body: JSON.stringify({
-                                class: 'document',
-                                name: fileTitle,
-                                content: '',
-                                uuid: result.data.file_id
-                            }),
-                        });
-
-                        const responseData = await createDocumentResponse.json();
-                        documentID = responseData['data'][0]['@rid'];
-
-                        try {
-                            const createRelationResponse = await fetch('/api/create-relation/', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X_CSRFTOKEN': getCookie('csrftoken'),
-                                },
-                                body: JSON.stringify({
-                                    start_node_id: answerID,
-                                    end_node_id: documentID,
-                                }),
-                            });
-
-                            if (createRelationResponse.status === 201) {
-                                await updateArtifacts(answerID);
-                                showNotification('Документ успешно добавлен!', 'alert-success');
-
-                                closeModal("addDocumentModal");
-                            } else {
-                                showNotification('Не удалось создать связь.', 'alert-danger');
-                            }
-                        } catch (error) {
-                            showNotification('Ошибка при создании связи.', 'alert-danger');
-                        }
-                    } catch (error) {
-                        showNotification('Ошибка при создании документа.', 'alert-danger');
-                    }
-                } else {
-                    showNotification('Файл уже существует.', 'alert-warning');
+                if (!uploadResponse.ok) {
+                    const error = await uploadResponse.json();
+                    throw new Error(error.message || 'Ошибка загрузки файла');
                 }
-            } catch (error) {
-                showNotification('Произошла ошибка при загрузке файла.', 'alert-danger');
-            }
-        } else {
-            const selectedDocumentId = document.getElementById('existing-document').value;
 
-            if (!selectedDocumentId) {
-                showNotification('Пожалуйста, выберите документ из списка.', 'alert-danger');
-                return;
-            }
+                const uploadResult = await uploadResponse.json();
 
-            try {
-                const response = await fetch('/api/create-relation/', {
+                // 2. Получаем answerID для текущего вопроса
+                const answer = await fetchAnswer(selectedQuestion.value);
+                if (!answer || !answer.id) throw new Error('Ответ не найден');
+
+                // 3. Создаем документ
+                const docResponse = await fetch('/api/create-node/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X_CSRFTOKEN': getCookie('csrftoken'),
                     },
                     body: JSON.stringify({
-                        start_node_id: answerID,
-                        end_node_id: selectedDocumentId,
+                        class: 'document',
+                        name: fileTitle,
+                        content: '',
+                        uuid: uploadResult.data.file_id
                     }),
                 });
 
-                if (response.status === 201) {
-                    showNotification('Документ успешно добавлен!', 'alert-success');
-                    await updateArtifacts(answerID);
+                if (!docResponse.ok) throw new Error('Ошибка создания документа');
 
-                    closeModal("addDocumentModal");
-                } else if (response.status === 409) {
-                    showNotification('Документ уже существует.', 'alert-warning');
-                    closeModal("addDocumentModal");
-                } else {
-                    showNotification('Ошибка при добавлении документа.', 'alert-danger');
-                    closeModal("addDocumentModal");
-                }
-            } catch (error) {
-                showNotification('Ошибка при добавлении документа.', 'alert-danger');
+                const docData = await docResponse.json();
+                const docID = docData.data[0]['@rid'];
+
+                // 4. Создаем связь
+                await createRelation(answer.id, docID);
+
+                // 5. Обновляем интерфейс
+                await updateArtifacts(answer.id);
+                showNotification('Документ добавлен!', 'alert-success');
+                clearDocumentModal();
                 closeModal("addDocumentModal");
+
+            } catch (error) {
+                console.error('Document error:', error);
+                showNotification(`Ошибка: ${error.message}`, 'alert-danger');
             }
-        }
-    });
-
-    addLinkButton.addEventListener('click', async function () {
-        const isNewLink = document.getElementById('addNewLink').checked;
-
-        if (isNewLink) {
-            let title = document.getElementById('link-title').value.trim();
-            let url = document.getElementById('link-url').value.trim();
-            let linkID;
-
-            if (!title || !url) {
-                showNotification('Пожалуйста, заполните все поля перед добавлением ссылки.', 'alert-danger');
+        } else {
+            const selectedDocId = document.getElementById('existing-document').value;
+            if (!selectedDocId) {
+                showNotification('Выберите документ', 'alert-danger');
                 return;
             }
 
             try {
-                const createLinkResponse = await fetch('/api/create-node/', {
+                // Получаем answerID для текущего вопроса
+                const answer = await fetchAnswer(selectedQuestion.value);
+                if (!answer || !answer.id) throw new Error('Ответ не найден');
+
+                // Создаем связь
+                await createRelation(answer.id, selectedDocId);
+
+                await updateArtifacts(answer.id);
+                showNotification('Документ прикреплен!', 'alert-success');
+                closeModal("addDocumentModal");
+
+            } catch (error) {
+                console.error('Attach document error:', error);
+                showNotification(`Ошибка: ${error.message}`, 'alert-danger');
+            }
+        }
+    });
+
+    // Вспомогательная функция для создания связи
+    async function createRelation(startId, endId) {
+        const response = await fetch('/api/create-relation/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                start_node_id: startId,
+                end_node_id: endId,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            if (response.status === 409) {
+                throw new Error('Связь уже существует');
+            }
+            throw new Error(errorData.message || 'Ошибка при создании связи');
+        }
+        return response;
+    }
+
+    saveLinkButton.addEventListener('click', async function () {
+        // Получаем текущий выбранный вопрос
+        const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
+        if (!selectedQuestion || !selectedQuestion.value) {
+            showNotification('Пожалуйста, выберите вопрос', 'alert-danger');
+            return;
+        }
+
+        const isNewLink = document.getElementById('addNewLink').checked;
+
+        try {
+            // Получаем answerID для текущего вопроса
+            const answer = await fetchAnswer(selectedQuestion.value);
+            if (!answer || !answer.id) throw new Error('Ответ не найден');
+
+            if (isNewLink) {
+                const title = document.getElementById('link-title').value.trim();
+                const url = document.getElementById('link-url').value.trim();
+
+                if (!title || !url) {
+                    showNotification('Заполните все поля', 'alert-danger');
+                    return;
+                }
+
+                // Создаем ссылку
+                const linkResponse = await fetch('/api/create-node/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -516,121 +1129,93 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }),
                 });
 
-                if (createLinkResponse.status === 409) {
-                    showNotification('Такая ссылка уже существует.', 'alert-warning');
-                    closeModal('addLinkModal');
+                if (!linkResponse.ok) {
+                    const error = await linkResponse.json();
+                    throw new Error(error.message || 'Ошибка создания ссылки');
+                }
+
+                const linkData = await linkResponse.json();
+                const linkID = linkData.data[0]['@rid'];
+
+                await createRelation(answer.id, linkID);
+                await updateArtifacts(answer.id);
+                showNotification('Ссылка добавлена!', 'alert-success');
+                clearLinkModal();
+                closeModal('addLinkModal');
+            } else {
+                const selectedLinkId = document.getElementById('existing-link').value;
+                if (!selectedLinkId) {
+                    showNotification('Выберите ссылку', 'alert-danger');
                     return;
                 }
 
-                if (createLinkResponse.ok) {
-                    const responseData = await createLinkResponse.json();
-                    linkID = responseData['data'][0]['@rid'];
-                } else {
-                    showNotification('Не удалось создать ссылку.', 'alert-danger');
-                    closeModal('addLinkModal');
-                    return;
-                }
-            } catch (error) {
-                showNotification('Ошибка при создании ссылки.', 'alert-danger');
-                closeModal('addLinkModal');
-                return;
-            }
+                await createRelation(answer.id, selectedLinkId);
 
-            try {
-                const response = await fetch('/api/create-relation/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X_CSRFTOKEN': getCookie('csrftoken'),
-                    },
-                    body: JSON.stringify({
-                        start_node_id: answerID,
-                        end_node_id: linkID,
-                    }),
-                });
-
-                if (response.status === 201) {
-                    await updateArtifacts(answerID);
-                    showNotification('Ссылка успешно добавлена!', 'alert-success');
-                    closeModal('addLinkModal');
-                } else {
-                    showNotification('Не удалось создать связь.', 'alert-danger');
-                    closeModal('addLinkModal');
-                }
-            } catch (error) {
-                showNotification('Ошибка при создании ссылки.', 'alert-danger');
-                closeModal('addLinkModal');
-            }
-            document.getElementById('link-title').value = '';
-            document.getElementById('link-url').value = '';
-
-            closeModal('addLinkModal');
-        } else {
-            const selectedLinkId = document.getElementById('existing-link').value;
-
-            if (!selectedLinkId) {
-                showNotification('Пожалуйста, выберите ссылку из списка.', 'alert-danger');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/create-relation/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X_CSRFTOKEN': getCookie('csrftoken'),
-                    },
-                    body: JSON.stringify({
-                        start_node_id: answerID,
-                        end_node_id: selectedLinkId,
-                    }),
-                });
-
-                if (response.status === 201) {
-                    showNotification('Ссылка успешно добавлена!', 'alert-success');
-                    await updateArtifacts(answerID);
-
-                    closeModal("addLinkModal");
-                } else if (response.status === 409) {
-                    showNotification('Ссылка уже существует.', 'alert-warning');
-                    closeModal("addLinkModal");
-                } else {
-                    showNotification('Ошибка при добавлении ссылки.', 'alert-danger');
-                    closeModal("addLinkModal");
-                }
-            } catch (error) {
-                showNotification('Ошибка при добавлении ссылки.', 'alert-danger');
+                await updateArtifacts(answer.id);
+                showNotification('Ссылка прикреплена!', 'alert-success');
                 closeModal("addLinkModal");
             }
+
+        } catch (error) {
+            console.error('Link error:', error);
+            const message = error.message.includes('уже существует')
+                ? 'Связь уже существует'
+                : `Ошибка: ${error.message}`;
+
+            showNotification(message, error.message.includes('уже существует') ? 'alert-warning' : 'alert-danger');
         }
     });
 
     deleteAnswerButton.addEventListener('click', async () => {
+        const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
+
+        if (!selectedQuestion || !selectedQuestion.value) {
+            alert('Пожалуйста, выберите вопрос');
+            return;
+        }
+
         try {
+            const answer = await fetchAnswer(selectedQuestion.value);
+
+            if (!answer || !answer.id) {
+                throw new Error('Ответ для выбранного вопроса не найден');
+            }
+
             const response = await fetch(`/api/update-answer/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    answerID: answerID,
+                    answerID: answer.id,
                     content: '',
                 }),
             });
+
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`Error updating answer: ${response.status} - ${errorText}`);
             }
+
             answerTextarea.value = '';
+            showNotification('Ответ успешно удален', 'alert-success');
+
         } catch (error) {
-            console.error('Error updating answer:', error.message);
-            alert('Ошибка при обновлении ответа. Проверьте подключение к серверу.');
+            console.error('Error deleting answer:', error.message);
+            showNotification('Ошибка при удалении ответа: ' + error.message, 'alert-danger');
         }
     });
 
 
     editAnswerButton.addEventListener('click', async () => {
+        const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
+        if (!selectedQuestion || !selectedQuestion.value) {
+            showNotification('Пожалуйста, выберите вопрос', 'alert-danger');
+            return;
+        }
+
         if (!isAnswerEditing) {
+            // Режим редактирования
             isAnswerEditing = true;
             answerTextarea.removeAttribute('readonly');
             answerTextarea.classList.add('border', 'border-warning');
@@ -638,6 +1223,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             editAnswerButton.classList.remove('btn-outline-warning');
             editAnswerButton.classList.add('btn-outline-success');
         } else {
+            // Режим сохранения
             isAnswerEditing = false;
             const updatedContent = answerTextarea.value.trim();
 
@@ -646,79 +1232,48 @@ document.addEventListener('DOMContentLoaded', async () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
                     },
                     body: JSON.stringify({
-                        answerID: answerID,
+                        questionID: selectedQuestion.value,
                         content: updatedContent,
                     }),
                 });
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Error updating answer: ${response.status} - ${errorText}`);
-                }
-                console.log('Answer updated successfully!');
-            } catch (error) {
-                console.error('Error updating answer:', error.message);
-                alert('Ошибка при обновлении ответа. Проверьте подключение к серверу.');
-            }
 
-            answerTextarea.setAttribute('readonly', 'readonly');
-            answerTextarea.classList.remove('border', 'border-warning');
-            editAnswerButton.innerHTML = '<i class="bi bi-pencil"></i>'; // Вернуть иконку карандаша
-            editAnswerButton.classList.remove('btn-outline-success');
-            editAnswerButton.classList.add('btn-outline-warning');
-        }
-    });
-
-
-    editQuestionButton.addEventListener('click', () => {
-        const selectedOption = questionSelect.options[questionSelect.selectedIndex];
-        if (selectedOption) {
-            selectedQuestionId = selectedOption.value;
-            questionInput.value = selectedOption.textContent.trim();
-            modal.show();
-        } else {
-            alert('Пожалуйста, выберите вопрос для редактирования.');
-        }
-    });
-    
-    saveButton.addEventListener('click', async () => {
-        const updatedQuestion = questionInput.value.trim();
-        if (updatedQuestion && selectedQuestionId) {
-            try {
-                const response = await fetch(`/api/update-question/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        questionID: questionID,
-                        content: updatedQuestion,
-                    }),
-                });
+                const result = await response.json();
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Ошибка при обновлении вопроса: ${response.status} - ${errorText}`);
+                    throw new Error(result.error || 'Ошибка сохранения ответа');
                 }
 
-                alert('Вопрос успешно обновлен!');
-                const updatedOption = questionSelect.querySelector(`option[value="${selectedQuestionId}"]`);
-                if (updatedOption) {
-                    updatedOption.textContent = updatedQuestion;
+                // Обновляем answerID если был создан новый ответ
+                if (result.answerID) {
+                    answerID = result.answerID;
                 }
-                modal.hide();
+
+                showNotification(result.message, 'alert-success');
+
+                // Обновляем интерфейс
+                answerTextarea.setAttribute('readonly', 'readonly');
+                answerTextarea.classList.remove('border', 'border-warning');
+                editAnswerButton.innerHTML = '<i class="bi bi-pencil"></i>';
+                editAnswerButton.classList.remove('btn-outline-success');
+                editAnswerButton.classList.add('btn-outline-warning');
+
+                // Обновляем артефакты (документы и ссылки)
+                await updateArtifacts(answerID);
+
             } catch (error) {
-                console.error('Ошибка при обновлении вопроса:', error.message);
-                alert('Ошибка при обновлении вопроса.');
+                console.error('Error saving answer:', error);
+                showNotification(`Ошибка: ${error.message}`, 'alert-danger');
+
+                // Возвращаем в режим редактирования
+                isAnswerEditing = true;
+                answerTextarea.focus();
             }
-        } else {
-            alert('Пожалуйста, введите новый текст вопроса.');
         }
     });
 
-
-    // Функция проверки выбора селектов
     const isAllSelected = () => {
         return (
             sectionSelect.value &&
@@ -735,8 +1290,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const topics = await fetchNodesWithRelation('Section', selectedSectionName, 'Topic');
                 topics.forEach(topic => {
                     const option = document.createElement('option');
-                    topicID = topic.id;
-                    option.value = topicID;
+                    option.value = topic.id;
                     option.textContent = topic.name;
                     topicSelect.appendChild(option);
                 });
@@ -755,7 +1309,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 questions.forEach(question => {
                     const option = document.createElement('option');
                     option.value = question.id;
-                    questionID = question.id;
                     questionName = question.name;
                     option.textContent = question.name;
                     questionSelect.appendChild(option);
@@ -767,15 +1320,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     questionSelect.addEventListener('change', async (event) => {
-        const selectedQuestionId = event.target.value;
+        const selectedOption = event.target.options[event.target.selectedIndex];
+        const questionId = selectedOption ? selectedOption.value : null;
         const answerTextarea = document.getElementById('answer');
-        if (selectedQuestionId) {
-            try {
-                const answer = await fetchAnswer(selectedQuestionId);
-                answerTextarea.value = answer.content;
-                answerID = answer.id;
-                await updateArtifacts(answerID);
 
+        if (questionId) {
+            try {
+                const answer = await fetchAnswer(questionId);
+                answerTextarea.value = answer.content;
+                await updateArtifacts(answer.id);
             } catch (error) {
                 console.error('Error loading answer and documents:', error);
                 answerTextarea.value = 'Ошибка при загрузке ответа';
@@ -788,41 +1341,5 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateLinkList([]);
         }
     });
-
-    [sectionSelect, topicSelect, questionSelect].forEach((select) => {
-        select.addEventListener('change', () => {
-            if (isAllSelected()) {
-                editAnswerButton.removeAttribute('disabled');
-                editQuestionButton.removeAttribute('disabled');
-                documentButton.removeAttribute('disabled');
-                linkButton.removeAttribute('disabled');
-                deleteAnswerButton.removeAttribute('disabled');
-            } else {
-                editAnswerButton.setAttribute('disabled', 'true');
-                editQuestionButton.setAttribute('disabled', 'true');
-                documentButton.setAttribute('disabled', 'true');
-                linkButton.setAttribute('disabled', 'true');
-                deleteAnswerButton.setAttribute('disabled', 'true');
-            }
-        });
-    });
-
-    editAnswerButton.setAttribute('disabled', 'true');
-    deleteAnswerButton.setAttribute('disabled', 'true');
-    editQuestionButton.setAttribute('disabled', 'true');
-    documentButton.setAttribute('disabled', 'true');
-    linkButton.setAttribute('disabled', 'true');
-    try {
-        const sections = await fetchNodes('Section');
-        sectionSelect.innerHTML = '<option value="" disabled selected>Выберите раздел</option>';
-        sections.forEach(section => {
-            const option = document.createElement('option');
-            option.value = section.id;
-            option.textContent = section.name;
-            sectionSelect.appendChild(option);
-        });
-    } catch (error) {
-        console.error('Error loading sections:', error);
-    }
 });
 
