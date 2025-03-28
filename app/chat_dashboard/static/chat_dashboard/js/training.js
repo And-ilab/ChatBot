@@ -118,8 +118,29 @@ document.addEventListener("DOMContentLoaded", function () {
                 messageItem.remove();
             }
 
-            document.getElementById("unread-indicator").textContent = data.unread_count;
-            document.getElementById("ignored-indicator").textContent = data.ignored_count;
+            // Обновляем счетчики
+            const unreadIndicator = document.getElementById("unread-indicator");
+            const ignoredIndicator = document.getElementById("ignored-indicator");
+
+            unreadIndicator.textContent = data.unread_count;
+            ignoredIndicator.textContent = data.ignored_count;
+
+            // Показываем/скрываем индикаторы
+            if (data.unread_count == 0) {
+                unreadIndicator.classList.add("hidden");
+            } else {
+                unreadIndicator.classList.remove("hidden");
+            }
+
+            if (data.ignored_count == 0) {
+                ignoredIndicator.classList.add("hidden");
+            } else {
+                ignoredIndicator.classList.remove("hidden");
+            }
+
+            // Проверяем, нужно ли показать сообщение "Нет сообщений"
+            updateEmptyState();
+
         } catch (error) {
             console.error("Error:", error);
         }
@@ -150,11 +171,67 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
 
-            document.getElementById("unread-indicator").textContent = data.unread_count;
-            document.getElementById("ignored-indicator").textContent = data.ignored_count;
+            // Обновляем счетчики
+            const unreadIndicator = document.getElementById("unread-indicator");
+            const ignoredIndicator = document.getElementById("ignored-indicator");
+
+            unreadIndicator.textContent = data.unread_count;
+            ignoredIndicator.textContent = data.ignored_count;
+
+            // Показываем/скрываем индикаторы
+            if (data.unread_count == 0) {
+                unreadIndicator.classList.add("hidden");
+            } else {
+                unreadIndicator.classList.remove("hidden");
+            }
+
+            if (data.ignored_count == 0) {
+                ignoredIndicator.classList.add("hidden");
+            } else {
+                ignoredIndicator.classList.remove("hidden");
+            }
+
+            // Проверяем, нужно ли показать сообщение "Нет сообщений"
+            updateEmptyState();
 
         } catch (error) {
             console.error("Error:", error);
+        }
+    }
+
+    // Функция для проверки и обновления состояния "Нет сообщений"
+    function updateEmptyState() {
+        const unreadContainer = document.getElementById("unread-messages");
+        const ignoredContainer = document.getElementById("ignored-messages");
+
+        // Проверяем неотвеченные сообщения
+        if (unreadContainer.querySelectorAll('.message-item').length === 0) {
+            if (!unreadContainer.querySelector('.empty-container')) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'empty-container d-flex justify-content-center';
+                emptyDiv.innerHTML = '<p>Извините, в системе отсутствуют <br> <strong> Неотвеченные сообщения </strong></p>';
+                unreadContainer.appendChild(emptyDiv);
+            }
+        } else {
+            const emptyDiv = unreadContainer.querySelector('.empty-container');
+            if (emptyDiv) {
+                emptyDiv.remove();
+            }
+        }
+
+        // Проверяем игнорированные сообщения
+        if (ignoredContainer.querySelectorAll('.message-item').length === 0) {
+            if (!ignoredContainer.querySelector('.empty-container')) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'empty-container d-flex justify-content-center';
+                emptyDiv.innerHTML = '<p>Извините, в системе отсутствуют <br> <strong> Игнорируемые сообщения </strong></p>';
+                ignoredContainer.appendChild(emptyDiv);
+            }
+        } else {
+            const emptyDiv = ignoredContainer.querySelector('.empty-container');
+            if (emptyDiv) {
+                emptyDiv.remove();
+            }
         }
     }
 
@@ -173,4 +250,6 @@ document.addEventListener("DOMContentLoaded", function () {
             await ignoreMessage(messageId, button);
         });
     });
+
+    updateEmptyState();
 });

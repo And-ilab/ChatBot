@@ -421,7 +421,9 @@ const sendThanksFeedbackMessage = async () => {
     let message = 'Спасибо за Ваш отзыв!';
     appendMessage('bot', message, getTimestamp());
     await sendBotMessage(message);
-    state['message_to_operator'] = ''
+    state['message_to_operator'] = '';
+    state['neural_response_message'] = '';
+    state['recognition_response_message'] = '';
     enableUserActions();
     await showSectionButtons();
 }
@@ -476,7 +478,7 @@ async function deleteOperatorButton() {
     }
 }
 
-async function addOperatorButton(message, to_send, is_disabled) {
+async function addOperatorButton(message, neural_message, recognized_message, to_send, is_disabled) {
     const operatorButtonContainer = document.createElement('div');
     operatorButtonContainer.className = 'operator-button-container';
     operatorButtonContainer.innerHTML = `
@@ -509,6 +511,8 @@ async function addOperatorButton(message, to_send, is_disabled) {
                     body: JSON.stringify({
                         sender_id: state['user_id'],
                         content: message,
+                        neural_message: neural_message,
+                        recognized_message: recognized_message,
                         status: 'sent_to_operator'
                     }),
                 });
@@ -523,6 +527,9 @@ async function addOperatorButton(message, to_send, is_disabled) {
 
             appendMessage('bot', confirmMessage, getTimestamp());
             await sendBotMessage(confirmMessage);
+            state['message_to_operator'] = '';
+            state['neural_response_message'] = '';
+            state['recognition_response_message'] = '';
             enableUserActions();
             await showSectionButtons();
             setTimeout(scrollToBottom, 0);
@@ -534,7 +541,7 @@ const sendFeedbackRequest = async () => {
     const botAnswerMessage = customResponses[Math.floor(Math.random() * customResponses.length)];
     appendMessage('bot', botAnswerMessage, getTimestamp(), false);
     await sendBotMessage(botAnswerMessage);
-    await addOperatorButton(state['message_to_operator'], true, false);
+    await addOperatorButton(state['message_to_operator'], state['neural_response_message'], state['recognition_response_message'], true, false);
 };
 
 const appendBotFeedbackButtons = async () => {

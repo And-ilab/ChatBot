@@ -122,6 +122,8 @@ class TrainingMessage(models.Model):
         on_delete=models.SET_NULL
     )
     content = models.TextField()
+    neural_message = models.TextField(default='')
+    recognized_message = models.TextField(default='')
     created_at = models.DateTimeField(auto_now_add=True)
     is_ignored = models.BooleanField(default=False)
     is_unread = models.BooleanField(default=True)

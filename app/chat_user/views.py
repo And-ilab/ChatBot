@@ -19,7 +19,15 @@ from config import config_settings
 from rest_framework import status, generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+import re
+from pymorphy3 import MorphAnalyzer
+import spacy
 # from .nn_model_loader import nn_model_instance
+
+nlp = spacy.load("ru_core_news_sm")
+morph = MorphAnalyzer()
+custom_stop_words = {"может", "могут", "какой", "какая", "какое", "какие", "что", "кто", "где", "когда", "зачем",
+                     "почему"}
 
 
 logger = logging.getLogger('chat_user')
@@ -371,7 +379,7 @@ def get_all_questions(request):
     """Fetch all nodes of type 'question' from OrientDB."""
     if request.method == 'GET':
         logger.info("Fetching all nodes of type 'question'.")
-        url = f"{config_settings.ORIENT_QUERY_URL}{config_settings.ORIENT_DATABASE}/SELECT * FROM question"
+        url = f"{config_settings.ORIENT_QUERY_URL}/SELECT * FROM question LIMIT -1"
 
         try:
             response = requests.get(
@@ -382,6 +390,7 @@ def get_all_questions(request):
                 logger.warning("Failed to fetch data from OrientDB.")
                 return JsonResponse([], safe=False, status=200)
 
+            data = response.json()
             if 'result' in data:
                 questions_data = []
                 for question in data['result']:
@@ -392,6 +401,7 @@ def get_all_questions(request):
                         })
 
                 logger.info(f"Found {len(questions_data)} questions.")
+                print(f"Found {len(questions_data)} questions.")
                 return JsonResponse({'result': questions_data}, safe=False)
             else:
                 logger.error("Unexpected response format.")
@@ -661,27 +671,124 @@ def escape_sql_string(value):
 
 @csrf_exempt
 def update_answer(request):
-    """Обновление контента ответа в базе данных."""
     if request.method == 'POST':
         try:
-            # Считываем и декодируем тело запроса
+            # Парсим входящие данные
+            body = json.loads(request.body.decode('utf-8'))
+            question_id = body.get('questionID')
+            content = body.get('content')
+
+            if not question_id:
+                return JsonResponse({"error": "questionID is required"}, status=400)
+            if not content:
+                return JsonResponse({"error": "Content cannot be empty"}, status=400)
+
+            # Экранируем контент для SQL
+            escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
+
+            # 1. Проверяем существование ответа для этого вопроса
+            check_query = f"""
+            SELECT answer.@rid as id FROM answer
+            WHERE in('HasAnswer').@rid = '{question_id}'
+            LIMIT 1
+            """
+            check_response = requests.get(
+                config_settings.ORIENT_COMMAND_URL,
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+                headers={"Content-Type": "application/json; charset=utf-8"},
+                json={"command": check_query},
+            )
+
+            if check_response.ok:
+                result = check_response.json().get('result', [])
+
+                # 2. Если ответ существует - обновляем
+                if result:
+                    answer_id = result[0]['id']
+                    update_query = f"UPDATE answer SET content = '{escaped_content}' WHERE @rid = '{answer_id}'"
+                    update_response = requests.get(
+                        config_settings.ORIENT_COMMAND_URL,
+                        auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+                        headers={"Content-Type": "application/json; charset=utf-8"},
+                        json={"command": update_query},
+                    )
+
+                    if update_response.ok:
+                        return JsonResponse({
+                            "message": "Answer updated successfully",
+                            "answerID": answer_id
+                        }, status=200)
+                    else:
+                        logger.error(f"Update failed: {update_response.text}")
+                        return JsonResponse({"error": "Failed to update answer"}, status=500)
+
+            # 3. Если ответа нет - создаем новый
+            # Сначала создаем узел ответа
+            create_node_query = f"""
+            INSERT INTO answer SET content = '{escaped_content}'
+            RETURN @rid
+            """
+            create_node_response = requests.get(
+                config_settings.ORIENT_COMMAND_URL,
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+                headers={"Content-Type": "application/json; charset=utf-8"},
+                json={"command": create_node_query},
+            )
+
+            if not create_node_response.ok:
+                logger.error(f"Create node failed: {create_node_response.text}")
+                return JsonResponse({"error": "Failed to create answer node"}, status=500)
+
+            new_answer_id = create_node_response.json().get('result', [{}])[0].get('@rid')
+
+            if not new_answer_id:
+                return JsonResponse({"error": "Failed to get new answer ID"}, status=500)
+
+            # Затем создаем связь с вопросом
+            create_relation_query = f"""
+            CREATE EDGE Includes FROM {question_id} TO {new_answer_id}
+            """
+            create_relation_response = requests.get(
+                config_settings.ORIENT_COMMAND_URL,
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+                headers={"Content-Type": "application/json; charset=utf-8"},
+                json={"command": create_relation_query},
+            )
+
+            if create_relation_response.ok:
+                return JsonResponse({
+                    "message": "New answer created successfully",
+                    "answerID": new_answer_id
+                }, status=201)
+            else:
+                logger.error(f"Create relation failed: {create_relation_response.text}")
+                return JsonResponse({"error": "Failed to create relation"}, status=500)
+
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+@csrf_exempt
+def update_section(request):
+    if request.method == 'POST':
+        try:
             raw_body = request.body
             logger.info(f"Raw request body: {raw_body}")
-
-            # Декодируем JSON
             body = json.loads(raw_body.decode('utf-8'))
             logger.info(f"Parsed body: {body}")
-
-            answer_id = body.get('answerID')
+            section_id = body.get('sectionID')
             content = body.get('content')
-            logger.info(f"Answer ID: {answer_id}, Raw content: {content}")
+            logger.info(f"Section ID: {section_id}, Raw content: {content}")
 
-            # Экранирование кавычек и других символов
             escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
-            # Формируем запрос
-            query = f"UPDATE answer SET content = '{escaped_content}' WHERE @rid = '{answer_id}'"
+            query = f"UPDATE Section SET content = '{escaped_content}' WHERE @rid = '{section_id}'"
 
-            # Отправка запроса
             response = requests.get(
                 config_settings.ORIENT_COMMAND_URL,
                 auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
@@ -691,10 +798,9 @@ def update_answer(request):
 
             logger.info(f"Response status: {response.status_code}.")
 
-            # Обработка ответа
             if not response.ok:
-                logger.warning(f"Answer not found for answerID: {answer_id}")
-                return JsonResponse({"error": "Answer not found"}, status=404)
+                logger.warning(f"Section not found for sectionID: {answer_id}")
+                return JsonResponse({"error": "Section not found"}, status=404)
             else:
                 return JsonResponse({"message": "Successfully updated"}, status=200)
 
@@ -765,6 +871,53 @@ def update_question(request):
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
+@csrf_exempt
+def update_topic(request):
+    if request.method == 'POST':
+        try:
+            raw_body = request.body
+            logger.info(f"Raw request body: {raw_body}")
+            body = json.loads(raw_body.decode('utf-8'))
+            logger.info(f"Parsed body: {body}")
+            topic_id = body.get('topicID')
+            content = body.get('content')
+
+            if not topic_id or not content:
+                logger.error("Missing required fields: 'questionID' or 'content'.")
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+
+            logger.info(f"Topic ID: {topic_id}, Raw content: {content}")
+            escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
+
+            query = f"UPDATE Topic SET content = '{escaped_content}' WHERE @rid = '{topic_id}'"
+
+            response = requests.get(
+                config_settings.ORIENT_COMMAND_URL,
+                auth=('root', 'guregure'),
+                headers={"Content-Type": "application/json; charset=utf-8"},
+                json={"command": query},
+            )
+
+            logger.info(f"Response status: {response.status_code}.")
+
+            if not response.ok:
+                logger.warning(f"Topic with ID {question_id} not found.")
+                return JsonResponse({"error": "Topic not found"}, status=404)
+            else:
+                return JsonResponse({"message": "Successfully updated topic"}, status=200)
+
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+        except requests.RequestException as e:
+            logger.error(f"Request error: {e}")
+            return JsonResponse({'error': 'Error sending request to database'}, status=500)
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return JsonResponse({'error': 'Internal server error'}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
 
 def recognize_question(request):
     if request.method == 'POST':
@@ -781,7 +934,7 @@ def recognize_question(request):
             message = body['message']
             logger.info(f"Message to process: {message}")
 
-            recognized_question = settings.MODEL_HANDLER.handle_query(message)
+            recognized_question = settings.QUESTION_MATCHER.match_question(message)
             return JsonResponse({'recognized_question': recognized_question})
 
         except json.JSONDecodeError as e:

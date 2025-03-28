@@ -60,3 +60,9 @@
     display: block;
     opacity: 1;
 }
+
+.auto-resize {
+    min-height: 38px;
+    overflow: hidden;
+    resize: none;
+}

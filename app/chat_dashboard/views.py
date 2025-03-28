@@ -34,7 +34,7 @@ import uuid
 logger = logging.getLogger('chat_dashboard')
 user_action = logging.getLogger('user_actions')
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def analytics(request):
     user = request.user
     user_action.info(
@@ -294,9 +294,7 @@ def train_message(request, message_id):
         }
     )
     return render(request, 'chat_dashboard/train_message.html',
-                  {'user_message': user_message,
-                   'recognized_question': 'Здесь будет распознанный вопрос',
-                   'neural_answer': 'Здесь будет ответ нейросетевой модели (в разработке)'})
+                  {'user_message': user_message})
 
 
 def ignore_message(request, message_id):
@@ -458,7 +456,7 @@ def create_node(request):
             node_content = data.get('content')
             node_uuid = data.get('uuid')
 
-            if not node_class or not node_name:
+            if not node_class or not node_content:
                 return JsonResponse({'error': 'Missing required fields: class or name'}, status=400)
 
             if node_class == 'link':
@@ -488,10 +486,10 @@ def create_node(request):
                     if existing_nodes:
                         return JsonResponse({'error': 'Node with this content already exists'}, status=409)
 
-            sql_command = f"CREATE VERTEX {node_class} SET name = '{node_name}'"
-            if node_content:
-                sql_command += f", content = '{node_content}'"
-            elif node_uuid:
+            sql_command = f"CREATE VERTEX {node_class} SET content = '{node_content}'"
+            if node_name:
+                sql_command += f", name = '{node_name}'"
+            if node_uuid:
                 sql_command += f", uuid = '{node_uuid}'"
 
             headers = {'Content-Type': 'application/json'}
@@ -761,6 +759,8 @@ def create_training_message(request):
             data = json.loads(request.body)
             sender_id = data.get('sender_id')
             content = data.get('content')
+            neural_message = data.get('neural_message')
+            recognized_message = data.get('recognized_message')
 
             if not content:
                 logger.warning("Content field is missing.")
@@ -777,6 +777,8 @@ def create_training_message(request):
 
             training_message = TrainingMessage.objects.create(
                 sender=sender,
+                neural_message = neural_message,
+                recognized_message = recognized_message,
                 content=content
             )
 
@@ -799,6 +801,8 @@ def create_training_message(request):
                 'id': training_message.id,
                 'sender': sender_id,
                 'content': training_message.content,
+                'neural_message': neural_message if neural_message else '',
+                'recognized_message': recognized_message if recognized_message else '',
                 'created_at': training_message.created_at.strftime('%Y-%m-%d %H:%M:%S'),
                 'is_ignored': training_message.is_ignored,
                 'is_unread': training_message.is_unread

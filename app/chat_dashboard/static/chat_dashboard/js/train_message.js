@@ -1,10 +1,85 @@
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert ${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
+    notification.innerText = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 2000);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const smileyButton = document.getElementById('add-smiley');
     const smileyDropdown = document.getElementById('smiley-dropdown');
     const answerInput = document.getElementById("admin-response");
     const replyBtn = document.getElementById("reply-btn");
-    const replyAndTrainBtn = document.getElementById("reply-and-train-btn");
+    const trainBtn = document.getElementById("train-btn");
     const userMessageInput = document.getElementById("train-input");
+
+    const trainOptionRadios = document.querySelectorAll('input[name="train-option"]');
+    const questionSelect = document.getElementById('question-select');
+    const newQuestionInput = document.querySelector('#new-question-form input');
+
+    trainOptionRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (radio.value === 'add-to-existing') {
+                document.getElementById('existing-question-dropdown').style.display = 'block';
+                document.getElementById('new-question-form').style.display = 'none';
+                questionSelect.classList.remove('border', 'border-danger');
+            } else {
+                document.getElementById('existing-question-dropdown').style.display = 'none';
+                document.getElementById('new-question-form').style.display = 'block';
+                newQuestionInput.classList.remove('border', 'border-danger');
+            }
+        });
+    });
+
+    function autoResizeTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    }
+
+    const userQuestionInput = document.getElementById('train-input');
+    const userQuestionHeight = userQuestionInput.offsetHeight;
+
+    document.querySelectorAll('.auto-resize').forEach(function(textarea) {
+        textarea.style.minHeight = `${userQuestionHeight}px`;
+        autoResizeTextarea(textarea);
+        textarea.addEventListener('input', function() {
+            autoResizeTextarea(textarea);
+        });
+    });
+
+     function resetTrainingForm() {
+        answerInput.value = "";
+        answerInput.classList.remove("border", "border-danger");
+        document.querySelector('input[value="add-to-existing"]').checked = true;
+
+        questionSelect.selectedIndex = 0;
+        questionSelect.classList.remove('border', 'border-danger');
+
+        newQuestionInput.value = '';
+        newQuestionInput.classList.remove('border', 'border-danger');
+        document.getElementById('new-question-form').style.display = 'none';
+
+        document.getElementById('existing-question-dropdown').style.display = 'block';
+    }
+
+    fetch('/api/get-all-questions')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('question-select');
+            data.result.forEach(question => {
+                const option = document.createElement('option');
+                option.value = question.id;
+                option.textContent = question.content;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Ошибка при загрузке вопросов:', error);
+        });
 
     document.querySelectorAll('.tab-button').forEach((button) => {
         button.addEventListener('click', () => {
@@ -25,10 +100,26 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    document.querySelectorAll('.copy-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const targetSelector = this.getAttribute('data-target');
+            const targetElement = document.querySelector(targetSelector);
+
+            if (targetElement) {
+                navigator.clipboard.writeText(targetElement.value)
+                    .then(() => {
+                        showNotification('Текст успешно скопирован.', 'alert-success');
+                    })
+                    .catch(err => {
+                        console.error('Ошибка при копировании текста: ', err);
+                    });
+            }
+        });
+    });
+
     function copyToClipboard(element, message) {
         element.select();
         document.execCommand("copy");
-        // Показываем уведомление
         const notification = document.createElement('div');
         notification.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
         notification.innerText = message;
@@ -107,15 +198,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
         answerInput.classList.remove("border", "border-danger");
 
+        if (action === 'reply_and_train') {
+            let isValid = true;
+            const selectedOption = document.querySelector('input[name="train-option"]:checked').value;
+
+            if (selectedOption === 'add-to-existing') {
+                if (questionSelect.selectedIndex === 0 || questionSelect.value === 'Выберите существующий вопрос') {
+                    questionSelect.classList.add('border', 'border-danger');
+                    isValid = false;
+                } else {
+                    questionSelect.classList.remove('border', 'border-danger');
+                }
+            } else {
+                if (!newQuestionInput.value.trim()) {
+                    newQuestionInput.classList.add('border', 'border-danger');
+                    isValid = false;
+                } else {
+                    newQuestionInput.classList.remove('border', 'border-danger');
+                }
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+                return false;
+            }
+        }
         await notifyUser(responseText);
-        answerInput.value = "";
+        resetForm();
     }
 
     replyBtn.addEventListener("click", function () {
         handleResponse("reply");
     });
 
-    replyAndTrainBtn.addEventListener("click", function () {
+    trainBtn.addEventListener("click", function () {
         handleResponse("reply_and_train");
     });
 
@@ -130,11 +246,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Добавление смайликов в текстовое поле
     document.querySelectorAll('.smiley').forEach(smiley => {
         smiley.addEventListener('click', function () {
-            const textarea = document.getElementById('admin-response');
-            textarea.value += this.textContent;
+            answerInput.value += this.textContent;
         });
     });
 });

@@ -12,7 +12,9 @@ const state = {
     'username': null,
     'started_at': null,
     'is_first_time_chat_opened': true,
-    'message_to_operator': ''
+    'message_to_operator': '',
+    'neural_response_message': '',
+    'recognition_response_message': ''
 };
 
 const greetingOptions = [
