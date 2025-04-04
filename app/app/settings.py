@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework'
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -73,18 +73,37 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    # "http://localhost:5000",
-    "https://www.digitranslab.com"
+"http://localhost:8000",
+"http://127.0.0.1:8000",
+"http://127.0.0.1:3000",
+"http://localhost:3000",
+"https://www.digitranslab.com"
 ]
 
-# CORS_ALLOW_ALL_ORIGINS = True
-# CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_NAME = 'csrftoken'
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://www.digitranslab.com",
-    # "http://localhost:5000",
+"http://localhost:8000",
+"http://127.0.0.1:8000",
+"http://127.0.0.1:3000",
+"http://localhost:3000",
+"https://www.digitranslab.com"
 ]
 
+# CORS_ALLOW_HEADERS = [
+#     'content-type',
+#     'http_x_csrftoken',
+#     'X-Requested-With'
+# ]
+
+SESSION_COOKIE_SAMESITE = 'LAX'
+# SESSION_COOKIE_SECURE = False
 # CSRF_COOKIE_SAMESITE = 'None'
 # CSRF_COOKIE_SECURE = True  # Только для HTTPS!
 # SESSION_COOKIE_SECURE = True  # Только для HTTPS!
@@ -201,5 +220,5 @@ EMAIL_HOST_USER = config_settings.EMAIL_HOST_USER
 EMAIL_HOST_PASSWORD = config_settings.EMAIL_HOST_PASSWORD
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-SITE_URL = 'http://localhost:8000'
-X_FRAME_OPTIONS = 'https:/www.digitranslab.com'
+SITE_URL = 'https://localhost:3000'
+X_FRAME_OPTIONS = 'https://localhost:3000'

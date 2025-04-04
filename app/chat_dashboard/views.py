@@ -34,7 +34,7 @@ import uuid
 logger = logging.getLogger('chat_dashboard')
 user_action = logging.getLogger('user_actions')
 
-# @role_required(['admin', 'operator'])
+@role_required(['admin', 'operator'])
 def analytics(request):
     user = request.user
     user_action.info(

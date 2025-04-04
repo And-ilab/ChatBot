@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from django.shortcuts import render, get_object_or_404
 from django.utils.timezone import make_aware, now
+from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -24,12 +25,22 @@ from rest_framework.response import Response
 
 logger = logging.getLogger('chat_user')
 
+@xframe_options_exempt
+def embed_script(request):
+    return render(request, 'user_chat/embed.js', {
+        'static_url': "http://localhost:8000" + settings.STATIC_URL,
+        'chat_server_url': "http://localhost:8000"
+    }, content_type='application/javascript')
+
 
 def user_chat(request):
     logger.info("Rendering user chat page.")
     return render(request, 'user_chat/user_chat.html')
 
-
+def user_chat_widget(request):
+    logger.info("Rendering user chat widget.")
+    return render(request, 'user_chat/widget.html')
+@csrf_exempt
 def chat_login(request):
     if request.method == "POST":
         try:
@@ -85,7 +96,7 @@ def chat_login(request):
     logger.warning("Attempted to access chat_login with a non-POST request.")
     return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
 
-
+@csrf_exempt
 def check_session(request):
     """Проверка активности сессии."""
     if request.method == "GET":
@@ -224,7 +235,7 @@ def close_session(request):
             "message": "An unexpected error occurred."
         }, status=500)
 
-
+@csrf_exempt
 def get_user_details(request, user_id):
     """Retrieve first_name and last_name of a user by their ID."""
     # Validate user_id is a valid integer
@@ -254,11 +265,11 @@ def get_user_details(request, user_id):
     except Exception as e:
         logger.error(f"Error occurred while fetching user details for user_id {user_id}: {str(e)}", exc_info=True)
         return JsonResponse({"status": "error", "message": "Internal server error."}, status=500)
-
+@csrf_exempt
 def process_keywords(request):
     question = request.GET.get('question')
 
-
+@csrf_exempt
 def get_nodes_by_type(request):
     """Fetch nodes of a specific type from the OrientDB database."""
 
@@ -329,7 +340,7 @@ def get_nodes_by_type(request):
         logger.error(f"Unexpected error: {e}")
         return JsonResponse({"status": "error", "message": "Internal server error."}, status=500)
 
-
+@csrf_exempt
 def get_nodes_by_type_with_relation(request):
     """Fetch nodes of a specific type related to another node type based on a relationship."""
     if request.method == 'GET':
@@ -366,7 +377,7 @@ def get_nodes_by_type_with_relation(request):
             except Exception as e:
                 logger.error(f"Error fetching data: {e}")
                 return JsonResponse({"error": "Failed to fetch data"}, status=500)
-
+@csrf_exempt
 def get_all_questions(request):
     """Fetch all nodes of type 'question' from OrientDB."""
     if request.method == 'GET':
@@ -401,7 +412,7 @@ def get_all_questions(request):
             logger.error(f"Error fetching data: {e}")
             return JsonResponse({"error": "Failed to fetch data"}, status=500)
 
-
+@csrf_exempt
 def get_question_id_by_content(request):
     """Fetch question for a specific question ID."""
     if request.method == 'GET':
@@ -441,7 +452,7 @@ def get_question_id_by_content(request):
             logger.error("No questionId provided.")
             return JsonResponse({"error": "No questionId provided"}, status=400)
 
-
+@csrf_exempt
 def get_answer(request):
     """Fetch answer for a specific question ID."""
     if request.method == 'GET':
@@ -485,7 +496,7 @@ def get_answer(request):
             logger.error("No questionId provided.")
             return JsonResponse({"error": "No questionId provided"}, status=400)
 
-
+@csrf_exempt
 def get_artifacts(request):
     """Получение документов и ссылок, связанных с ответом по заданному ID."""
     if request.method == 'GET':
@@ -567,7 +578,7 @@ def get_artifacts(request):
         else:
             logger.error("No answerID provided.")
             return JsonResponse({"error": "No answerID provided"}, status=400)
-
+@csrf_exempt
 def get_artifact_by_id(request):
     if request.method == 'GET':
         artifact_type = urllib.parse.unquote(request.GET.get('artifactType'))
@@ -596,7 +607,7 @@ def get_artifact_by_id(request):
             logger.error(f"Error fetching documents: {e}")
             return JsonResponse({"error": "Failed to fetch documents"}, status=500)
 
-
+@csrf_exempt
 @require_http_methods(["GET"])
 def get_latest_dialog(request, user_id):
     """Получение последнего диалога для заданного user_id."""
@@ -653,7 +664,7 @@ def create_dialog(request, user_id):
             "message": "Internal server error."
         }, status=500)
 
-
+@csrf_exempt
 def escape_sql_string(value):
     """Экранирование кавычек и специальных символов для OrientDB."""
     return value.replace("'", "\\'").replace('"', '\\"')
@@ -765,7 +776,7 @@ def update_question(request):
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-
+@csrf_exempt
 def recognize_question(request):
     if request.method == 'POST':
         try:
@@ -794,7 +805,7 @@ def recognize_question(request):
 
     logger.warning("Invalid request method")
     return JsonResponse({'error': 'Invalid request method'}, status=400)
-
+@csrf_exempt
 @api_view(["POST"])
 def add_feedback(request):
     serializer = FeedbackSerializer(data=request.data)
@@ -807,7 +818,7 @@ class FeedbacksList(generics.ListAPIView):
     queryset = Feedbacks.objects.all()
     serializer_class = FeedbackSerializer
 
-
+@csrf_exempt
 @api_view(["GET"])
 def session_data(request):
     logger.info("Fetching session data.")
@@ -822,7 +833,7 @@ def session_data(request):
     logger.debug(f"Formatted session data: {response_data}")
     return JsonResponse(response_data, safe=False)
 
-
+@csrf_exempt
 @api_view(["GET"])
 def refused_data(request):
     logger.info("Fetching refused messages data.")
@@ -837,7 +848,7 @@ def refused_data(request):
     logger.debug(f"Formatted refused messages data: {response_data}")
     return JsonResponse(response_data, safe=False)
 
-
+@csrf_exempt
 @api_view(["GET"])
 def popular_requests_data(request):
     logger.info("Fetching popular requests data.")
@@ -896,7 +907,7 @@ def add_popular_request(request):
     logger.warning("Invalid request method")
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-
+@csrf_exempt
 @require_http_methods(["DELETE"])
 def delete_last_chat_message(request, dialog_id):
     try:

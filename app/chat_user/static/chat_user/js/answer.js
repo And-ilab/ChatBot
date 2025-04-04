@@ -101,7 +101,7 @@ async function recognizeAndProcessMessage(cleanedMessage) {
 
 async function recognizeQuestion(message) {
     try {
-        const response = await fetch("/api/recognize-question/", {
+        const response = await fetch(`${apiurl}/api/recognize-question/`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -126,7 +126,7 @@ async function recognizeQuestion(message) {
 async function processRecognizedQuestion(questionContent) {
     try {
         const encodedContent = encodeURIComponent(questionContent);
-        const response = await fetch(`/api/get-question-id-by-content/?questionContent=${encodedContent}`, { method: 'GET' });
+        const response = await fetch(`${apiurl}/api/get-question-id-by-content/?questionContent=${encodedContent}`, { method: 'GET' });
 
         if (!response.ok) {
             throw new Error(`Ошибка при получении ID вопроса: ${response.status} - ${await response.text()}`);
