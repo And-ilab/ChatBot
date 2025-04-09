@@ -557,12 +557,12 @@
 
 .document-button {
     display: flex;
-    background-color: #28a745;
-    color: white;
+    background-color: rgba(184, 248, 88, 0.8);
     border: none;
     border-radius: 12px;
     padding: 8px 16px;
-    font-size: 14px;
+    font-weight: 500;
+    font-size: 15px;
     cursor: pointer;
     align-items: center;
     text-align: left;
@@ -573,7 +573,7 @@
 }
 
 .document-button:hover {
-    background-color: #218838;
+    background-color: #00942c;
 }
 
 .document-button i {
@@ -586,20 +586,18 @@
     border: none;
     border-radius: 12px;
     padding: 8px 16px;
-    font-size: 14px;
+    font-weight: 500;
+    font-size: 15px;
     cursor: pointer;
     align-items: center;
     text-align: left;
     justify-content: space-between;
     margin-right: 10px;
     max-width: 450px;
+    background-color: rgba(176, 248, 248, 0.9);
     transition: background-color 0.3s ease;
 }
 
-.link-button {
-    background-color: #17a2b8;
-}
-
 .link-button:hover {
-    background-color: #138496;
+    background-color: rgba(176, 248, 248, 1);
 }
