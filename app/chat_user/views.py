@@ -988,9 +988,9 @@ def recognize_question(request):
             message = body['message']
             logger.info(f"Message to process: {message}")
 
-            # recognized_question = settings.QUESTION_MATCHER.match_question(message)
-            # return JsonResponse({'recognized_question': recognized_question})
-            return JsonResponse({'recognized_question': ''})
+            recognized_question = settings.QUESTION_MATCHER.match_question(message)
+            return JsonResponse({'recognized_question': recognized_question})
+            # return JsonResponse({'recognized_question': ''})
 
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error: {e}")
