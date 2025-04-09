@@ -3,76 +3,23 @@
     max-width: 503px;
     min-width: 50px;
     padding: 8px 8px 25px 8px;
-    border-radius: 10px;
+    border-radius: 8px;
     overflow-wrap: break-word;
-    border-width: 1px;
-    border-style: solid;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: 500;
+    font-size: 15px;
+    box-shadow: 0 3px 4px rgba(0, 0, 0, 0.1);
 }
 
 .bot-message {
-    background-color: rgba(149, 240, 12, 0.6);
+    background-color: rgba(184, 248, 88, 0.8);
     align-self: flex-start;
-    font-family: 'Lato', sans-serif;
-    font-size: 16px;
-    font-weight: 500;
-    border-color: #5e8e22;
-    box-shadow: 2px 2px 5px rgba(94, 142, 34, 0.2);
+    box-shadow: 2px 5px 5px rgba(94, 142, 34, 0.2);
 }
 
 .user-message {
-    font-family: 'Lato', sans-serif;
-    font-size: 16px;
-    font-weight: 500;
-    background-color: #00a827;
-    color: white;
+    background-color: rgba(176, 248, 248, 0.9);
     align-self: flex-end;
-    border-color: #00701c;
-    box-shadow: -2px 2px 5px rgba(0, 112, 28, 0.2);
-}
-
-.bot-message::before {
-    content: '';
-    position: absolute;
-    left: -10px;
-    top: 9px;
-    border: 10px solid transparent;
-    border-right-color: #5e8e22;
-    border-left: 0;
-    z-index: 0;
-}
-
-.bot-message::after {
-    content: '';
-    position: absolute;
-    left: -9px;
-    top: 9px;
-    border: 10px solid transparent;
-    border-right-color: #bff66d;
-    border-left: 0;
-    z-index: 1;
-}
-
-.user-message::before {
-    content: '';
-    position: absolute;
-    right: -9px;
-    top: 9px;
-    border: 10px solid transparent;
-    border-left-color: #00701c;
-    border-right: 0;
-    z-index: 0;
-}
-
-.user-message::after {
-    content: '';
-    position: absolute;
-    right: -8px;
-    top: 9px;
-    border: 10px solid transparent;
-    border-left-color: #00a827;
-    border-right: 0;
-    z-index: 1;
+    box-shadow: -2px 5px 5px rgba(0, 112, 28, 0.2);
 }
 
 .message-time {
@@ -80,13 +27,13 @@
     bottom: 5px;
     right: 10px;
     font-size: 0.8em;
-    color: gray;
+    color: rgba(0, 0, 0, 0.3);
     text-align: right;
     margin-top: 5px;
 }
 
 .user-message-time {
-     color: white;
+     color: color: rgba(0, 0, 0, 0.3);
 }
 
 .message-date-wrapper {
@@ -96,12 +43,7 @@
 }
 
 .message-date-content {
-    background-color: #00942c;
-    border-radius: 14px;
-    color: white;
     padding: 5px 10px 5px 10px;
-    border-width: 1px;
-    border-style: solid;
-    border-color: #00701c;
-    box-shadow: -2px 2px 5px rgba(0, 112, 28, 0.2);
+    font-weight: 500;
+    font-size: 15px;
 }

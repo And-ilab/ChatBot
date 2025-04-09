@@ -22,7 +22,7 @@
 }
 
 .chat-header {
-    background-color: #00942c;
+    background-color: #30c058;
     border-radius: 10px 10px 0px 0px;
     color: white;
     padding: 10px;
@@ -31,9 +31,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-family: 'Lato', sans-serif;
-    font-size: 18px;
-    font-weight: 500;
 }
 
 .chat-control-buttons {
@@ -70,10 +67,13 @@
 
 .footer-wrapper {
     width: 100%;
+    height: 40px;
     display: flex;
     margin-top: 10px;
     flex-direction: row;
     align-items: center;
+    box-sizing: border-box;
+    gap: 10px;
 }
 
 .chat-footer {
@@ -86,21 +86,23 @@
 }
 
 .chat-input {
-    flex-grow: 1;
-    margin-right: 10px;
+    flex: 1;
+    min-width: 0;
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 8px 12px;
     outline: none;
     transition: border-color 0.3s ease;
+    font-size: 15px;
+    font-weight: 500;
 }
 
 .chat-input:hover {
-    border-color: #00a827;
+    border-color: #30c058;
 }
 
 .chat-input:focus {
-    border-color: #00a827;
+    border-color: #30c058;
     box-shadow: 0 0 0 2px rgba(0, 168, 39, 0.2);
 }
 
@@ -150,7 +152,7 @@
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    background-color: #00a827;
+    background-color: #30c058;
     color: white;
     border: none;
     cursor: pointer;
@@ -180,8 +182,8 @@
 }
 
 .extend-title {
-    font-size: 1.5em;
-    font-weight: bold;
+    font-size: 22px;
+    font-weight: 700;
     text-align: center;
     margin-bottom: 50px;
 }
@@ -240,7 +242,7 @@
 
 
 .chat-login-submit {
-    background-color: #00a827;
+    background-color: #30c058;
     color: white;
     border: none;
     border-radius: 4px;
@@ -270,7 +272,7 @@
 
 .menu-buttons {
     display: none;
-    padding: 10px;
+    padding: 5px;
     height: 180px;
     width: 100%;
     flex-direction: column;
@@ -279,70 +281,51 @@
     overflow-y: auto;
     border: 1px solid #ccc;
     background-color: #f9f9f9;
+    border-radius: 8px;
     transition: height 0.3s ease;
     word-wrap: wrap;
 }
 
 .chat-menu-button {
+    height: 100%;
+    padding: 6px 13px;
+    margin: 0;
+    white-space: nowrap;
     display: none;
-    background-color: #00a827 !important;
-    color: white !important;
-    border: 2px solid transparent !important;
-    border-radius: 10px !important;
-    padding: 5px 10px !important;
-    cursor: pointer !important;
-    align-items: center !important;
-    text-align: left !important;
-    justify-content: space-between !important;
-    margin-right: 10px !important;
-    height: 40px !important;
-    font-family: 'Lato', sans-serif !important;
-    font-size: 14px !important;
-    font-weight: 400 !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+    align-items: center;
+    justify-content: center;
+    background-color: #30c058 !important;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s ease;
 }
 
-.chat-menu-button:hover,
-.chat-menu-button:focus,
 .chat-menu-button:active {
-    background-color: #00942c !important;
-    border-color: transparent !important;
-    box-shadow: none !important;
-    outline: none !important;
+    transform: scale(0.95) !important;
 }
 
 .chat-menu-button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    background-color: #00942c !important;
+    color: white;
 }
 
-.chat-menu-button:active {
-    background-color: #007a24 !important;
-    transform: translateY(1px) !important;
+.chat-menu-button:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(0, 168, 39, 0.3) !important;
 }
 
-.btn-primary:focus {
-    box-shadow: 0 0 0 0.25rem rgba(0, 168, 39, 0.5) !important;
-}
-
-.chat-menu-button:hover .fa-bars {
-    transform: rotate(90deg) !important;
-}
-
-.chat-menu-button .fa-bars {
-    transition: transform 0.3s ease !important;
-    margin-left: 10px !important;
-}
 
 .chat-button {
     display: flex;
     background-color: white;
-    color: #00a827;
-    border: 2px solid #00a827;
+    color: #30c058;
+    border: 1px solid #30c058;
     border-radius: 10px;
     padding: 5px 10px;
     font-size: 15px;
+    font-weight: 500;
     cursor: pointer;
     align-items: center;
     text-align: left;
@@ -353,17 +336,20 @@
 }
 
 .chat-button:hover {
-    background-color: #00a827;
+    background-color: #30c058;
     color: white;
     border-color: #00942c;
 }
 
 .chat-send-button {
     height: 100%;
+    padding: 6px 12px;
+    margin: 0;
+    white-space: nowrap;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #00a827;
+    background-color: #30c058;
     color: white;
     border: none;
     border-radius: 100%;
@@ -407,17 +393,17 @@
 
 .feedback-buttons {
     display: flex;
-    gap: 10px;
+    gap: 3px;
 }
 
 #extend-session-btn, #new-session-btn {
-    background-color: #00a827;
+    background-color: #30c058;
     color: white;
     border: none;
     border-radius: 4px;
     padding: 8px 16px;
-    font-family: 'Lato', sans-serif;
-    font-size: 14px;
+        font-size: 16px;
+        font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
@@ -447,7 +433,7 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    border: 1px solid #5e8e22;
+    border: none;
     background-color: rgba(149, 240, 12, 0.6);
     display: flex;
     align-items: center;
@@ -457,12 +443,10 @@
     padding: 0;
     margin: 0 5px;
     backdrop-filter: blur(2px);
-    box-shadow: 2px 2px 5px rgba(94, 142, 34, 0.2);
+    box-shadow: 2px 5px 5px rgba(94, 142, 34, 0.2);
 }
 
 .feedback-button:hover {
-    background-color: rgba(149, 240, 12, 0.8);
-    border-color: #4a751b;
     transform: scale(1.05);
     box-shadow: 2px 2px 8px rgba(94, 142, 34, 0.3);
 }
@@ -473,15 +457,17 @@
 }
 
 .like-button::before {
-    content: '👍';
-    font-size: 18px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    content: "\f164";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 400;
+    font-size: 20px;
 }
 
 .dislike-button::before {
-    content: '👎';
-    font-size: 18px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    content: "\f165";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 400;
+    font-size: 20px;
 }
 
 .feedback-button:disabled {
@@ -532,8 +518,8 @@
 
 .operator-button {
     background: white;
-    color: #00a827;
-    border: 2px solid #00a827;
+    color: #30c058;
+    border: 2px solid #30c058;
     padding: 8px 20px;
     border-radius: 20px;
     cursor: pointer;
@@ -543,7 +529,7 @@
 }
 
 .operator-button:hover {
-    background: #00a827;
+    background: #30c058;
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 168, 39, 0.2);
