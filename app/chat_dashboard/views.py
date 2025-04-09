@@ -1427,8 +1427,8 @@ def settings_view(request):
         'logs_backup': settings.logs_backup
     })
 
-
-def update_session_duration(request):
+@csrf_exempt
+def update_settings(request):
     if request.method == 'POST':
         try:
             session_duration = int(request.POST.get('session_duration'))
@@ -1438,6 +1438,7 @@ def update_session_duration(request):
             domain = request.POST.get('ad_domain')
             retention_months = request.POST.get('message_retention_months')
             logs_backup = request.POST.get('logs_backup')
+            neural_active = request.POST.get('neural_active') == 'on'
 
             settings = Settings.objects.first()
             settings.session_duration = session_duration
@@ -1446,6 +1447,7 @@ def update_session_duration(request):
             settings.ad_enabled = enable_ad  # Обновляем значение AD
             settings.ldap_server = ldap_server
             settings.domain = domain
+            settings.neural_active = neural_active
             settings.message_retention_days = int(
                 retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
             settings.save()
@@ -1458,7 +1460,7 @@ def update_session_duration(request):
     return JsonResponse({'status': 'error', 'message': 'Неверный запрос'})
 
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Корневая директория проекта
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 @csrf_exempt

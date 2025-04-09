@@ -69,6 +69,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'chat_dashboard.middleware.NoCacheMiddleware',
+    'chat_dashboard.middleware.ResetSessionMiddleware'
 ]
 
 CORS_ALLOW_HEADERS = [
@@ -133,7 +135,10 @@ DATABASES = {
         'USER': config_settings.DB_USER,
         'PASSWORD': config_settings.DB_PASS,
         'HOST': config_settings.DB_HOST,
-        'PORT': config_settings.DB_PORT
+        'PORT': config_settings.DB_PORT,
+        'OPTIONS': {
+            'client_encoding': 'UTF8',
+        },
     }
 }
 

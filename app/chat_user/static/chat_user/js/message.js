@@ -46,7 +46,7 @@ const appendMessage = (sender, content, timestamp, showButton = false) => {
 
 const sendMessageToAPI = async (dialog_id, senderType, messageType, content, timestamp) => {
     try {
-        const response = await apiFetch(`/api/send-message/${dialog_id}/`, {
+        const response = await fetch(`/api/send-message/${dialog_id}/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -110,7 +110,7 @@ async function drawDocument(content) {
     `;
 
     try {
-        const response = await apiFetch(`/api/get-document-link-by-uuid/${docUUID}/`);
+        const response = await fetch(`/api/get-document-link-by-uuid/${docUUID}/`);
         if (!response.ok) {
             throw new Error('Не удалось получить ссылку на файл');
         }
@@ -161,7 +161,7 @@ function drawLink(content) {
 
 const loadMessages = async () => {
     try {
-        const messagesResponse = await apiFetch(`/api/messages/${state['dialog_id']}/`);
+        const messagesResponse = await fetch(`/api/messages/${state['dialog_id']}/`);
         const data = await messagesResponse.json();
         chatMessagesArea.innerHTML = '';
 
@@ -187,7 +187,6 @@ const loadMessages = async () => {
 
                 const likeButton = document.createElement('button');
                 likeButton.className = 'feedback-button like-button';
-                likeButton.innerHTML = '👍 <span>Полезен</span>';
                 likeButton.disabled = !isLastMessage;
                 if (isLastMessage) {
                     likeButton.onclick = async () => {
@@ -207,7 +206,6 @@ const loadMessages = async () => {
 
                 const dislikeButton = document.createElement('button');
                 dislikeButton.className = 'feedback-button dislike-button';
-                dislikeButton.innerHTML = '👎 <span>Не то, что хотелось бы</span>';
                 dislikeButton.disabled = !isLastMessage;
                 if (isLastMessage) {
                     dislikeButton.onclick = async () => {

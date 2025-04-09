@@ -86,6 +86,7 @@ async function recognizeAndProcessMessage(cleanedMessage) {
         disableUserActions();
         typingBlock.style.display = 'flex';
         state['message_to_operator'] = cleanedMessage;
+        await sendPopularRequest('Иное');
         const recognizedQuestion = await recognizeQuestion(cleanedMessage);
         if (recognizedQuestion) {
             state['recognition_response_message'] = recognizedQuestion;
@@ -103,7 +104,7 @@ async function recognizeAndProcessMessage(cleanedMessage) {
 
 async function recognizeQuestion(message) {
     try {
-        const response = await apiFetch("/api/recognize-question/", {
+        const response = await fetch("/api/recognize-question/", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -128,7 +129,7 @@ async function recognizeQuestion(message) {
 async function processRecognizedQuestion(questionContent) {
     try {
         const encodedContent = encodeURIComponent(questionContent);
-        const response = await apiFetch(`/api/get-question-id-by-content/?questionContent=${encodedContent}`, { method: 'GET' });
+        const response = await fetch(`/api/get-question-id-by-content/?questionContent=${encodedContent}`, { method: 'GET' });
 
         if (!response.ok) {
             throw new Error(`Ошибка при получении ID вопроса: ${response.status} - ${await response.text()}`);
@@ -151,7 +152,7 @@ async function sendRequestToFastAPI(userInput) {
     };
 
     try {
-        const response = await apiFetch(url, {
+        const response = await fetch(url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -173,10 +174,30 @@ async function sendRequestToFastAPI(userInput) {
 
 async function handleUnrecognizedMessage(message) {
     typingBlock.style.display = 'flex';
-    const neuralMessage = await sendRequestToFastAPI(message);
-    appendMessage('bot', neuralMessage, getTimestamp(), false);
-    await sendBotMessage(neuralMessage);
-    state['neural_response_message'] = neuralMessage;
-    typingBlock.style.display = 'none';
-    await createFeedbackElements();
+    let is_neural_active = false;
+    await fetch('/api/neural-status/')
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            is_neural_active = true;
+        }
+    });
+    let neuralMessage = '';
+    if (is_neural_active) {
+        neuralMessage = await sendRequestToFastAPI(message);
+        appendMessage('bot', neuralMessage, getTimestamp(), false);
+        await sendBotMessage(neuralMessage);
+        state['neural_response_message'] = neuralMessage;
+        await createFeedbackElements();
+    } else {
+        neuralMessage = withoutNeuralMessages[Math.floor(Math.random() * withoutNeuralMessages.length)];
+        appendMessage('bot', neuralMessage, getTimestamp(), false);
+        await sendBotMessage(neuralMessage);
+        state['neural_response_message'] = neuralMessage;
+        const botAnswerMessage = customResponses[Math.floor(Math.random() * customResponses.length)];
+        appendMessage('bot', botAnswerMessage, getTimestamp(), false);
+        await sendBotMessage(botAnswerMessage);
+        typingBlock.style.display = 'none';
+        await addOperatorButton(message, neuralMessage, '', true, false);
+    }
 }

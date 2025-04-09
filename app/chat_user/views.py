@@ -20,15 +20,15 @@ from config import config_settings
 from rest_framework import status, generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-import re
-from pymorphy3 import MorphAnalyzer
-import spacy
+# import re
+# from pymorphy3 import MorphAnalyzer
+# import spacy
 # from .nn_model_loader import nn_model_instance
 
-nlp = spacy.load("ru_core_news_sm")
-morph = MorphAnalyzer()
-custom_stop_words = {"может", "могут", "какой", "какая", "какое", "какие", "что", "кто", "где", "когда", "зачем",
-                     "почему"}
+# nlp = spacy.load("ru_core_news_sm")
+# morph = MorphAnalyzer()
+# custom_stop_words = {"может", "могут", "какой", "какая", "какое", "какие", "что", "кто", "где", "когда", "зачем",
+#                      "почему"}
 
 
 logger = logging.getLogger('chat_user')
@@ -42,70 +42,96 @@ def embed_script(request):
     return render(request, 'user_chat/embed.js', context, content_type='application/javascript')
 
 
+@csrf_exempt
 def user_chat(request):
     logger.info("Rendering user chat page.")
     return render(request, 'user_chat/user_chat.html')
 
+@csrf_exempt
 def user_chat_widget(request):
     logger.info("Rendering user chat widget.")
     return render(request, 'user_chat/widget.html')
 
+
+@csrf_exempt
 def chat_login(request):
-    if request.method == "POST":
+    if request.method != "POST":
+        logger.warning("Attempted to access chat_login with a non-POST request.")
+        return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
+
+    try:
         try:
-            data = json.loads(request.body)
-            first_name = data.get("first_name")
-            last_name = data.get("last_name")
-            email = data.get("email")
-            logger.info(f"Received login request: first_name={first_name}, last_name={last_name}, email={email}")
-        except KeyError as e:
-            logger.error(f"KeyError: Missing key {str(e)} in request data.")
-            return JsonResponse({"status": "error", "message": "Invalid data."}, status=400)
+            data = json.loads(request.body.decode('utf-8'))
+            first_name = data.get("first_name", "").strip()
+            last_name = data.get("last_name", "").strip()
+            email = data.get("email", "").strip().lower()
+
+            if not all([first_name, last_name, email]):
+                raise ValueError("Missing required fields")
+
+            logger.info(f"Received login request for email: {email}")
+
+        except (KeyError, ValueError, json.JSONDecodeError) as e:
+            logger.error(f"Invalid request data: {str(e)}")
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid data. Please provide first_name, last_name and email."
+            }, status=400)
 
         try:
-            user, created = ChatUser.objects.get_or_create(email=email, defaults={
-                "first_name": first_name,
-                "last_name": last_name
-            })
+            user, created = ChatUser.objects.get_or_create(
+                email=email,
+                defaults={"first_name": first_name, "last_name": last_name}
+            )
 
-            if created:
-                logger.info(f"New user created with email {email}.")
-            else:
-                logger.info(f"Existing user logged in with email {email}.")
+            settings_obj = Settings.objects.first()
+            if not settings_obj:
+                raise ValueError("Settings not configured")
 
-            session_duration_minutes = Settings.objects.first().session_duration
-            logger.info(f"Session duration set to {session_duration_minutes} minutes.")
+            session_duration = settings_obj.session_duration
 
             payload = {
                 "user_id": user.id,
                 "email": user.email,
-                "exp": datetime.now(timezone.utc) + timedelta(minutes=session_duration_minutes),
+                "exp": datetime.now(timezone.utc) + timedelta(minutes=session_duration),
             }
-            session_token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-            logger.info(f"JWT created for user {user.email} with token {session_token}.")
 
-            expires_at = datetime.now(timezone.utc) + timedelta(minutes=session_duration_minutes)
-            session = Session.objects.create(
+
+            session_token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+            if isinstance(session_token, bytes):
+                session_token = session_token.decode('utf-8')
+
+            expires_at = datetime.now(timezone.utc) + timedelta(minutes=session_duration)
+            Session.objects.create(
                 user=user,
                 session_token=session_token,
                 expires_at=expires_at
             )
-            logger.info(f"Session created for user {user.email} with token {session_token}.")
 
-            return JsonResponse({
+            response_data = {
                 "status": "success",
                 "message": "User logged in successfully.",
                 "session_token": session_token
-            })
+            }
+
+            response = JsonResponse(response_data)
+            return response
 
         except Exception as e:
-            logger.error(f"Error occurred while creating session: {str(e)}")
-            return JsonResponse({"status": "error", "message": "Internal server error."}, status=500)
+            logger.error(f"Server error during login: {str(e)}", exc_info=True)
+            return JsonResponse({
+                "status": "error",
+                "message": "Internal server error"
+            }, status=500)
 
-    logger.warning("Attempted to access chat_login with a non-POST request.")
-    return JsonResponse({"status": "error", "message": "Only POST method allowed."}, status=405)
+    except Exception as e:
+        logger.critical(f"Unexpected error in chat_login: {str(e)}", exc_info=True)
+        return JsonResponse({
+            "status": "error",
+            "message": "Critical server error"
+        }, status=500)
 
-
+@csrf_exempt
 def check_session(request):
     """Проверка активности сессии."""
     if request.method == "GET":
@@ -149,6 +175,29 @@ def check_session(request):
     logger.warning("Attempted to access check_session with a non-GET request.")
     return JsonResponse({"status": "error", "message": "Метод не поддерживается"}, status=405)
 
+
+def get_neural_status(request):
+    try:
+        # Получаем первый (и обычно единственный) объект настроек
+        settings = Settings.objects.first()
+
+        if settings:
+            # Возвращаем статус нейросетевой модели
+            return JsonResponse({
+                'status': 'success',
+                'neural_active': settings.neural_active
+            })
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Настройки не найдены'
+            }, status=404)
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
 
 @csrf_exempt
 def extend_session(request):
@@ -244,7 +293,7 @@ def close_session(request):
             "message": "An unexpected error occurred."
         }, status=500)
 
-
+@csrf_exempt
 def get_user_details(request, user_id):
     """Retrieve first_name and last_name of a user by their ID."""
     # Validate user_id is a valid integer
@@ -413,7 +462,6 @@ def get_all_questions(request):
                         })
 
                 logger.info(f"Found {len(questions_data)} questions.")
-                print(f"Found {len(questions_data)} questions.")
                 return JsonResponse({'result': questions_data}, safe=False)
             else:
                 logger.error("Unexpected response format.")
@@ -685,7 +733,6 @@ def escape_sql_string(value):
 def update_answer(request):
     if request.method == 'POST':
         try:
-            # Парсим входящие данные
             body = json.loads(request.body.decode('utf-8'))
             question_id = body.get('questionID')
             content = body.get('content')
@@ -695,14 +742,10 @@ def update_answer(request):
             if not content:
                 return JsonResponse({"error": "Content cannot be empty"}, status=400)
 
-            # Экранируем контент для SQL
             escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
 
-            # 1. Проверяем существование ответа для этого вопроса
             check_query = f"""
-            SELECT answer.@rid as id FROM answer
-            WHERE in('HasAnswer').@rid = '{question_id}'
-            LIMIT 1
+            SELECT FROM answer WHERE IN('Includes').@rid ={question_id} LIMIT 1
             """
             check_response = requests.get(
                 config_settings.ORIENT_COMMAND_URL,
@@ -713,11 +756,10 @@ def update_answer(request):
 
             if check_response.ok:
                 result = check_response.json().get('result', [])
-
                 # 2. Если ответ существует - обновляем
                 if result:
-                    answer_id = result[0]['id']
-                    update_query = f"UPDATE answer SET content = '{escaped_content}' WHERE @rid = '{answer_id}'"
+                    answer_id = result[0]['@rid']
+                    update_query = f"UPDATE answer SET content = '{escaped_content}' WHERE @rid ={answer_id}"
                     update_response = requests.get(
                         config_settings.ORIENT_COMMAND_URL,
                         auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
@@ -946,8 +988,9 @@ def recognize_question(request):
             message = body['message']
             logger.info(f"Message to process: {message}")
 
-            recognized_question = settings.QUESTION_MATCHER.match_question(message)
-            return JsonResponse({'recognized_question': recognized_question})
+            # recognized_question = settings.QUESTION_MATCHER.match_question(message)
+            # return JsonResponse({'recognized_question': recognized_question})
+            return JsonResponse({'recognized_question': ''})
 
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error: {e}")
@@ -1062,7 +1105,7 @@ def add_popular_request(request):
     logger.warning("Invalid request method")
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-
+@csrf_exempt
 @require_http_methods(["DELETE"])
 def delete_last_chat_message(request, dialog_id):
     try:

@@ -48,6 +48,13 @@
                 </div>
             </div>
 
+            <!-- New neural network toggle -->
+            <div class="form-group mb-4">
+                <label for="neural_active" class="block text-lg font-medium text-gray-700">Нейросетевая модель:</label>
+                <input type="checkbox" id="neural_active" name="neural_active" {% if settings.neural_active %}checked{% endif %}
+                       class="form-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-600">
+            </div>
+
             <div class="form-group mb-4">
                 <label for="message_retention_months" class="block text-md font-medium text-gray-600"
                        data-bs-toggle="tooltip" title="Срок хранения на сервере переписки с пользователями">
@@ -122,6 +129,7 @@
     const adServerInput = document.getElementById('ad_server');
     const adDomainInput = document.getElementById('ad_domain');
     const sessionDurationInput = document.getElementById('session_duration');
+    const neuralActiveCheckbox = document.getElementById('neural_active');
     const statusText = document.querySelector('.status p');
 
     const initialValues = {
@@ -131,6 +139,7 @@
         adServer: adServerInput.value,
         adDomain: adDomainInput.value,
         sessionDuration: sessionDurationInput.value,
+        neuralActive: neuralActiveCheckbox.checked
     };
 
     function hasChanges() {
@@ -140,7 +149,8 @@
             logsBackupSelect.value !== initialValues.logsBackupSelect ||
             adServerInput.value !== initialValues.adServer ||
             adDomainInput.value !== initialValues.adDomain ||
-            sessionDurationInput.value !== initialValues.sessionDuration
+            sessionDurationInput.value !== initialValues.sessionDuration ||
+            neuralActiveCheckbox.checked !== initialValues.neuralActive
         );
     }
 
@@ -157,6 +167,8 @@
     adServerInput.addEventListener('input', toggleSaveButton);
     adDomainInput.addEventListener('input', toggleSaveButton);
     sessionDurationInput.addEventListener('input', toggleSaveButton);
+    neuralActiveCheckbox.addEventListener('change', toggleSaveButton);
+
     saveButton.addEventListener('click', function () {
         const formData = new FormData();
         formData.append('session_duration', sessionDurationInput.value);
@@ -165,10 +177,11 @@
         formData.append('message_retention_months', retentionSelect.value);
         formData.append('logs_backup', logsBackupSelect.value);
         formData.append('enable_ad', enableAdCheckbox.checked ? 'on' : 'off');
+        formData.append('neural_active', neuralActiveCheckbox.checked ? 'on' : 'off');
 
         const csrftoken = document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1];
 
-        fetch('/api/update-session/', {
+        fetch('/api/update-settings/', {
             method: 'POST',
             body: formData,
             headers: {
@@ -187,6 +200,7 @@
                     initialValues.adServer = adServerInput.value;
                     initialValues.adDomain = adDomainInput.value;
                     initialValues.sessionDuration = sessionDurationInput.value;
+                    initialValues.neuralActive = neuralActiveCheckbox.checked;
                     statusText.textContent = enableAdCheckbox.checked ? 'Включена' : 'Отключена';
                     statusText.style.color = enableAdCheckbox.checked ? 'green' : 'red';
                 } else {

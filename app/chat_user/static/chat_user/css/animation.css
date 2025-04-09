@@ -1,9 +1,9 @@
 @keyframes blink-shadow {
     0%, 100% {
-        box-shadow: 0 0 20px rgba(0, 123, 255, 0.8);
+        box-shadow: 0 0 20px rgba(0, 121, 50, 0.8);
     }
     50% {
-        box-shadow: 0 0 30px rgba(0, 123, 255, 0.4);
+        box-shadow: 0 0 30px rgba(0, 121, 50, 0.4);
     }
 }
 

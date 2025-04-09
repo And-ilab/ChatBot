@@ -41,6 +41,7 @@ function processPopularRequestsData(data) {
         "Вопросы для психологов",
         "Образцы заявлений",
         "Начисления и выплаты. Больничные листы",
+        "Иное"
     ];
 
     allDates.forEach(date => {
@@ -78,6 +79,7 @@ const requestTypeColors = {
     "Вопросы для психологов": "rgba(153, 102, 255, 0.6)",
     "Образцы заявлений": "rgba(255, 159, 64, 0.6)",
     "Начисления и выплаты. Больничные листы": "rgba(114, 121, 19, 0.6)",
+    "Иное": "rgba(67, 148, 43, 0.6)",
 };
 
 // Функция для получения цвета по типу запроса
@@ -115,7 +117,7 @@ function renderPopularRequestsChart(data, chartType) {
                 maintainAspectRatio: false,
                 scales: {
                     x: { title: { display: true, text: "Дата" } },
-                    y: { title: { display: true, text: "Количество запросов" }, beginAtZero: true }
+                    y: { title: { display: true, text: "Количество запросов" }, beginAtZero: true, ticks: { precision: 0, stepSize: 1} }
                 },
                 plugins: { legend: { position: "top" } }
             }

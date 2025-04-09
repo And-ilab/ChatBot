@@ -4,7 +4,7 @@ const sendMessageButton = document.getElementById("user-send-message");
 
 const getUserDetails = async () => {
     try {
-        const response = await apiFetch(`/api/user/${state["user_id"]}/`);
+        const response = await fetch(`/api/user/${state["user_id"]}/`);
         if (!response.ok) throw new Error("User not found");
 
         const data = await response.json();

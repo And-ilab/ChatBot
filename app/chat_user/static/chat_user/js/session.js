@@ -7,7 +7,7 @@ async function checkSession() {
     }
 
     try {
-        const response = await apiFetch("/api/check-session/", {
+        const response = await fetch("/api/check-session/", {
             method: "GET",
             headers: {
                 "Authorization": sessionToken,
@@ -51,7 +51,7 @@ async function extendSession() {
     }
 
     try {
-        const response = await apiFetch("/api/extend-session/", {
+        const response = await fetch("/api/extend-session/", {
             method: "POST",
             headers: {
                 "Authorization": sessionToken,
@@ -80,7 +80,7 @@ async function closeSession() {
     }
 
     try {
-        const response = await apiFetch("/api/close-session/", {
+        const response = await fetch("/api/close-session/", {
             method: "POST",
             headers: {
                 "Authorization": sessionToken,

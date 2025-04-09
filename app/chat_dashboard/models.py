@@ -140,11 +140,10 @@ class Settings(models.Model):
     session_duration = models.PositiveIntegerField(default=30)
     ip_address = models.GenericIPAddressField(blank=True, null=True)
     logs_backup = models.PositiveIntegerField(default=30)
+    neural_active = models.BooleanField(default=False)
 
     def __str__(self):
-
         return f"Settings(ad_enabled={self.ad_enabled}, message_retention_days={self.message_retention_days}, session_duration={self.session_duration})"
-
 
 class PopularRequests(models.Model):
     sender = models.ForeignKey('chat_user.ChatUser', null=True, blank=True, on_delete=models.SET_NULL)

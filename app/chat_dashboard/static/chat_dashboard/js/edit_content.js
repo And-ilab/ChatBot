@@ -528,10 +528,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             if (response.ok) {
-                // Удаляем раздел из select
                 sectionSelect.remove(selectedOption.index);
 
-                // Сбрасываем тему и вопрос
+                if (sectionSelect.options.length <= 1) {
+                    sectionSelect.selectedIndex = 0;
+                    sectionSelect.dispatchEvent(new Event('change'));
+                }
+
                 topicSelect.innerHTML = '<option value="" disabled selected>Выберите тему</option>';
                 questionSelect.innerHTML = '<option value="" disabled selected>Выберите вопрос</option>';
                 answerTextarea.value = '';
@@ -548,6 +551,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showNotification('Ошибка при удалении раздела', 'alert-danger');
         }
     });
+
 
     // Обработчики для тем
     document.getElementById('add-topic').addEventListener('click', () => {
@@ -654,10 +658,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             if (response.ok) {
-                // Удаляем тему из select
                 topicSelect.remove(selectedOption.index);
 
-                // Сбрасываем вопрос
+                if (topicSelect.options.length <= 1) {
+                    topicSelect.selectedIndex = 0;
+                    topicSelect.dispatchEvent(new Event('change'));
+                }
+
                 questionSelect.innerHTML = '<option value="" disabled selected>Выберите вопрос</option>';
                 answerTextarea.value = '';
                 updateDocumentList([]);
@@ -674,7 +681,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Обработчики для вопросов
     document.getElementById('add-question').addEventListener('click', () => {
         if (!topicSelect.value) {
             alert('Пожалуйста, сначала выберите тему');
@@ -694,7 +700,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
-            // Сначала создаем вопрос
             const createResponse = await fetch('/api/create-node/', {
                 method: 'POST',
                 headers: {
@@ -779,10 +784,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             if (response.ok) {
-                // Удаляем вопрос из select
                 questionSelect.remove(selectedOption.index);
 
-                // Сбрасываем ответ
+                if (questionSelect.options.length <= 1) {
+                    questionSelect.selectedIndex = 0;
+                    questionSelect.dispatchEvent(new Event('change'));
+                }
+
                 answerTextarea.value = '';
                 updateDocumentList([]);
                 updateLinkList([]);
@@ -1181,15 +1189,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error('Ответ для выбранного вопроса не найден');
             }
 
-            const response = await fetch(`/api/update-answer/`, {
+            const response = await fetch('/api/delete-node/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
                 },
-                body: JSON.stringify({
-                    answerID: answer.id,
-                    content: '',
-                }),
+                body: JSON.stringify({ node_id: answer.id }),
             });
 
             if (!response.ok) {
@@ -1331,7 +1337,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await updateArtifacts(answer.id);
             } catch (error) {
                 console.error('Error loading answer and documents:', error);
-                answerTextarea.value = 'Ошибка при загрузке ответа';
+                answerTextarea.value = 'Ответ не найден';
                 updateDocumentList([]);
                 updateLinkList([]);
             }
