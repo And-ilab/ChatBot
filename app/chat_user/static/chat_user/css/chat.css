@@ -573,7 +573,7 @@
 }
 
 .document-button:hover {
-    bbackground-color: rgba(184, 248, 88, 1);
+    background-color: rgba(184, 248, 88, 1);
 }
 
 .document-button i {
@@ -593,10 +593,10 @@
     justify-content: space-between;
     margin-right: 10px;
     max-width: 450px;
-    background-color: rgba(176, 248, 248, 0.9);
+    background-color: rgba(184, 248, 88, 0.8);
     transition: background-color 0.3s ease;
 }
 
 .link-button:hover {
-    background-color: rgba(176, 248, 248, 1);
+    background-color: rgba(184, 248, 88, 1);
 }
