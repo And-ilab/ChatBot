@@ -342,7 +342,7 @@ def get_nodes_by_type(request):
     node_type = urllib.parse.unquote(node_type)
 
     # Формируем URL для запроса
-    url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
+    url = f"http://localhost:2480/query/chat-bot/sql/SELECT FROM {node_type}"
 
     try:
         response = requests.get(url, auth=('root','guregure'))

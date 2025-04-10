@@ -12,6 +12,9 @@ from transformers import BertTokenizer, BertModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, GenerationConfig
 from huggingface_hub import snapshot_download
 from peft import PeftModel, PeftConfig
+import re
+from pymorphy3 import MorphAnalyzer
+import spacy
 
 nltk.download('punkt_tab')
 nltk.download('punkt')
@@ -24,6 +27,11 @@ logger = logging.getLogger('chat_user')
 
 model_path = "models_ai/rubert_model"
 tokenizer_path = "models_ai/rubert_tokenizer"
+
+nlp = spacy.load("ru_core_news_sm")
+morph = MorphAnalyzer()
+custom_stop_words = {"может", "могут", "какой", "какая", "какое", "какие", "что", "кто", "где", "когда", "зачем",
+                     "почему"}
 
 
 def correct_with_yandex(text):
@@ -46,6 +54,32 @@ def correct_with_yandex(text):
     except Exception as e:
         logging.warning(f"Неожиданная ошибка при исправлении орфографии: {e}")
         return text
+
+
+def extract_keywords(question):
+    keywords = set()
+    hyphenated_words = re.findall(r'\b\w+-\w+\b', question.lower())
+    keywords.update(hyphenated_words)
+
+    question_cleaned = re.sub(r'\b\w+-\w+\b', '', question)
+    doc = nlp(question_cleaned)
+
+    for token in doc:
+        text_lower = token.text.lower()
+
+        if token.is_stop or text_lower in custom_stop_words or len(text_lower) < 2:
+            continue
+
+        if token.pos_ == "VERB":
+            keywords.add(token.lemma_.lower())
+        elif token.pos_ == "ADJ":
+            adj = morph.parse(token.text)[0]
+            adj_feminine = adj.inflect({"femn", "sing", "nomn"})
+            keywords.add(adj_feminine.word.lower() if adj_feminine else token.lemma_.lower())
+        else:
+            keywords.add(token.lemma_.lower())
+
+    return sorted(keywords)
 
 
 class ModelHandler:
@@ -93,38 +127,31 @@ class ModelHandler:
 
 
 class QuestionMatcher:
-    def __init__(self, questions_list, model_handler, keyword_extractor):
+    def __init__(self, questions_list, model_handler):
         self.questions_list = questions_list
         self.model_handler = model_handler
-        self.extract_keywords = keyword_extractor
-        self.group_keywords = self._index_group_keywords()
 
-    def _index_group_keywords(self):
-        group_keywords = defaultdict(set)
+    def find_best_match(self, user_keywords):
+        matches_count = []
 
-        for group_keys, questions_dict in self.questions_list.items():
-            all_questions = []
-            for main_question, similar_questions in questions_dict.items():
-                all_questions.append(main_question)
-                all_questions.extend(similar_questions)
+        for category_keywords in questions_list.keys():
+            matches = len(user_keywords & set(category_keywords))
+            matches_count.append((matches, category_keywords))
 
-            for question in all_questions:
-                keywords = self.extract_keywords(question)
-                group_keywords[group_keys].update(keywords)
-
-        return group_keywords
-
-    def _get_group_keywords_frequency(self, user_keywords):
-        group_scores = defaultdict(int)
-
-        for group_keys, keywords in self.group_keywords.items():
-            common_keywords = keywords & set(user_keywords)
-            group_scores[group_keys] = len(common_keywords)
-
-        if not group_scores:
+        if not matches_count:
             return None
 
-        return max(group_scores.items(), key=lambda x: x[1])[0]
+        max_matches = max(matches_count, key=lambda x: x[0])[0]
+
+        if max_matches == 0:
+            return None
+
+        best_categories = [category for matches, category in matches_count if matches == max_matches]
+
+        if len(best_categories) > 0:
+            return best_categories
+        return None
+
 
     def match_question(self, user_message):
         corrected_message = correct_with_yandex(user_message)
@@ -137,12 +164,18 @@ class QuestionMatcher:
         if not user_keywords:
             return None
 
-        best_group = self._get_group_keywords_frequency(user_keywords)
+        best_groups = self.find_best_match(user_keywords)
 
         if not best_group:
             return None
 
-        questions_dict = self.questions_list[best_group]
+        questions_dict = {}
+
+        if len(best_groups) == 1:
+            questions_dict = self.questions_list[best_groups[0]]
+        else:
+            for group in best_groups:
+                questions_dict.update(self.questions_list[group])
 
         all_questions = []
         question_mapping = {}
@@ -166,4 +199,4 @@ class QuestionMatcher:
                 best_similarity = similarity
                 best_question = question
 
-        return question_mapping[best_question] if best_similarity > 0.5 else None
+        return question_mapping[best_question] if best_similarity > 0.6 else None
