@@ -1024,7 +1024,7 @@ def get_last_message_subquery(field):
     return Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values(field)[:1]
 
 
-@role_required(['admin', 'operator'])
+#@role_required(['admin', 'operator'])
 def archive(request):
     user = request.user
     logger.info(f"Accessing archive page by user {user}.")

@@ -259,8 +259,13 @@ function setActiveDialog(element) {
 }
 
 function updateUserInfo(username) {
-    const element = document.querySelector('.user-info h4');
+    const element = document.querySelector('#user-info-username');
+//    const element1 = document.querySelector('#user-info-table');
+    const table = document.getElementById('user-info-table');
+    table.textContent = 'table';
     if (element) element.textContent = username;
+
+
 }
 
 async function loadUserStatus(userId) {
