@@ -134,7 +134,7 @@ class QuestionMatcher:
     def find_best_match(self, user_keywords):
         matches_count = []
 
-        for category_keywords in questions_list.keys():
+        for category_keywords in self.questions_list.keys():
             matches = len(user_keywords & set(category_keywords))
             matches_count.append((matches, category_keywords))
 
@@ -159,14 +159,14 @@ class QuestionMatcher:
             logging.info(f"Исправленный запрос: {corrected_message} (оригинал: {user_message})")
             user_message = corrected_message
 
-        user_keywords = self.extract_keywords(user_message)
+        user_keywords = extract_keywords(user_message)
 
         if not user_keywords:
             return None
 
         best_groups = self.find_best_match(user_keywords)
 
-        if not best_group:
+        if not best_groups:
             return None
 
         questions_dict = {}
