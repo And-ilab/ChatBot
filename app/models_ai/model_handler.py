@@ -133,9 +133,10 @@ class QuestionMatcher:
 
     def find_best_match(self, user_keywords):
         matches_count = []
+        user_keywords_set = set(user_keywords)
 
         for category_keywords in self.questions_list.keys():
-            matches = len(user_keywords & set(category_keywords))
+            matches = len(user_keywords_set & set(category_keywords))
             matches_count.append((matches, category_keywords))
 
         if not matches_count:
