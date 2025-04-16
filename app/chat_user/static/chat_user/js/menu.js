@@ -5,25 +5,23 @@ const typingBlock = document.querySelector('.typing-animation');
 let navigationStack = [];
 
 const updateChatLayout = () => {
-    chatMessagesArea.style.height = '380px';
+    chatMessagesArea.style.height = '390px';
     menuButtonsContainer.style.display = 'flex';
     menuButton.style.display = 'flex';
-    setTimeout(scrollToBottom, 0);
+    setTimeout(scrollToBottom, 10);
 };
 
 menuButton.addEventListener('click', async () => {
-    const menuButtonsContainer = document.querySelector('.menu-buttons');
-
     if (menuButtonsContainer.style.display === 'none' || menuButtonsContainer.style.display === '') {
         await showSectionButtons();
     } else {
         menuButtonsContainer.style.display = 'none';
-        chatMessagesArea.style.height = '560px';
+        chatMessagesArea.style.height = '570px';
     }
 });
 
 const hideMenu = () => {
-    chatMessagesArea.style.height = '560px';
+    chatMessagesArea.style.height = '570px';
     menuButtonsContainer.style.display = 'none';
     menuButton.style.display = 'none';
 }
@@ -222,7 +220,7 @@ const showQuestionsButtons = async (topicName) => {
 
 const showAnswer = async (questionID, requestType) => {
     disableUserActions();
-    chatMessagesArea.style.height = '560px';
+    chatMessagesArea.style.height = '570px';
     menuButtonsContainer.innerHTML = '';
     menuButtonsContainer.style.display = 'none';
     menuButton.style.display = 'none';
@@ -231,6 +229,7 @@ const showAnswer = async (questionID, requestType) => {
     console.log(answer);
     if (answer) {
         typingBlock.style.display = 'flex';
+        chatMessagesArea.style.paddingBottom = '20px';
         const randomDelay = Math.floor(Math.random() * 2000) + 2000;
         await new Promise(resolve => setTimeout(resolve, randomDelay));
 
@@ -247,6 +246,7 @@ const showAnswer = async (questionID, requestType) => {
         }
         await showArtifacts(answer.id);
         typingBlock.style.display = 'none';
+        chatMessagesArea.style.paddingBottom = '10px';
         if (requestType === 'script') {
             enableUserActions();
             await showSectionButtons();
@@ -387,6 +387,7 @@ const showArtifacts = async (answerID) => {
     console.log(artifactsData);
     await createArtifactsBlock(artifactsData);
     typingBlock.style.display = 'none';
+    chatMessagesArea.style.paddingBottom = '10px';
 };
 
 const sendFeedback = async (messageType, answerContent = null) => {

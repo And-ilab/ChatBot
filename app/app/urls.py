@@ -84,6 +84,7 @@ urlpatterns = [
     path('api/neural-status/', chat_views.get_neural_status, name='neural_status'),
     # path('api/generate-neural-response/', chat_views.generate_chat_response, name='generate_chat_response'),
     path('api/get-all-questions/', chat_views.get_all_questions, name='get_all_questions'),
+    path('api/add-question-to-existing/', dashboard_views.add_question_to_existing, name='add_question_to_existing'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:

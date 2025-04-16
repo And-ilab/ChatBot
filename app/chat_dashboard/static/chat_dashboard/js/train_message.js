@@ -21,8 +21,46 @@ document.addEventListener('DOMContentLoaded', function () {
     const questionSelect = document.getElementById('question-select');
     const newQuestionInput = document.querySelector('#new-question-form input');
 
+    async function getKeywords(message) {
+        try {
+            const response = await fetch('/api/extract-keywords/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    question: message
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.error) {
+                    console.error('Error from server:', data.error);
+                    return [];
+                }
+                return data.keywords || [];
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Error fetching keywords:', errorData.error || response.statusText);
+                return [];
+            }
+        } catch (error) {
+            console.error('Network error fetching keywords:', error);
+            return [];
+        }
+    }
+
+    function updateSelectedKeywords() {
+        const selectedKeywords = Array.from(document.querySelectorAll('.keyword-btn.selected'))
+            .map(btn => btn.dataset.keyword);
+
+        document.getElementById('selected-keywords').value = selectedKeywords.join(',');
+    }
+
     trainOptionRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
+        radio.addEventListener('change', async () => {
             if (radio.value === 'add-to-existing') {
                 document.getElementById('existing-question-dropdown').style.display = 'block';
                 document.getElementById('new-question-form').style.display = 'none';
@@ -31,6 +69,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('existing-question-dropdown').style.display = 'none';
                 document.getElementById('new-question-form').style.display = 'block';
                 newQuestionInput.classList.remove('border', 'border-danger');
+
+                const keywords = await getKeywords(userMessageInput.value);
+                const keywordsContainer = document.getElementById('keywords-container');
+                keywordsContainer.innerHTML = '';
+
+                keywords.forEach(keyword => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'keyword-btn';
+                    btn.textContent = keyword;
+                    btn.dataset.keyword = keyword;
+
+                    btn.addEventListener('click', function() {
+                        this.classList.toggle('selected');
+                        updateSelectedKeywords();
+                    });
+
+                    keywordsContainer.appendChild(btn);
+                });
             }
         });
     });
@@ -177,11 +234,11 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             if (response.ok) {
-                alert('Вопрос удалён из списка дообучения и уведомление отправлено.');
+                showNotification('Вопрос удалён из списка дообучения и уведомление отправлено.', 'alert-success');
                 window.location.href = '/chat_dashboard/training/';
             } else {
                 const errorData = await response.json();
-                alert('Ошибка: ' + errorData.error);
+                showNotification('Ошибка: ' + errorData.error, 'alert-danger');
             }
         } catch (error) {
             console.error('Ошибка при отправке запроса:', error);
@@ -208,6 +265,22 @@ document.addEventListener('DOMContentLoaded', function () {
                     isValid = false;
                 } else {
                     questionSelect.classList.remove('border', 'border-danger');
+                    const selectedOptionText = questionSelect.options[questionSelect.selectedIndex].text;
+                    const response = await fetch('/api/add-question-to-existing/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X_CSRFTOKEN': getCookie('csrftoken'),
+                        },
+                        body: JSON.stringify({ existing_question: selectedOptionText, user_input: userMessageInput.value })
+                    });
+
+                    if (response.ok) {
+                        alert(`Вопрос пользователя добавлен для разпознавания к вопросу ${selectedOptionText}.`);
+                    } else {
+                        const errorData = await response.json();
+                        alert('Ошибка: ' + errorData.error);
+                    }
                 }
             } else {
                 if (!newQuestionInput.value.trim()) {
@@ -215,6 +288,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     isValid = false;
                 } else {
                     newQuestionInput.classList.remove('border', 'border-danger');
+                    const selectedKeywords = document.getElementById('selected-keywords').value.split(',');
+                    const questionText = newQuestionInput.value.trim();
+                    console.log(selectedKeywords);
+                    console.log(questionText);
                 }
             }
 
@@ -223,8 +300,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 return false;
             }
         }
-        await notifyUser(responseText);
-        resetForm();
+//        await notifyUser(responseText);
+//        resetForm();
     }
 
     replyBtn.addEventListener("click", function () {

@@ -85,6 +85,7 @@ async function recognizeAndProcessMessage(cleanedMessage) {
         hideMenu();
         disableUserActions();
         typingBlock.style.display = 'flex';
+        chatMessagesArea.style.paddingBottom = '20px';
         state['message_to_operator'] = cleanedMessage;
         await sendPopularRequest('Иное');
         const recognizedQuestion = await recognizeQuestion(cleanedMessage);
@@ -99,6 +100,7 @@ async function recognizeAndProcessMessage(cleanedMessage) {
         console.error("Ошибка при обработке сообщения:", error.message);
     } finally {
         typingBlock.style.display = 'none';
+        chatMessagesArea.style.paddingBottom = '10px';
     }
 }
 
@@ -174,6 +176,7 @@ async function sendRequestToFastAPI(userInput) {
 
 async function handleUnrecognizedMessage(message) {
     typingBlock.style.display = 'flex';
+    chatMessagesArea.style.paddingBottom = '20px';
     let is_neural_active = false;
     await fetch('/api/neural-status/')
     .then(response => response.json())
@@ -198,6 +201,7 @@ async function handleUnrecognizedMessage(message) {
         appendMessage('bot', botAnswerMessage, getTimestamp(), false);
         await sendBotMessage(botAnswerMessage);
         typingBlock.style.display = 'none';
+        chatMessagesArea.style.paddingBottom = '10px';
         await addOperatorButton(message, neuralMessage, '', true, false);
     }
 }

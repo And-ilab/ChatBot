@@ -1,4 +1,6 @@
 import logging
+from pathlib import Path
+
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth import get_user_model
 from django.forms import CharField
@@ -35,22 +37,22 @@ import uuid
 logger = logging.getLogger('chat_dashboard')
 user_action = logging.getLogger('user_actions')
 
-@role_required(['admin', 'operator'])
+#@role_required(['admin', 'operator'])
 def analytics(request):
     user = request.user
-    user_action.info(
-        'Accessing analytics page',
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'Accessing analytics page',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"{user.first_name} {user.last_name}' get access to analytics",
-            })
-
-        }
-    )
+    # user_action.info(
+    #     'Accessing analytics page',
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'Accessing analytics page',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"{user.first_name} {user.last_name}' get access to analytics",
+    #         })
+    #
+    #     }
+    # )
     """Displays the analytics page."""
     logger.info("Accessing analytics page.")
     return render(request, 'chat_dashboard/analytics.html')
@@ -141,7 +143,7 @@ custom_stop_words = {"может", "могут", "какой", "какая", "к
                      "почему"}
 
 
-@role_required(['admin', 'operator'])
+#@role_required(['admin', 'operator'])
 def training_dashboard(request):
     """Displays the training dashboard."""
     logger.info("Accessing training dashboard.")
@@ -158,19 +160,19 @@ def training_dashboard(request):
         'unread_messages': list(unread_messages),
         'ignored_messages': list(ignored_messages),
     }
-    user_action.info(
-        'Accessing training dashboard',
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'Accessing training dashboard',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"{user.first_name} {user.last_name}' get access to training dashboard",
-            })
-
-        }
-    )
+    # user_action.info(
+    #     'Accessing training dashboard',
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'Accessing training dashboard',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"{user.first_name} {user.last_name}' get access to training dashboard",
+    #         })
+    #
+    #     }
+    # )
     logger.debug(f"Unread messages: {list(unread_messages)}, Ignored messages: {list(ignored_messages)}")
     return render(request, 'chat_dashboard/training.html', context)
 
@@ -243,57 +245,57 @@ def mark_question_trained(request):
         training_message.delete()
         return JsonResponse({'status': 'success'})
     except TrainingMessage.DoesNotExist:
-        user_action.error(
-            'Mark_question_trained_unsuccessfully',
-            extra={
-                'user_id': user.id,
-                'user_name': user.first_name + ' ' + user.last_name,
-                'action_type': 'mark question trained',
-                'time': datetime.now(),
-                'details': json.dumps({
-                    'status': f"Message not found",
-                })
-
-            }
-        )
+        # user_action.error(
+        #     'Mark_question_trained_unsuccessfully',
+        #     extra={
+        #         'user_id': user.id,
+        #         'user_name': user.first_name + ' ' + user.last_name,
+        #         'action_type': 'mark question trained',
+        #         'time': datetime.now(),
+        #         'details': json.dumps({
+        #             'status': f"Message not found",
+        #         })
+        #
+        #     }
+        # )
         return JsonResponse({'error': 'Сообщение для дообучения не найдено.'}, status=404)
     except Exception as e:
-        user_action.error(
-            'Mark_question_trained_unsuccessfully',
-            extra={
-                'user_id': user.id,
-                'user_name': user.first_name + ' ' + user.last_name,
-                'action_type': 'mark question trained',
-                'time': datetime.now(),
-                'details': json.dumps({
-                    'status': f"Error {e}",
-                })
-
-            }
-        )
+        # user_action.error(
+        #     'Mark_question_trained_unsuccessfully',
+        #     extra={
+        #         'user_id': user.id,
+        #         'user_name': user.first_name + ' ' + user.last_name,
+        #         'action_type': 'mark question trained',
+        #         'time': datetime.now(),
+        #         'details': json.dumps({
+        #             'status': f"Error {e}",
+        #         })
+        #
+        #     }
+        # )
         return JsonResponse({'error': str(e)}, status=500)
 
 
-@role_required(['admin', 'operator'])
+#@role_required(['admin', 'operator'])
 def train_message(request, message_id):
     """Displays a message for training."""
     logger.info(f"Accessing training page for message ID: {message_id}")
     user_message = get_object_or_404(TrainingMessage, id=message_id)
     logger.debug(f"Training message retrieved: {user_message.content}")
     user = request.user
-    user_action.info(
-        'f"Accessing training page for message ID: {message_id}"',
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'accessing train_message',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"{user.first_name} {user.last_name}' get accessing training page for message ID: {message_id}",
-            })
-
-        }
-    )
+    # user_action.info(
+    #     'f"Accessing training page for message ID: {message_id}"',
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'accessing train_message',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"{user.first_name} {user.last_name}' get accessing training page for message ID: {message_id}",
+    #         })
+    #
+    #     }
+    # )
     return render(request, 'chat_dashboard/train_message.html',
                   {'user_message': user_message})
 
@@ -312,19 +314,19 @@ def ignore_message(request, message_id):
         ignored_count = TrainingMessage.objects.filter(is_ignored=True).count()
 
         logger.info(f"Message {message_id} updated: unread={message.is_unread}, ignored={message.is_ignored}")
-        user_action.info(
-            'f"toggle_ignore_message successfully"',
-            extra={
-                'user_id': user.id,
-                'user_name': user.first_name + ' ' + user.last_name,
-                'action_type': 'Toggle ignore message',
-                'time': datetime.now(),
-                'details': json.dumps({
-                    'status': f"Toggle ignore message is successful",
-                })
-
-            }
-        )
+        # user_action.info(
+        #     'f"toggle_ignore_message successfully"',
+        #     extra={
+        #         'user_id': user.id,
+        #         'user_name': user.first_name + ' ' + user.last_name,
+        #         'action_type': 'Toggle ignore message',
+        #         'time': datetime.now(),
+        #         'details': json.dumps({
+        #             'status': f"Toggle ignore message is successful",
+        #         })
+        #
+        #     }
+        # )
         return JsonResponse({
             'unread_count': unread_count,
             'ignored_count': ignored_count,
@@ -333,18 +335,18 @@ def ignore_message(request, message_id):
             'is_ignored': message.is_ignored,
         })
     except TrainingMessage.DoesNotExist:
-        user_action.error(
-            'f"TrainingMessage is not found"',
-            extra={
-                'user_id': user.id,
-                'user_name': user.first_name + ' ' + user.last_name,
-                'action_type': 'TrainingMessage is not found',
-                'time': datetime.now(),
-                'details': json.dumps({
-                    'status': f"TrainingMessage is not found",
-                })
-            }
-        )
+        # user_action.error(
+        #     'f"TrainingMessage is not found"',
+        #     extra={
+        #         'user_id': user.id,
+        #         'user_name': user.first_name + ' ' + user.last_name,
+        #         'action_type': 'TrainingMessage is not found',
+        #         'time': datetime.now(),
+        #         'details': json.dumps({
+        #             'status': f"TrainingMessage is not found",
+        #         })
+        #     }
+        # )
         logger.error(f"Message ID {message_id} not found.")
         return JsonResponse({'error': 'Message not found'}, status=404)
 
@@ -360,38 +362,38 @@ def delete_training_message(request, message_id):
         ignored_count = TrainingMessage.objects.filter(is_ignored=True).count()
 
         logger.info(f"Message ID {message_id} deleted successfully.")
-        user_action.info(
-            f"Message ID {message_id} deleted successfully.",
-            extra={
-                'user_id': user.id,
-                'user_name': user.first_name + ' ' + user.last_name,
-                'action_type': 'delete message',
-                'time': datetime.now(),
-                'details': json.dumps({
-                    'status': f"{user.first_name} {user.last_name}' delete message with id = {message_id} successfully.",
-                })
-
-            }
-        )
+        # user_action.info(
+        #     f"Message ID {message_id} deleted successfully.",
+        #     extra={
+        #         'user_id': user.id,
+        #         'user_name': user.first_name + ' ' + user.last_name,
+        #         'action_type': 'delete message',
+        #         'time': datetime.now(),
+        #         'details': json.dumps({
+        #             'status': f"{user.first_name} {user.last_name}' delete message with id = {message_id} successfully.",
+        #         })
+        #
+        #     }
+        # )
         return JsonResponse({
             'unread_count': unread_count,
             'ignored_count': ignored_count
         })
 
     except TrainingMessage.DoesNotExist:
-        user_action.error(
-            f"Message not found",
-            extra={
-                'user_id': user.id,
-                'user_name': user.first_name + ' ' + user.last_name,
-                'action_type': 'Message not found',
-                'time': datetime.now(),
-                'details': json.dumps({
-                    'status': f"Message not found",
-                })
-
-            }
-        )
+        # user_action.error(
+        #     f"Message not found",
+        #     extra={
+        #         'user_id': user.id,
+        #         'user_name': user.first_name + ' ' + user.last_name,
+        #         'action_type': 'Message not found',
+        #         'time': datetime.now(),
+        #         'details': json.dumps({
+        #             'status': f"Message not found",
+        #         })
+        #
+        #     }
+        # )
         logger.error(f"Message ID {message_id} not found for deletion.")
         return JsonResponse({'error': 'Message not found'}, status=404)
 
@@ -500,73 +502,73 @@ def create_node(request):
 
             if response.status_code == 200:
                 logger.info(f"Node created successfully: {response.text}")
-                user_action.info(
-                    f"Node created successfully: {response.text}",
-                    extra={
-                        'user_id': user.id,
-                        'user_name': user.first_name + ' ' + user.last_name,
-                        'action_type': 'create_node',
-                        'time': datetime.now(),
-                        'details': json.dumps({
-                            'status': f"{user.first_name} {user.last_name}' create node successfully",
-                        })
-                    }
-                )
+                # user_action.info(
+                #     f"Node created successfully: {response.text}",
+                #     extra={
+                #         'user_id': user.id,
+                #         'user_name': user.first_name + ' ' + user.last_name,
+                #         'action_type': 'create_node',
+                #         'time': datetime.now(),
+                #         'details': json.dumps({
+                #             'status': f"{user.first_name} {user.last_name}' create node successfully",
+                #         })
+                #     }
+                # )
                 try:
                     response_data = response.json()
                     return JsonResponse({'status': 'success', 'data': response_data['result']}, status=201)
 
                 except ValueError as e:
                     logger.error(f"Error parsing JSON response: {e}")
-                    user_action.error(
-                        f"Error parsing JSON response: {e}",
-                        extra={
-                            'user_id': user.id,
-                            'user_name': user.first_name + ' ' + user.last_name,
-                            'action_type': 'create_node',
-                            'time': datetime.now(),
-                            'details': json.dumps({
-                                'status': f"Error parsing JSON response: {e}",
-                            })
-
-                        }
-                    )
+                    # user_action.error(
+                    #     f"Error parsing JSON response: {e}",
+                    #     extra={
+                    #         'user_id': user.id,
+                    #         'user_name': user.first_name + ' ' + user.last_name,
+                    #         'action_type': 'create_node',
+                    #         'time': datetime.now(),
+                    #         'details': json.dumps({
+                    #             'status': f"Error parsing JSON response: {e}",
+                    #         })
+                    #
+                    #     }
+                    # )
 
                     return JsonResponse({'error': 'Failed to parse response'}, status=500)
 
             else:
                 logger.error(f"Error fetching data: HTTP {response.status_code} - {response.text}")
-                user_action.error(
-                    f"Error fetching data: HTTP {response.status_code} - {response.text}",
-                    extra={
-                        'user_id': user.id,
-                        'user_name': user.first_name + ' ' + user.last_name,
-                        'action_type': 'create_node',
-                        'time': datetime.now(),
-                        'details': json.dumps({
-                            'status': f"Error fetching data: HTTP {response.status_code} - {response.text}",
-                        })
-
-                    }
-                )
+                # user_action.error(
+                #     f"Error fetching data: HTTP {response.status_code} - {response.text}",
+                #     extra={
+                #         'user_id': user.id,
+                #         'user_name': user.first_name + ' ' + user.last_name,
+                #         'action_type': 'create_node',
+                #         'time': datetime.now(),
+                #         'details': json.dumps({
+                #             'status': f"Error fetching data: HTTP {response.status_code} - {response.text}",
+                #         })
+                #
+                #     }
+                # )
                 return JsonResponse({'error': f"Error {response.status_code}: {response.text}"},
                                     status=response.status_code)
 
         except Exception as e:
             logger.error(f"Error in creating node: {e}")
-            user_action.error(
-                f"Error in creating node: {e}",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'create_node',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': f"{user.first_name} {user.last_name}' create node unsuccessfully",
-                    })
-
-                }
-            )
+            # user_action.error(
+            #     f"Error in creating node: {e}",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'create_node',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': f"{user.first_name} {user.last_name}' create node unsuccessfully",
+            #         })
+            #
+            #     }
+            # )
             return JsonResponse({'error': str(e)}, status=400)
 
 
@@ -583,18 +585,18 @@ def create_relation(request):
 
             if not start_node_id or not end_node_id:
                 logger.warning("Missing required fields for relation creation.")
-                user_action.info(
-                    f"Missing required fields for relation creation.",
-                    extra={
-                        'user_id': user.id,
-                        'user_name': user.first_name + ' ' + user.last_name,
-                        'action_type': 'create_relation',
-                        'time': datetime.now(),
-                        'details': json.dumps({
-                            'status': f"Missing required fields for relation creation.",
-                        })
-                    }
-                )
+                # user_action.info(
+                #     f"Missing required fields for relation creation.",
+                #     extra={
+                #         'user_id': user.id,
+                #         'user_name': user.first_name + ' ' + user.last_name,
+                #         'action_type': 'create_relation',
+                #         'time': datetime.now(),
+                #         'details': json.dumps({
+                #             'status': f"Missing required fields for relation creation.",
+                #         })
+                #     }
+                # )
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
             check_relation_command = f"SELECT FROM Includes WHERE out = {start_node_id} AND in = {end_node_id}"
@@ -636,18 +638,18 @@ def create_relation(request):
 
         except Exception as e:
             logger.exception("An error occurred while creating a relation.")
-            user_action.error(
-                "An error occurred while creating a relation.",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'create_relation',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': "An error occurred while creating a relation.",
-                    })
-                }
-            )
+            # user_action.error(
+            #     "An error occurred while creating a relation.",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'create_relation',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': "An error occurred while creating a relation.",
+            #         })
+            #     }
+            # )
             return JsonResponse({'error': str(e)}, status=400)
 
 
@@ -662,19 +664,19 @@ def delete_node(request):
 
             if not node_id_to_delete:
                 logger.warning("Missing required fields for relation creation.")
-                user_action.warning(
-                    f"Missing required fields for relation creation.",
-                    extra={
-                        'user_id': user.id,
-                        'user_name': user.first_name + ' ' + user.last_name,
-                        'action_type': 'delete_node',
-                        'time': datetime.now(),
-                        'details': json.dumps({
-                            'status': f"Missing required fields for relation creation.",
-                        })
-
-                    }
-                )
+                # user_action.warning(
+                #     f"Missing required fields for relation creation.",
+                #     extra={
+                #         'user_id': user.id,
+                #         'user_name': user.first_name + ' ' + user.last_name,
+                #         'action_type': 'delete_node',
+                #         'time': datetime.now(),
+                #         'details': json.dumps({
+                #             'status': f"Missing required fields for relation creation.",
+                #         })
+                #
+                #     }
+                # )
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
             command = f"DELETE VERTEX {node_id_to_delete}"
@@ -684,35 +686,35 @@ def delete_node(request):
             response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
                                      auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
 
-            user_action.info(
-                f"Node successfully deleted",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'delete_node',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': f"Node successfully deleted.",
-                    })
-
-                }
-            )
+            # user_action.info(
+            #     f"Node successfully deleted",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'delete_node',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': f"Node successfully deleted.",
+            #         })
+            #
+            #     }
+            # )
 
             return JsonResponse({'message': 'Node successfully deleted'}, status=201)
         except Exception as e:
-            user_action.warning(
-                "An error occurred while creating a relation.",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'delete_node',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': "An error occurred while creating a relation.",
-                    })
-
-                }
-            )
+            # user_action.warning(
+            #     "An error occurred while creating a relation.",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'delete_node',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': "An error occurred while creating a relation.",
+            #         })
+            #
+            #     }
+            # )
             logger.exception("An error occurred while creating a relation.")
             return JsonResponse({'error': str(e)}, status=400)
 
@@ -784,19 +786,19 @@ def create_training_message(request):
             )
 
             logger.info(f"Training message created with ID: {training_message.id}")
-            user_action.info(
-                f"Training message created with ID: {training_message.id}",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'create_training_message',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': f"Training message created with ID: {training_message.id}",
-                    })
-
-                }
-            )
+            # user_action.info(
+            #     f"Training message created with ID: {training_message.id}",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'create_training_message',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': f"Training message created with ID: {training_message.id}",
+            #         })
+            #
+            #     }
+            # )
 
             return JsonResponse({
                 'id': training_message.id,
@@ -819,7 +821,7 @@ def create_training_message(request):
     logger.warning("Invalid method: only POST is supported.")
     return JsonResponse({'error': 'Method not supported. Use POST.'}, status=405)
 
-@role_required(['admin',])
+#@role_required(['admin',])
 def user_list(request):
     """Displays a combined list of User and ChatUser."""
     logger.info("Accessing user list.")
@@ -883,24 +885,24 @@ def user_list(request):
         page_obj = paginator.page(1)
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
-    user_action.info(
-        f"Access to user_list",
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'access to user_list',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"Access to user_list",
-            })
-        })
+    # user_action.info(
+    #     f"Access to user_list",
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'access to user_list',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"Access to user_list",
+    #         })
+    #     })
     return render(request, 'chat_dashboard/users.html', {
         #'users': combined_users,
         'page_obj': page_obj,
         'sort_column': sort_column,
         'search_query': search_query
     })
-@role_required('admin')
+#@role_required('admin')
 def user_create(request):
     """Creates a new user."""
     logger.info("Creating a new user.")
@@ -935,17 +937,17 @@ def user_create(request):
             user.save()
             logger.info(f"User created: ID={user.id}, Username={user.username}, Email={user.email}")
 
-            user_action.info(
-                f"User created: ID={user.id}, Username={user.username}, Email={user.email}",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'create_user',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': f"User created: ID={user.id}, Username={user.username}, Email={user.email}",
-                    })
-                })
+            # user_action.info(
+            #     f"User created: ID={user.id}, Username={user.username}, Email={user.email}",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'create_user',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': f"User created: ID={user.id}, Username={user.username}, Email={user.email}",
+            #         })
+            #     })
             messages.success(request,
                              "Создана новая учетная запись. Данные для её активации направлены на указанный вами электронный адрес.")
             return redirect('chat_dashboard:user_list')  # Перенаправляем на список пользователей
@@ -960,7 +962,7 @@ def get_user_model_by_type(user_type):
     raise Http404("Invalid user type")
 
 
-@role_required('admin')
+#@role_required('admin')
 def user_update(request, user_type, pk):
     """Updates user data for both User and ChatUser models."""
     logger.info(f"Updating {user_type} user with ID: {pk}")
@@ -975,17 +977,17 @@ def user_update(request, user_type, pk):
                 user.set_password(form.cleaned_data['password'])
             user.save()
             logger.info(f"{user_type.capitalize()} user updated: ID={pk}")
-            user_action.info(
-                f"{user_type.capitalize()} user updated: ID={pk}",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'update_user',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': f"{user_type.capitalize()} user updated: ID={pk}",
-                    })
-                })
+            # user_action.info(
+            #     f"{user_type.capitalize()} user updated: ID={pk}",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'update_user',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': f"{user_type.capitalize()} user updated: ID={pk}",
+            #         })
+            #     })
             return redirect('chat_dashboard:user_list')
     else:
         form = UserFormUpdate(instance=user)
@@ -995,7 +997,7 @@ def user_update(request, user_type, pk):
         'user_type': user_type
     })
 
-@role_required('admin')
+#@role_required('admin')
 def user_delete(request, user_type, pk):
     """Deletes a user from specified model."""
     logger.info(f"Attempting to delete {user_type} user with ID: {pk}")
@@ -1004,17 +1006,17 @@ def user_delete(request, user_type, pk):
 
     if request.method == 'POST':
         user.delete()
-        user_action.info(
-            f"user deleted: ID={pk}",
-            extra={
-                'user_id': user.id,
-                'user_name': user.first_name + ' ' + user.last_name,
-                'action_type': 'delete_user',
-                'time': datetime.now(),
-                'details': json.dumps({
-                    'status': f" user deleted: ID={pk}",
-                })
-            })
+        # user_action.info(
+        #     f"user deleted: ID={pk}",
+        #     extra={
+        #         'user_id': user.id,
+        #         'user_name': user.first_name + ' ' + user.last_name,
+        #         'action_type': 'delete_user',
+        #         'time': datetime.now(),
+        #         'details': json.dumps({
+        #             'status': f" user deleted: ID={pk}",
+        #         })
+        #     })
         logger.info(f"user deleted: ID={pk}")
         return redirect('chat_dashboard:user_list')
 
@@ -1029,23 +1031,23 @@ def get_last_message_subquery(field):
     return Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values(field)[:1]
 
 
-@role_required(['admin', 'operator'])
+#@role_required(['admin', 'operator'])
 def archive(request):
     user = request.user
     logger.info(f"Accessing archive page by user {user}.")
     if request.method == 'POST':
         user.delete()
-        user_action.info(
-            f"Accessing archive page by user {user}.",
-            extra={
-                'user_id': user.id,
-                'user_name': user.first_name + ' ' + user.last_name,
-                'action_type': 'access to archive',
-                'time': datetime.now(),
-                'details': json.dumps({
-                    'status': f"Accessing archive page by user {user}.",
-                })
-            })
+        # user_action.info(
+        #     f"Accessing archive page by user {user}.",
+        #     extra={
+        #         'user_id': user.id,
+        #         'user_name': user.first_name + ' ' + user.last_name,
+        #         'action_type': 'access to archive',
+        #         'time': datetime.now(),
+        #         'details': json.dumps({
+        #             'status': f"Accessing archive page by user {user}.",
+        #         })
+        #     })
 
     dialogs = Dialog.objects.annotate(
         has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
@@ -1080,20 +1082,20 @@ def archive(request):
     })
 
 
-@role_required(['admin', 'operator'])
+#@role_required(['admin', 'operator'])
 def create_or_edit_content(request):
     user = request.user
-    user_action.info(
-        f"Accessing create_or_edit_content page by user {user}.",
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'access to create_or_edit_content',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"Accessing create_or_edit_content page by user {user}.",
-            })
-        })
+    # user_action.info(
+    #     f"Accessing create_or_edit_content page by user {user}.",
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'access to create_or_edit_content',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"Accessing create_or_edit_content page by user {user}.",
+    #         })
+    #     })
     return render(request, 'chat_dashboard/edit_content.html')
 
 
@@ -1335,21 +1337,21 @@ def get_info(request, user_id):
     return JsonResponse({'status': user_status})
 
 
-@role_required(['admin'])
+#@role_required(['admin'])
 def settings_view(request):
     settings, created = Settings.objects.get_or_create(id=1)
     user = request.user
-    user_action.info(
-        f"Accessing settings page by user {user}.",
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'access to settings page',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"Accessing settings page by user {user}.",
-            })
-        })
+    # user_action.info(
+    #     f"Accessing settings page by user {user}.",
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'access to settings page',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"Accessing settings page by user {user}.",
+    #         })
+    #     })
     months = list(range(1, 25))
     current_retention_months = settings.message_retention_days // 30 if settings.message_retention_days else 1
 
@@ -1435,18 +1437,18 @@ def upload_document(request):
                     destination.write(chunk)
 
             logger.info(f"Document '{file_name}' successfully uploaded.")
-            user_action.info(
-                f"Document '{file_name}' uploaded by user {user}.",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'upload document',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': f"Document '{file_name}' uploaded by user {user}.",
-                    })
-                }
-            )
+            # user_action.info(
+            #     f"Document '{file_name}' uploaded by user {user}.",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'upload document',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': f"Document '{file_name}' uploaded by user {user}.",
+            #         })
+            #     }
+            # )
 
             return JsonResponse(
                 {'message': 'Файл успешно загружен!', 'data': {'file_name': file_name, 'file_id': document_uuid}},
@@ -1455,49 +1457,49 @@ def upload_document(request):
 
         except Exception as e:
             logger.error(f"Error uploading document '{file_name}': {e}")
-            user_action.error(
-                f"Error uploading document '{file_name}' by user {user}.",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'upload document',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': f"Error uploading document '{file_name}' by user {user}.",
-                    })
-                }
-            )
+            # user_action.error(
+            #     f"Error uploading document '{file_name}' by user {user}.",
+            #     extra={
+            #         'user_id': user.id,
+            #         'user_name': user.first_name + ' ' + user.last_name,
+            #         'action_type': 'upload document',
+            #         'time': datetime.now(),
+            #         'details': json.dumps({
+            #             'status': f"Error uploading document '{file_name}' by user {user}.",
+            #         })
+            #     }
+            # )
             return JsonResponse({'message': 'Ошибка при загрузке файла!'}, status=500)
 
     # Если файл не был передан
     logger.warning("No file provided for upload.")
-    user_action.info(
-        f"Trying upload document by user {user} unsuccess",
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'upload document',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"Trying upload document by user {user} unsuccess",
-            })
-        }
-    )
+    # user_action.info(
+    #     f"Trying upload document by user {user} unsuccess",
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'upload document',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"Trying upload document by user {user} unsuccess",
+    #         })
+    #     }
+    # )
     return JsonResponse({'message': 'Файл не загружен!'}, status=400)
 
     logger.warning("No file provided for upload.")
-    user_action.info(
-        f"Trying upload document by user {user} unsuccess",
-        extra={
-            'user_id': user.id,
-            'user_name': user.first_name + ' ' + user.last_name,
-            'action_type': 'upload document',
-            'time': datetime.now(),
-            'details': json.dumps({
-                'status': f"Trying upload document by user {user} unsuccess",
-            })
-        }
-    )
+    # user_action.info(
+    #     f"Trying upload document by user {user} unsuccess",
+    #     extra={
+    #         'user_id': user.id,
+    #         'user_name': user.first_name + ' ' + user.last_name,
+    #         'action_type': 'upload document',
+    #         'time': datetime.now(),
+    #         'details': json.dumps({
+    #             'status': f"Trying upload document by user {user} unsuccess",
+    #         })
+    #     }
+    # )
     return JsonResponse({'message': 'Файл не загружен!'}, status=400)
 
 
@@ -1586,3 +1588,48 @@ def get_links(request):
         except Exception as e:
             logger.error(f"Error fetching data: {e}")
             return JsonResponse({"error": "Failed to fetch data"}, status=500)
+
+@csrf_exempt
+def add_question_to_existing(request):
+    data = json.loads(request.body)
+    existing_question = data.get('existing_question')
+    print(existing_question)
+    user_input = data.get('user_input')
+    print(user_input)
+    file_path = 'chat_user/questions.json'
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            questions_list = json.loads(f.read())
+
+        found = False
+        if user_input:
+            for group in questions_list:
+                for question in questions_list[group]:
+                    if question == existing_question:
+                        questions_list[group][question].append(user_input)
+                        found = True
+                        break
+                if found:
+                    break
+
+        if not found:
+            print(f"Вопрос '{existing_question}' не найден в группе.")
+            return JsonResponse({"error": "Question not found"}, status=404)
+
+        with open(file_path, 'w') as f:
+            json.dump(questions_list, f, ensure_ascii=False, indent=4)
+        print("Файл успешно обновлён!")
+        return JsonResponse({"result": "Success"}, status=200)
+
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+
+
+    # except Exception as e:
+    #     print(f"Ошибка при обновлении файла: {e}")
+    #     return JsonResponse({"error": e}, status=500)

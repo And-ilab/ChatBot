@@ -16,3 +16,4 @@ app/models_ai/rubert_tokenizer/
 app/media/
 models_ai/
 */offload/
+app/common/
