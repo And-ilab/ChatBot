@@ -56,8 +56,16 @@ function restoreActiveFilters() {
 // Основная функция фильтрации
 async function applyFilters() {
     try {
+        // Показываем состояние загрузки
+        const refreshBtn = document.getElementById('refresh-dialogs');
+        if (refreshBtn) {
+            refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i>';
+            refreshBtn.disabled = true;
+        }
+
         const params = new URLSearchParams();
 
+        // Добавляем текущие фильтры
         if (currentFilters.period > 0) params.append('period', currentFilters.period);
         if (currentFilters.userId) params.append('user_id', currentFilters.userId);
         if (currentFilters.startDate && currentFilters.endDate) {
@@ -78,6 +86,13 @@ async function applyFilters() {
     } catch (error) {
         console.error('Ошибка фильтрации:', error);
         showErrorNotification('Произошла ошибка при загрузке данных');
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        const refreshBtn = document.getElementById('refresh-dialogs');
+        if (refreshBtn) {
+            refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
+            refreshBtn.disabled = false;
+        }
     }
 }
 
@@ -293,6 +308,22 @@ function updateStatusUI(status) {
 //    console.error(message);
 //    alert(message);
 //}
+function refreshDialogs() {
+    // Можно добавить индикатор загрузки
+    const refreshBtn = document.getElementById('refresh-dialogs');
+    refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i>';
+    refreshBtn.disabled = true;
+
+    // Применяем текущие фильтры
+    applyFilters().finally(() => {
+        // Возвращаем кнопку в исходное состояние
+        refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
+        refreshBtn.disabled = false;
+    });
+}
+
+// И привязать кнопку к этой функции
+document.getElementById('refresh-dialogs').addEventListener('click', refreshDialogs);
 
 // Инициализация обработчиков модальных окон
 $(document).ready(function() {
