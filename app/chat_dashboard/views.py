@@ -1629,7 +1629,22 @@ def add_question_to_existing(request):
 
 
 
+@csrf_exempt
+def add_new_question_from_teaching(request):
+    data = json.loads(request.body)
+    user_message = data.get('user_message')
+    message_keywords = data.get('keywords')
+    file_path = 'chat_user/questions.json'
 
-    # except Exception as e:
-    #     print(f"Ошибка при обновлении файла: {e}")
-    #     return JsonResponse({"error": e}, status=500)
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            questions_list = json.loads(f.read())
+
+        questions_list[message_keywords] = {user_message: {}}
+
+        with open(file_path, 'w') as f:
+            json.dump(questions_list, f, ensure_ascii=False, indent=4)
+        return JsonResponse({"result": "Success"}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

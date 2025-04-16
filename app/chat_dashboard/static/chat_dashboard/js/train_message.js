@@ -9,6 +9,18 @@ function showNotification(message, type) {
     }, 2000);
 }
 
+function removeDangerBorderFromKeywords() {
+    document.querySelectorAll('.keyword-btn').forEach(button => {
+        button.classList.remove('border-danger');
+    });
+}
+
+function addDangerBorderToKeywords() {
+    document.querySelectorAll('.keyword-btn').forEach(button => {
+        button.classList.add('border-danger');
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const smileyButton = document.getElementById('add-smiley');
     const smileyDropdown = document.getElementById('smiley-dropdown');
@@ -16,9 +28,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const replyBtn = document.getElementById("reply-btn");
     const trainBtn = document.getElementById("train-btn");
     const userMessageInput = document.getElementById("train-input");
+    const keywords = document.getElementById('selected-keywords');
 
     const trainOptionRadios = document.querySelectorAll('input[name="train-option"]');
     const questionSelect = document.getElementById('question-select');
+    const topicSelect = document.getElementById('topic-select');
     const newQuestionInput = document.querySelector('#new-question-form input');
 
     async function getKeywords(message) {
@@ -56,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectedKeywords = Array.from(document.querySelectorAll('.keyword-btn.selected'))
             .map(btn => btn.dataset.keyword);
 
-        document.getElementById('selected-keywords').value = selectedKeywords.join(',');
+        keywords.value = selectedKeywords.join(', ');
     }
 
     trainOptionRadios.forEach(radio => {
@@ -68,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 document.getElementById('existing-question-dropdown').style.display = 'none';
                 document.getElementById('new-question-form').style.display = 'block';
-                newQuestionInput.classList.remove('border', 'border-danger');
+                topicSelect.classList.remove('border', 'border-danger');
 
                 const keywords = await getKeywords(userMessageInput.value);
                 const keywordsContainer = document.getElementById('keywords-container');
@@ -83,6 +97,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     btn.addEventListener('click', function() {
                         this.classList.toggle('selected');
+                        removeDangerBorderFromKeywords();
                         updateSelectedKeywords();
                     });
 
@@ -138,6 +153,21 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Ошибка при загрузке вопросов:', error);
         });
 
+    fetch('/api/get-all-topics')
+        .then(response => response.json())
+        .then(data => {
+            const topicSelect = document.getElementById('topic-select');
+            data.result.forEach(question => {
+                const option = document.createElement('option');
+                option.value = question.id;
+                option.textContent = question.content;
+                topicSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Ошибка при загрузке тем:', error);
+        });
+
     document.querySelectorAll('.tab-button').forEach((button) => {
         button.addEventListener('click', () => {
           document.querySelectorAll('.tab-button').forEach((btn) => btn.classList.remove('active'));
@@ -164,12 +194,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (targetElement) {
                 navigator.clipboard.writeText(targetElement.value)
-                    .then(() => {
-                        showNotification('Текст успешно скопирован.', 'alert-success');
-                    })
-                    .catch(err => {
-                        console.error('Ошибка при копировании текста: ', err);
-                    });
+                .then(() => {
+                    showNotification('Текст успешно скопирован.', 'alert-success');
+                })
+                .catch(err => {
+                    console.error('Ошибка при копировании текста: ', err);
+                });
             }
         });
     });
@@ -276,22 +306,127 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
 
                     if (response.ok) {
-                        alert(`Вопрос пользователя добавлен для разпознавания к вопросу ${selectedOptionText}.`);
+                        showNotification(`Вопрос пользователя добавлен в базу`, 'alert-success');
                     } else {
                         const errorData = await response.json();
-                        alert('Ошибка: ' + errorData.error);
+                        showNotification('Ошибка: ' + errorData.error, 'alert-danger');
                     }
                 }
             } else {
-                if (!newQuestionInput.value.trim()) {
-                    newQuestionInput.classList.add('border', 'border-danger');
+                const selectedKeywords = document.getElementById('selected-keywords').value.split(', ');
+                const keywordButtons = document.querySelectorAll('.keyword-btn');
+
+                if (selectedKeywords.length === 0 || selectedKeywords[0] === "") {
+                    addDangerBorderToKeywords();
                     isValid = false;
                 } else {
-                    newQuestionInput.classList.remove('border', 'border-danger');
-                    const selectedKeywords = document.getElementById('selected-keywords').value.split(',');
-                    const questionText = newQuestionInput.value.trim();
-                    console.log(selectedKeywords);
-                    console.log(questionText);
+                    removeDangerBorderFromKeywords();
+                }
+
+                if (!topicSelect.value.startsWith('#')) {
+                    topicSelect.classList.add('border', 'border-danger');
+                    isValid = false;
+                } else {
+                    topicSelect.classList.remove('border', 'border-danger');
+                    topicID = topicSelect.value;
+                    const keywords = selectedKeywords.join(', ');
+                    const response = await fetch('/api/add-new-question-from-teaching/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X_CSRFTOKEN': getCookie('csrftoken'),
+                        },
+                        body: JSON.stringify({ user_message: userMessageInput.value, keywords: keywords})
+                    });
+
+                    if (response.ok) {
+                        let question_id = '';
+                        let answer_id = '';
+                        try {
+                            const questionResponse = await fetch('/api/create-node/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getCookie('csrftoken'),
+                                },
+                                body: JSON.stringify({
+                                    class: 'Question',
+                                    name: '',
+                                    content: userMessageInput.value,
+                                }),
+                            });
+
+                            if (questionResponse.ok) {
+                                const questionData = await questionResponse.json();
+                                question_id = questionData.data[0]['@rid'];
+                            } else {
+                                showNotification('Ошибка создания вопроса', 'alert-danger');
+                                return false;
+                            }
+
+                            const relationResponse = await fetch('/api/create-relation/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getCookie('csrftoken'),
+                                },
+                                body: JSON.stringify({
+                                    start_node_id: topicID,
+                                    end_node_id: question_id,
+                                }),
+                            });
+
+                            if (!relationResponse.ok) {
+                                showNotification('Ошибка создания связи между вопросом и темой.', 'alert-danger');
+                                return false;
+                            }
+
+                            const answerResponse = await fetch('/api/create-node/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getCookie('csrftoken'),
+                                },
+                                body: JSON.stringify({
+                                    class: 'answer',
+                                    content: answerInput.value,
+                                }),
+                            });
+
+                            if (answerResponse.ok) {
+                                const answerData = await answerResponse.json();
+                                answer_id = answerData.data[0]['@rid'];
+                            } else {
+                                showNotification('Ошибка создания овтета', 'alert-danger');
+                                return false;
+                            }
+
+                            const answerRelationResponse = await fetch('/api/create-relation/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getCookie('csrftoken'),
+                                },
+                                body: JSON.stringify({
+                                    start_node_id: question_id,
+                                    end_node_id: answer_id,
+                                }),
+                            });
+
+                            if (answerRelationResponse.ok) {
+                                showNotification('Новый вопрос успешно добавлен.', 'alert-success');
+                            }
+
+
+                        } catch (error) {
+                            showNotification(`Ошибка: ${error}`, 'alert-danger');
+                        }
+
+                        showNotification(`Вопрос пользователя добавлен в базу`, 'alert-success');
+                    } else {
+                        const errorData = await response.json();
+                        showNotification('Ошибка: ' + errorData.error, 'alert-danger');
+                    }
                 }
             }
 
@@ -300,8 +435,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 return false;
             }
         }
-//        await notifyUser(responseText);
-//        resetForm();
+        await notifyUser(responseText);
+        resetForm();
     }
 
     replyBtn.addEventListener("click", function () {

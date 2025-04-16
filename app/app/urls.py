@@ -1,21 +1,3 @@
-"""
-URL configuration for app project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-from imghdr import test_pbm
-
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
@@ -32,9 +14,6 @@ urlpatterns = [
     path('api/messages/<int:dialog_id>/', dashboard_views.get_messages, name='get_messages'),
     path('api/filter_dialogs_by_id/', dashboard_views.filter_dialogs_by_id, name='filter_dialogs_by_id'),
     path('api/filter_dialogs/', dashboard_views.filter_dialogs, name='filter_dialogs'),
-    #path('api/filter_dialogs/<int:period>/', dashboard_views.filter_dialogs, name='filter_dialogs'),
-    #path('api/filter_dialogs_by_id/<int:user_id>/', dashboard_views.filter_dialogs_by_id, name='filter_dialogs_by_id'),
-    #path('api/filter_dialogs_by_date_range/', dashboard_views.filter_dialogs_by_date_range, name='filter_dialogs_by_date_range'),
     path('api/get_info/<int:user_id>/', dashboard_views.get_info, name='get_info'),
     path('api/send-message/<int:dialog_id>/', dashboard_views.send_message, name='send_message'),
     path('api/ignore_message/<int:message_id>/', dashboard_views.ignore_message, name='ignore_message'),
@@ -82,9 +61,10 @@ urlpatterns = [
     path("api/get-documents/", dashboard_views.get_documents, name="get_documents"),
     path("api/get-links/", dashboard_views.get_links, name="get_links"),
     path('api/neural-status/', chat_views.get_neural_status, name='neural_status'),
-    # path('api/generate-neural-response/', chat_views.generate_chat_response, name='generate_chat_response'),
     path('api/get-all-questions/', chat_views.get_all_questions, name='get_all_questions'),
+    path('api/get-all-topics/', chat_views.get_all_topics, name='get_all_topics'),
     path('api/add-question-to-existing/', dashboard_views.add_question_to_existing, name='add_question_to_existing'),
+    path('api/add-new-question-from-teaching/', dashboard_views.add_new_question_from_teaching, name='add_new_question_from_teaching'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:
