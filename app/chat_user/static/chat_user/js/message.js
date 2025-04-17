@@ -245,7 +245,8 @@ const loadMessages = async () => {
                 }
             }
         }
-
+        enableUserActions();
+        updateChatLayout();
         setTimeout(scrollToBottom, 0);
 
     } catch (error) {

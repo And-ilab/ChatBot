@@ -43,11 +43,22 @@ function processUserActivityData(data) {
         }
     });
 
+    // Подсчёт уникальных
     for (const date in groupedData) {
         groupedData[date] = groupedData[date].size;
     }
 
-    currentExportData = groupedData;
+    currentExportData = {
+        meta: {
+            dateRange: {
+                start: formatDate(start),
+                end: formatDate(end)
+            },
+            generatedAt: new Date().toISOString()
+        },
+        data: groupedData
+    };
+
     return groupedData;
 }
 

@@ -91,7 +91,6 @@ async function recognizeAndProcessMessage(cleanedMessage) {
         const recognizedQuestion = await recognizeQuestion(cleanedMessage);
         if (recognizedQuestion) {
             state['recognition_response_message'] = recognizedQuestion;
-            console.log(recognizedQuestion);
             await processRecognizedQuestion(recognizedQuestion);
         } else {
             await handleUnrecognizedMessage(cleanedMessage);
@@ -120,7 +119,6 @@ async function recognizeQuestion(message) {
         }
 
         const data = await response.json();
-        console.log(data);
         return data.recognized_question || null;
     } catch (error) {
         console.error("Ошибка при распознавании вопроса:", error.message);
@@ -139,7 +137,6 @@ async function processRecognizedQuestion(questionContent) {
 
         const data = await response.json();
         const questionID = data.result["@rid"];
-        console.log(questionID);
         await showAnswer(questionID, 'recognition');
     } catch (error) {
         console.error("Ошибка при обработке распознанного вопроса:", error.message);

@@ -28,12 +28,9 @@ function processFailureFrequencyData(data) {
         ({ start, end } = getDateRange());
     }
 
-    // Проверка, что start и end установлены правильно для одного дня
-    if (selectedDate) {
-        if (start.getTime() !== end.getTime()) {
-            console.error('Несовпадение дат при выборе конкретного дня');
-            return {};
-        }
+    if (selectedDate && start.getTime() !== end.getTime()) {
+        console.error('Несовпадение дат при выборе конкретного дня');
+        return {};
     }
 
     const allDates = generateDateRange(start, end);
@@ -51,9 +48,21 @@ function processFailureFrequencyData(data) {
         }
     });
 
-    currentExportData = groupedData;
+    // Сохраняем данные с метаинформацией
+    currentExportData = {
+        meta: {
+            dateRange: {
+                start: formatDate(start),
+                end: formatDate(end)
+            },
+            generatedAt: new Date().toISOString()
+        },
+        data: groupedData
+    };
+
     return groupedData;
 }
+
 
 
 function renderFailureFrequencyChart(data, chartType) {

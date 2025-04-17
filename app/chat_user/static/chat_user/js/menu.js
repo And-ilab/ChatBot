@@ -226,7 +226,6 @@ const showAnswer = async (questionID, requestType) => {
     menuButton.style.display = 'none';
 
     const answer = await fetchAnswer(questionID);
-    console.log(answer);
     if (answer) {
         typingBlock.style.display = 'flex';
         chatMessagesArea.style.paddingBottom = '20px';
@@ -425,7 +424,6 @@ const sendThanksFeedbackMessage = async () => {
     state['message_to_operator'] = '';
     state['neural_response_message'] = '';
     state['recognition_response_message'] = '';
-    enableUserActions();
     await showSectionButtons();
 }
 
@@ -579,6 +577,8 @@ const appendBotFeedbackButtons = async () => {
 
 
 const createFeedbackElements = async () => {
+    enableUserActions();
+    updateChatLayout();
     let message = 'Насколько полезным был для Вас этот ответ?';
     appendMessage('bot', message, getTimestamp());
     await sendBotMessage(message);

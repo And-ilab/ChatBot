@@ -14,10 +14,9 @@ async function fetchPopularRequestsData() {
 }
 
 function processPopularRequestsData(data) {
-    let start,
-        end;
+    let start, end;
 
-    // Определяєм початку та кiнця періоду
+    // Определяем начало и конец периода
     if (selectedDate) {
         const selected = new Date(selectedDate);
         start = new Date(selected);
@@ -49,20 +48,30 @@ function processPopularRequestsData(data) {
         groupedData[key] = {};
 
         requestTypes.forEach(type => {
-            if (!(type in groupedData)) {
-                groupedData[key][type] = 0;
-            }
+            groupedData[key][type] = 0;
         });
     });
 
     data.forEach(({ created_at, type }) => {
         const dateKey = formatDate(new Date(created_at));
-        if (dateKey in groupedData) {
+        if (dateKey in groupedData && type in groupedData[dateKey]) {
             groupedData[dateKey][type]++;
         }
     });
 
-    currentExportData = groupedData;
+    // Сохраняем данные для экспорта с метаинформацией
+    currentExportData = {
+        meta: {
+            requestTypes, // Сохраняем типы запросов
+            dateRange: {
+                start: formatDate(start),
+                end: formatDate(end)
+            },
+            generatedAt: new Date().toISOString()
+        },
+        data: groupedData // Основные данные
+    };
+
     return {
         groupedData,
         requestTypes
