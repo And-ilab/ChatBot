@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const popularRequestsButton = document.getElementById("btn-popular-requests");
     const filterItems = document.querySelectorAll('.filter-item');
     const dropdownMenu = document.querySelector('.dropdown-menu');
-    const monthPicker = document.getElementById('month-picker');
     const datePicker = document.getElementById('date-picker');
     const customMonthTrigger = document.getElementById('custom-month-trigger');
     const customDateTrigger = document.getElementById('custom-date-trigger');
@@ -27,6 +26,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function transformData(data) {
         return Object.entries(data).map(([date, values]) => [date, values.user, values.bot]);
+    }
+
+    function initYearSelect() {
+        const yearSelect = document.querySelector('.year-select');
+        const monthSelect = document.querySelector('.month-select');
+        const now = new Date();
+        yearSelect.innerHTML = '';
+        for (let year = now.getFullYear(); year >= now.getFullYear() - 5; year--) {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            option.selected = (year === now.getFullYear());
+            yearSelect.appendChild(option);
+        }
+        monthSelect.value = now.getMonth();
     }
 
 
@@ -85,7 +99,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 rows.push(totals);
 
             } else if (type === "failure") {
-                headers = ["Дата", "Количество сбоев"];
+               headers = ["Дата", "Количество сбоев"];
                 const sortedDates = Object.keys(currentExportData.data).sort();
                 rows = sortedDates.map(date => [date, currentExportData.data[date]]);
                 const total = sortedDates.reduce((sum, d) => sum + currentExportData.data[d], 0);
@@ -152,7 +166,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             worksheet.columns.forEach(column => {
-                let maxLength = 15;
+               let maxLength = 15;
                 column.eachCell({ includeEmpty: true }, cell => {
                     const value = cell.value?.toString() || '';
                     if (value.length > maxLength) maxLength = value.length;
@@ -179,7 +193,6 @@ document.addEventListener("DOMContentLoaded", function () {
             saveAs(blob, filename);
 
         } catch (err) {
-            console.error("Ошибка экспорта:", err);
             alert("Не удалось экспортировать отчет. Проверьте консоль.");
         }
     }
@@ -199,68 +212,84 @@ document.addEventListener("DOMContentLoaded", function () {
             filterItems.forEach(i => i.classList.remove('active'));
             this.classList.add('active');
 
-            if (period !== 'custom-month' && period !== 'custom-date') {
+            if (period !== 'custom-month') {
                 selectedMonth = null;
-                selectedDate = null;
-                monthPicker.value = '';
-                datePicker.value = '';
+                selectedYear = null;
+
+                const dropdownButton = document.getElementById('dropdownMenuButton');
+                dropdownButton.innerHTML = `<i class="bi bi-calendar me-2"></i> Фильтр`;
             }
 
             if (period === 'custom-month') {
+                selectedDate = null;
+                datePicker.value = '';
                 datePicker.style.display = 'none';
-                monthPicker.style.display = 'block';
-                monthPicker.focus();
+                return;
             } else if (period === 'custom-date') {
-                monthPicker.style.display = 'none';
                 datePicker.style.display = 'block';
                 datePicker.focus();
             } else {
-                monthPicker.style.display = 'none';
                 datePicker.style.display = 'none';
                 currentFilter.type = period;
             }
-
             refreshData();
         });
     });
 
-
     customMonthTrigger.addEventListener('click', function(event) {
         event.preventDefault();
         event.stopPropagation();
-        monthPicker.style.display = 'block';
-        datePicker.style.display = 'none';
-        monthPicker.focus();
+
+        const picker = document.querySelector('.month-year-picker');
+        if (picker.style.display === 'block') {
+            picker.style.display = 'none';
+        } else {
+            datePicker.style.display = 'none';
+            picker.style.display = 'block';
+            initYearSelect();
+            if (selectedMonth){
+                document.querySelector('.month-select').value = selectedMonth;
+                document.querySelector('.year-select').value = selectedYear;
+            } else {
+                const now = new Date();
+                document.querySelector('.month-select').value = now.getMonth();
+                document.querySelector('.year-select').value = now.getFullYear();
+            }
+        }
+   });
+
+    document.querySelector('.apply-month').addEventListener('click', function() {
+        const month = parseInt(document.querySelector('.month-select').value);
+        const year = parseInt(document.querySelector('.year-select').value);
+        selectedMonth = month;
+        selectedYear = year;
+        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                           'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        const dropdownButton = document.getElementById('dropdownMenuButton');
+        dropdownButton.innerHTML = `<i class="bi bi-calendar me-2"></i> ${monthNames[month]} ${year}`;
+        document.querySelector('.month-year-picker').style.display = 'none';
+        currentFilter.type = 'custom-month';
+        refreshData();
+    });
+
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.month-year-picker')) {
+            document.querySelector('.month-year-picker').style.display = 'none';
+        }
     });
 
     customDateTrigger.addEventListener('click', function(event) {
         event.preventDefault();
         event.stopPropagation();
         datePicker.style.display = 'block';
-        monthPicker.style.display = 'none';
         datePicker.focus();
-    });
-
-    monthPicker.addEventListener('change', function() {
-        selectedMonth = monthPicker.value;
-        selectedDate = null;
-        console.log('Выбран месяц:', selectedMonth);
-        refreshData();
     });
 
     datePicker.addEventListener('change', function() {
         selectedDate = datePicker.value;
         selectedMonth = null;
-        console.log('Выбрана дата:', selectedDate);
+        selectedYear = null;
         refreshData();
-    });
-
-    monthPicker.addEventListener('click', function(event) {
-        event.stopPropagation();
-    });
-
-    monthPicker.addEventListener('input', function(event) {
-        event.stopPropagation();
     });
 
     datePicker.addEventListener('click', function(event) {
@@ -271,21 +300,9 @@ document.addEventListener("DOMContentLoaded", function () {
         event.stopPropagation();
     });
 
-    monthPicker.addEventListener('blur', function() {
-        const dropdown = new bootstrap.Dropdown(document.getElementById('dropdownMenuButton'));
-        dropdown.hide();
-    });
-
     datePicker.addEventListener('blur', function() {
         const dropdown = new bootstrap.Dropdown(document.getElementById('dropdownMenuButton'));
         dropdown.hide();
-    });
-
-    monthPicker.addEventListener('keydown', function(event) {
-        if (event.key === 'Enter') {
-            const dropdown = new bootstrap.Dropdown(document.getElementById('dropdownMenuButton'));
-            dropdown.hide();
-        }
     });
 
     datePicker.addEventListener('keydown', function(event) {
@@ -333,8 +350,11 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!fetchFunction) return;
 
         fetchFunction().then(data => {
+            console.log(`Data = ${data}`);
             const filteredData = filterData(data);
-
+            console.log(`FilteredData = ${filteredData}`);
+            console.log(selectedMonth);
+            console.log(selectedYear);
             if (chartInstance) {
                 const isTable = canvasContainer.querySelector("table");
                 if (isTable) {
@@ -358,17 +378,21 @@ document.addEventListener("DOMContentLoaded", function () {
                     itemDate.getDate() === selected.getDate()
                 );
             });
-        } else if (selectedMonth) {
-            const selected = new Date(selectedMonth);
+        }
+        else if (selectedMonth !== null && selectedYear !== null) {
+            console.log(currentFilter.type);
+            const { start, end } = getDateRange(currentFilter.type);
+            console.log(start, end);
             return data.filter(item => {
                 const itemDate = new Date(item.created_at);
-                return (
-                    itemDate.getFullYear() === selected.getFullYear() &&
-                    itemDate.getMonth() === selected.getMonth()
-                );
+                return itemDate >= start && itemDate <= end;
             });
-        } else {
-            const { start, end } = getDateRange();
+        }
+
+        else {
+            console.log(currentFilter.type)
+            const { start, end } = getDateRange(currentFilter.type);
+            console.log(start, end);
             return data.filter(item => {
                 const itemDate = new Date(item.created_at);
                 return itemDate >= start && itemDate <= end;

@@ -105,3 +105,13 @@
 .month-picker, .date-picker {
     display: none;
 }
+
+.month-year-picker {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.month-select, .year-select {
+    width: 120px !important;
+}

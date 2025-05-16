@@ -342,7 +342,7 @@ def get_nodes_by_type(request):
     node_type = urllib.parse.unquote(node_type)
 
     # Формируем URL для запроса
-    url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
+    url = f"http://localhost:2480/query/chat-bot/sql/SELECT FROM {node_type}"
 
     try:
         response = requests.get(url, auth=('root','guregure'))
@@ -1024,9 +1024,9 @@ def recognize_question(request):
             message = body['message']
             logger.info(f"Message to process: {message}")
 
-            # recognized_question = settings.QUESTION_MATCHER.match_question(message)
-            # return JsonResponse({'recognized_question': recognized_question})
-            return JsonResponse({'recognized_question': ''})
+            recognized_question = settings.QUESTION_MATCHER.match_question(message)
+            return JsonResponse({'recognized_question': recognized_question})
+            # return JsonResponse({'recognized_question': ''})
 
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error: {e}")
@@ -1152,3 +1152,65 @@ def delete_last_chat_message(request, dialog_id):
         return JsonResponse({"status": "error", "message": "No messages found."}, status=404)
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+@csrf_exempt
+def get_section_by_question(request):
+    if request.method == 'GET':
+        question_id = urllib.parse.unquote(request.GET.get('questionID', ''))
+        logger.info(f'Question ID = {question_id}')
+
+        if not question_id:
+            return JsonResponse({"error": "questionID parameter is required"}, status=400)
+
+        try:
+            # Валидация question_id (должен быть в формате #cluster:position)
+            if not re.match(r'^#\d+:\d+$', question_id):
+                return JsonResponse({"error": "Invalid questionID format"}, status=400)
+
+            # Безопасный запрос с параметрами
+            query = f"SELECT @rid, content FROM Section WHERE (SELECT @rid FROM Topic WHERE {question_id} IN out('Includes').@rid) in out('Includes').@rid"
+
+            url = f"{config_settings.ORIENT_COMMAND_URL}/{urllib.parse.quote(query)}"
+            params = {'questionId': question_id}
+
+            logger.info(f'Executing query: {query}')
+            logger.info(f'With parameters: {params}')
+
+            response = requests.get(
+                url,
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+                params=params,
+                proxies={"http": None, "https": None}
+            )
+
+            if not response.ok:
+                logger.error(f'OrientDB error: {response.text}')
+                return JsonResponse({"error": "Database error"}, status=500)
+
+            data = response.json()
+            logger.info(f'Response data: {data}')
+
+            # Обработка ответа OrientDB
+            if data.get('result'):
+                sections = data['result']
+                if sections:
+                    section = sections[0]  # Берем первый найденный раздел
+                    return JsonResponse({
+                        'id': section.get('@rid'),
+                        'name': section.get('content', '')
+                    })
+
+            return JsonResponse({"error": "Section not found"}, status=404)
+
+        except Exception as e:
+            logger.error(f"Error fetching data: {str(e)}", exc_info=True)
+            return JsonResponse({"error": "Internal server error"}, status=500)
+
+def get_session_duration(request):
+    if request.method == 'GET':
+        try:
+            session_duration_minutes = Settings.objects.first().session_duration
+        except Settings.DoesNotExist:
+            logger.error("Настройки не найдены, используем значение по умолчанию в 30 минут.")
+            session_duration_minutes = 30
+    return JsonResponse({"status": "success", "duration": session_duration_minutes}, status=200)

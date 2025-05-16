@@ -33,19 +33,11 @@
                     <i class="fa fa-chart-line"></i>
                 </a>
             </li>
-            {% if user.is_authenticated %}
-    {% if user.role == 'admin' %}
                 <a href="{% url 'chat_dashboard:user_list' %}"
-                  class="nav-link{% if request.path == '/chat_dashboard/users/' %} active{% endif %}"
-                   data-bs-toggle="tooltip" data-bs-placement="right" title="Управление пользователями">
+                    class="nav-link{% if request.path == '/chat_dashboard/users/' %} active{% endif %}"
+                    data-bs-toggle="tooltip" data-bs-placement="right" title="Управление пользователями">
                     <i class="fa fa-users"></i>
                 </a>
-    {% else %}
-        <a href="javascript:void(0);" class="nav-link disabled text-muted" data-bs-toggle="tooltip" data-bs-placement="right" title="У вас нет прав для доступа">
-            <i class="fa fa-users"></i>
-        </a>
-    {% endif %}
- {% endif %}
             <li class="nav-item">
                 <a href="{% url 'chat_dashboard:training' %}"
                    class="nav-link{% if request.path == '/chat_dashboard/training/' %} active{% endif %}"
@@ -62,26 +54,9 @@
             </li>
         </ul>
         <div class="account-wrapper">
-{% if user.is_authenticated %}
-    {% if user.role == 'admin' %}
-        <a href="{% url 'chat_dashboard:settings' %}" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right" title="Настройки">
-            <i class="fa fa-cog"></i>
-        </a>
-    {% else %}
-        <a href="javascript:void(0);" class="nav-link disabled text-muted" data-bs-toggle="tooltip" data-bs-placement="right" title="У вас нет прав для доступа к настройкам">
-            <i class="fa fa-cog"></i>
-        </a>
-    {% endif %}
-    <a href="{% url 'authentication:logout' %}" class="nav-link" data-bs-toggle="tooltip"
-       data-bs-placement="right" title="Выход">
-        <i class="fa fa-sign-out-alt"></i>
-    </a>
-{% else %}
-    <a href="{% url 'authentication:login' %}" class="nav-link" data-bs-toggle="tooltip"
-       data-bs-placement="right" title="Вход">
-        <i class="fa fa-sign-in-alt"></i>
-    </a>
-{% endif %}
+            <a href="{% url 'chat_dashboard:settings' %}" class="nav-link" data-bs-toggle="tooltip" data-bs-placement="right" title="Настройки">
+                <i class="fa fa-cog"></i>
+            </a>
         </div>
     </div>
     <div class="container-fluid p-0 vh-100">
@@ -90,9 +65,9 @@
     </div>
 </div>
 <script src="https://unpkg.com/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/chart.js@3.7.1/dist/chart.min.js"></script>
-<script src="https://unpkg.com/exceljs@4.3.0/dist/exceljs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="{% static 'chat_user/js/chart.min.js' %}"></script>
+<script src="{% static 'chat_user/js/exceljs.min.js' %}"></script>
+<script src="{% static 'chat_user/js/FileSaver.min.js' %}"></script>
 <script src="{% static 'chat_dashboard/js/archive.js' %}"></script>
 <script src="{% static 'chat_dashboard/js/analytics_init.js' %}"></script>
 <script src="{% static 'chat_dashboard/js/messages_count_diagrams.js' %}"></script>

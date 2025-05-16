@@ -15,11 +15,19 @@ from peft import PeftModel, PeftConfig
 import re
 from pymorphy3 import MorphAnalyzer
 import spacy
+import nltk.downloader
+import socket
 
-nltk.download('punkt_tab')
-nltk.download('punkt')
-nltk.download('wordnet')
-nltk.download('omw-1.4')
+#orig_getaddrinfo = socket.getaddrinfo
+
+#def getaddrinfo_ipv4(*args, **kwargs):
+#    return [ai for ai in orig_getaddrinfo(*args, **kwargs) if ai[0] == socket.AF_INET]
+#socket.getaddrinfo = getaddrinfo_ipv4
+#nltk.download('punkt_tab')
+#nltk.download('punkt')
+#nltk.download('wordnet')
+#nltk.download('omw-1.4')
+#socket.getaddrinfo = orig_getaddrinfo
 
 lemmatizer = WordNetLemmatizer()
 
@@ -38,7 +46,7 @@ def correct_with_yandex(text):
     try:
         url = "https://speller.yandex.net/services/spellservice.json/checkText"
         params = {"text": text, "lang": "ru"}
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params,verify=False)
         response.raise_for_status()
         errors = response.json()
 
@@ -57,6 +65,7 @@ def correct_with_yandex(text):
 
 
 def extract_keywords(question):
+    """Extract keywords from a given question."""
     keywords = set()
     hyphenated_words = re.findall(r'\b\w+-\w+\b', question.lower())
     keywords.update(hyphenated_words)
@@ -66,10 +75,8 @@ def extract_keywords(question):
 
     for token in doc:
         text_lower = token.text.lower()
-
         if token.is_stop or text_lower in custom_stop_words or len(text_lower) < 2:
             continue
-
         if token.pos_ == "VERB":
             keywords.add(token.lemma_.lower())
         elif token.pos_ == "ADJ":
@@ -81,8 +88,8 @@ def extract_keywords(question):
 
     return sorted(keywords)
 
-
 class ModelHandler:
+    """Handler for model operations."""
     def __init__(self, questions_list):
         self.questions_list = questions_list
         self.tokenizer = BertTokenizer.from_pretrained('DeepPavlov/rubert-base-cased')
@@ -92,7 +99,6 @@ class ModelHandler:
     def preprocess(self, text):
         if isinstance(text, tuple):
             text = " ".join(text)
-        text = text.lower()
         text = text.translate(str.maketrans('', '', string.punctuation))
         tokens = nltk.word_tokenize(text)
         lemmatized = [lemmatizer.lemmatize(token) for token in tokens]
@@ -108,7 +114,8 @@ class ModelHandler:
     def _precompute_embeddings(self):
         embeddings_cache = {}
         for group_keys, questions_dict in self.questions_list.items():
-            key_processed = self.preprocess(group_keys)
+            # Convert frozenset to string for processing
+            key_processed = self.preprocess(" ".join(group_keys))
 
             all_questions = []
             for main_question, similar_questions in questions_dict.items():
@@ -125,8 +132,8 @@ class ModelHandler:
 
         return embeddings_cache
 
-
 class QuestionMatcher:
+    """Matcher for user questions."""
     def __init__(self, questions_list, model_handler):
         self.questions_list = questions_list
         self.model_handler = model_handler
@@ -143,35 +150,28 @@ class QuestionMatcher:
             return None
 
         max_matches = max(matches_count, key=lambda x: x[0])[0]
-
         if max_matches == 0:
             return None
 
         best_categories = [category for matches, category in matches_count if matches == max_matches]
-
-        if len(best_categories) > 0:
-            return best_categories
-        return None
-
+        return best_categories if best_categories else None
 
     def match_question(self, user_message):
+        #corrected_message = user_message
         corrected_message = correct_with_yandex(user_message)
         if corrected_message != user_message:
-            logging.info(f"Исправленный запрос: {corrected_message} (оригинал: {user_message})")
+            logger.info(f"Исправленный запрос: {corrected_message} (оригинал: {user_message})")
             user_message = corrected_message
 
         user_keywords = extract_keywords(user_message)
-
         if not user_keywords:
             return None
 
         best_groups = self.find_best_match(user_keywords)
-
         if not best_groups:
             return None
 
         questions_dict = {}
-
         if len(best_groups) == 1:
             questions_dict = self.questions_list[best_groups[0]]
         else:
@@ -180,7 +180,6 @@ class QuestionMatcher:
 
         all_questions = []
         question_mapping = {}
-
         for main_question, similar_questions in questions_dict.items():
             all_questions.append(main_question)
             question_mapping[main_question] = main_question
@@ -200,4 +199,4 @@ class QuestionMatcher:
                 best_similarity = similarity
                 best_question = question
 
-        return question_mapping[best_question] if best_similarity > 0.6 else None
+        return question_mapping[best_question] if best_similarity > 0.7 else None

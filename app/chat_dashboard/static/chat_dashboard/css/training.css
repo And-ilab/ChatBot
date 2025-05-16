@@ -10,6 +10,26 @@
     border-bottom: 2px solid #ccc;
 }
 
+.keyword-btn {
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.9rem;
+    border: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.keyword-btn:hover {
+    background-color: #e9ecef;
+}
+
+.keyword-btn.selected {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
 .tab-button {
     padding: 10px 20px;
     background: none;
@@ -65,24 +85,4 @@
     min-height: 38px;
     overflow: hidden;
     resize: none;
-}
-
-.keyword-btn {
-    border-radius: 20px;
-    padding: 5px 12px;
-    font-size: 0.9rem;
-    border: 1px solid #dee2e6;
-    background-color: #f8f9fa;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.keyword-btn:hover {
-    background-color: #e9ecef;
-}
-
-.keyword-btn.selected {
-    background-color: #0d6efd;
-    color: white;
-    border-color: #0d6efd;
 }

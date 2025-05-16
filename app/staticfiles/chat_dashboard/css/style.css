@@ -1,0 +1,332 @@
+.sidebar {
+    position: fixed; /* Фиксированное позиционирование */
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #343a40;
+    color: #fff;
+    height: 100vh; /* Растягивается на всю высоту экрана */
+    height: 100vh; /* Растягивается на всю высоту экрана */
+    width: 52px; /* Ширина сайдбара */
+    padding: 20px 0;
+    z-index: 1000; /* Устанавливаем приоритет слоя */
+}
+
+.nav-item {
+    width: 100%;
+}
+
+.sidebar .nav-link {
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    transition: background-color 0.3s;
+}
+
+.sidebar .nav-link:hover {
+    background-color: #495057;
+}
+
+.sidebar .nav-link.active {
+    background-color: #007bff;
+}
+
+.sidebar .nav {
+    height: 50%;
+}
+
+.sidebar .account-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    align-items: center;
+}
+
+
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.user-info {
+    flex-shrink: 0;
+}
+
+.dropdown-menu {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.chat-item.active {
+    background-color: #e0e0e0 !important;
+}
+
+.chat-user {
+    font-size: 0.9rem;
+}
+
+.chat-time {
+    font-size: 0.8rem;
+}
+
+.message-time {
+    font-size: 0.8rem;
+}
+
+.message-sender {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.message-content {
+    font-size: 0.9rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.archive-sidebar {
+    margin-left: 50px;
+    border-right: 1px solid #ccc;
+    background-color: #f8f9fa;
+    min-width: 300px; /* Установите минимальную ширину */
+}
+
+.training-sidebar {
+    margin-left: 50px;
+    border-right: 1px solid #ccc;
+}
+
+.chat-sidebar {
+    margin-left: 50px;
+    border-right: 1px solid #ccc;
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.sidebar-btn {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fff;
+    color: #333;
+    font-size: 16px;
+    text-align: left;
+    transition: all 0.3s ease;
+}
+
+.sidebar-btn:hover {
+    background-color: #e9ecef;
+    border-color: #999;
+}
+
+.sidebar-header {
+    margin-bottom: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+}
+
+.d-flex.gap-3 {
+    gap: 15px;
+}
+
+.custom-btn {
+    background-color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.custom-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.indicator {
+    background-color: blue;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.message-item {
+    transition: border-color 0.3s ease;
+}
+
+.message-item:hover {
+    border: 2px solid #007bff;
+}
+
+.hidden {
+    display: none;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+}
+
+.input-container input,
+.input-container select {
+    width: 100%;
+    padding: 8px;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.input-container button {
+    margin-left: 8px;
+    padding: 8px 16px;
+    font-size: 1rem;
+}
+
+.divider {
+    height: 1px;
+    background-color: #000;
+}
+
+.form-container {
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.form-container h5 {
+    margin-bottom: 10px;
+}
+
+.training-forms {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.custom-btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+}
+
+.empty-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+    font-size: 16px;
+    max-width: 500px;
+    margin: 20px auto;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.empty-container p {
+    margin: 0;
+}
+
+#btn-searched {
+    display: none;
+}
+
+.chat-list {
+    scrollbar-width: thin;
+    scrollbar-color: #dee2e6 transparent;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+.py-4 {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+
+.datepicker {
+    border-radius: 8px !important;
+}
+    .status-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.input-group-text {
+    background: #f8f9fa;
+    border-right: 0;
+}
+
+.form-control:focus {
+    box-shadow: none;
+    border-color: #dee2e6;
+}
+
+.flatpickr-calendar {
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.flatpickr-day.selected {
+    background: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.flatpickr-day.inRange {
+    background: #bfdbfe;
+    box-shadow: -5px 0 0 #bfdbfe, 5px 0 0 #bfdbfe;
+}
+
+.flatpickr-day.today:not(.selected) {
+    border-color: #94a3b8;
+}
+
+.btn-outline-success {
+    position: relative;
+}
+
+.btn-outline-success a {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.no-results {
+    background-color: white;
+    height: 40px;
+}
+
+.bi-arrow-clockwise.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

@@ -35,7 +35,7 @@
 <!--                        <a class="dropdown-item filter-option" id="filter-by-date-range-custom">-->
 <!--                            <i class="bi bi-calendar-range me-2"></i>Выбрать дату-->
 <!--                        </a>-->
-                        <a class="dropdown-item filter-option" id="open-id-filter-modal">
+                        <a class="dropdown-item filter-option" id="id-filter-modal-btn">
                             <i class="bi bi-person-badge me-2"></i>По ID
                         </a>
                     </div>
@@ -43,9 +43,9 @@
                 <button class="btn btn-primary" id="refresh-dialogs" title="Обновить диалоги">
                     <i class="bi bi-arrow-clockwise"></i>
                 </button>
-<!--                <button class="btn btn-outline-secondary" id="reset-filter">-->
-<!--                    <i class="bi bi-arrow-counterclockwise"></i>-->
-<!--                </button>-->
+                <button class="btn btn-primary" id="reset-filter" title="Сбросить фильтры">
+                    <i class="bi bi-trash"></i>
+                </button>
             </div>
         </div>
         <ul class="chat-list" style="flex-grow: 1; overflow-y: auto; box-sizing: border-box; list-style-type: none; padding-left: 0;">
@@ -54,9 +54,10 @@
                 id="dialog-{{ dialog.id }}"
                 data-username="{{ dialog.user.username }}"
                 data-userid="{{ dialog.user.id }}"
+                data-tabel="{{ dialog.tabel_number }}"
                 style="transition: background-color 0.3s ease; cursor: pointer"
                 onclick="loadMessages({{ dialog.id }}); setActiveDialog(this); updateUserInfo('{{ dialog.user.username }}');">
-                <div class="chat-item-wrapper d-flex flex-column justify-content-between" style="width: 250px;">
+                <div class="chat-item-wrapper d-flex flex-column justify-content-between" style="width: 295px;">
                     <div class="d-flex w-100 flex-row justify-content-between">
                         <div class="chat_user w-50" style="overflow-x: hidden; font-weight: bold;">{{ dialog.user.username }}</div>
                         <div class="chat-time d-flex w-50 justify-content-end text-muted" style="overflow-x: hidden;">
@@ -66,8 +67,8 @@
                     <div class="d-flex w-100">
                         <p><strong>{{ dialog.last_message_username }}:</strong></p>
                         <p class="dialog-content mb-0">
-                            {% if dialog.last_message|length > 21 %}
-                                {{ dialog.last_message|slice:":21" }}...
+                            {% if dialog.last_message|length > 25 %}
+                                {{ dialog.last_message|slice:":25" }}...
                             {% else %}
                                 {{ dialog.last_message }}
                             {% endif %}
@@ -92,8 +93,13 @@
         </div>
         <h4 class="mb-2" id="user-info-username"></h4>
         <p class="mb-2" id="user-info-status" style="color: {{ user.is_online|yesno:'green,red' }};"></p>
-        <p class="mb-4" style="font-size: 0.8rem;" id="user-info-last-active"></p>
-    </div>
+        <p class="mb-2" style="font-size: 0.8rem; text-align: center; max-width: 280px;" id="user-info-last-active"></p>
+        <p class="mb-2" style="font-size: 0.8rem; text-align: center; max-width: 280px;" id="user-info-department"></p>
+        <p class="mb-2" style="font-size: 0.8rem; text-align: center; max-width: 280px;" id="user-info-company"></p>
+        <p class="mb-2" style="font-size: 0.8rem; text-align: center; max-width: 280px;" id="user-info-title"></p>
+        <p class="mb-2" style="font-size: 0.8rem; text-align: center; max-width: 280px;" id="user-info-tabel-number"></p>
+
+   </div>
 </div>
 
 <div class="modal fade" id="date-range-modal" tabindex="-1">
@@ -166,13 +172,10 @@
                 <div class="mb-3">
                     <label class="form-label text-muted">Введите ID пользователя</label>
                     <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="bi bi-search"></i>
-                        </span>
-                        <input type="number"
+                        <input type="text"
                                id="filter-id"
                                class="form-control"
-                               placeholder="Пример: 12345">
+                               placeholder="Пример: b00011111">
                     </div>
                     <div class="form-text text-muted small mt-1">
                         ID можно найти в профиле пользователя

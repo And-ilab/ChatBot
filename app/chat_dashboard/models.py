@@ -28,7 +28,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
         ('admin', 'Администратор'),
         ('operator', 'Оператор'),
-        ('user', 'Пользователь'),
     ]
 
     id = models.AutoField(primary_key=True)
@@ -36,7 +35,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50)
     first_name = models.CharField(max_length=50)  # Новое поле
     last_name = models.CharField(max_length=50, blank=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='operator')
     is_staff = models.BooleanField(default=False)
     last_active = models.DateTimeField(null=True, blank=True)
     is_online = models.BooleanField(default=False)
@@ -131,7 +130,6 @@ class TrainingMessage(models.Model):
     def __str__(self):
         return f"{self.sender} - {self.content[:20]}"
 
-
 class Settings(models.Model):
     ad_enabled = models.BooleanField(default=False)
     message_retention_days = models.PositiveIntegerField(default=30)
@@ -144,6 +142,7 @@ class Settings(models.Model):
 
     def __str__(self):
         return f"Settings(ad_enabled={self.ad_enabled}, message_retention_days={self.message_retention_days}, session_duration={self.session_duration})"
+
 
 class PopularRequests(models.Model):
     sender = models.ForeignKey('chat_user.ChatUser', null=True, blank=True, on_delete=models.SET_NULL)

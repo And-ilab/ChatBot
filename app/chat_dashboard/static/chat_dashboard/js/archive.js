@@ -6,6 +6,7 @@ let currentFilters = {
     endDate: null
 };
 
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     initModals();
@@ -47,51 +48,45 @@ function loadFiltersFromLocalStorage() {
     }
 }
 
-// Восстановление активных фильтров в UI
 function restoreActiveFilters() {
     $(`[data-period="${currentFilters.period}"]`).addClass('active');
     $('#filter-id').val(currentFilters.userId || '');
 }
 
-// Основная функция фильтрации
 async function applyFilters() {
-    try {
-        // Показываем состояние загрузки
+     try {
         const refreshBtn = document.getElementById('refresh-dialogs');
+
         if (refreshBtn) {
             refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i>';
             refreshBtn.disabled = true;
         }
-
         const params = new URLSearchParams();
-
-        // Добавляем текущие фильтры
         if (currentFilters.period > 0) params.append('period', currentFilters.period);
         if (currentFilters.userId) params.append('user_id', currentFilters.userId);
         if (currentFilters.startDate && currentFilters.endDate) {
-            params.append('start', currentFilters.startDate);
-            params.append('end', currentFilters.endDate);
+           params.append('start', currentFilters.startDate);
+           params.append('end', currentFilters.endDate);
         }
-
         const response = await fetch(`/api/filter_dialogs/?${params}`);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-
         const data = await response.json();
         updateDialogList(data);
         saveFiltersToLocalStorage();
 
     } catch (error) {
-        console.error('Ошибка фильтрации:', error);
-        showErrorNotification('Произошла ошибка при загрузке данных');
+        showErrorNotification('Произошла ошибка при загрузке данных, проверьте введенные данные');
+
     } finally {
-        // Возвращаем кнопку в исходное состояние
         const refreshBtn = document.getElementById('refresh-dialogs');
+
         if (refreshBtn) {
             refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
             refreshBtn.disabled = false;
+
         }
     }
 }
@@ -131,11 +126,12 @@ function createDialogElement(dialog) {
     listItem.id = `dialog-${dialog.id}`;
     listItem.dataset.username = dialog.user.username;
     listItem.dataset.userid = dialog.user.id;
+    listItem.dataset.tabel = dialog.tabel_number;
     listItem.style.transition = 'background-color 0.3s ease';
     listItem.style.cursor = 'pointer';
 
     listItem.innerHTML = `
-        <div class="chat-item-wrapper d-flex flex-column justify-content-between" style="width: 250px;">
+        <div class="chat-item-wrapper d-flex flex-column justify-content-between" style="width: 295px;">
             <div class="d-flex w-100 flex-row justify-content-between">
                 <div class="chat_user w-50" style="overflow-x: hidden; font-weight: bold;">
                     ${dialog.user.username}
@@ -149,8 +145,8 @@ function createDialogElement(dialog) {
             <div class="d-flex w-100">
                 <p><strong>${dialog.last_message_username}:</strong></p>
                 <p class="dialog-content mb-0">
-                    ${dialog.last_message.length > 22 ?
-                      dialog.last_message.slice(0, 22) + '...' :
+                    ${dialog.last_message.length > 25 ?
+                      dialog.last_message.slice(0, 25) + '...' :
                       dialog.last_message}
                 </p>
             </div>
@@ -190,7 +186,6 @@ async function loadMessages(dialogId) {
         const data = await response.json();
         renderMessages(data.messages);
     } catch (error) {
-        console.error('Ошибка при загрузке сообщений:', error);
         showErrorNotification('Не удалось загрузить сообщения');
     }
 }
@@ -222,7 +217,7 @@ function renderMessages(messages) {
                     <div class="d-flex message-content">${message.content}</div>
                     <div class="d-flex message-time text-muted"
                          style="position: absolute; right: 10px; bottom: 2px;">
-                        ${new Date(message.timestamp).toLocaleString()}
+                        ${new Date(new Date(message.timestamp).getTime() + 3 * 60 * 60 * 1000).toLocaleString()}
                     </div>
                 </div>
             `;
@@ -274,9 +269,11 @@ function setActiveDialog(element) {
 }
 
 function updateUserInfo(username) {
-    const element = document.querySelector('.user-info h4');
+    const element = document.querySelector('#user-info-username');
     if (element) element.textContent = username;
+
 }
+
 
 async function loadUserStatus(userId) {
     try {
@@ -291,6 +288,16 @@ async function loadUserStatus(userId) {
 function updateStatusUI(status) {
     const statusElement = document.getElementById('user-info-status');
     const lastActiveElement = document.getElementById('user-info-last-active');
+    const company = document.getElementById('user-info-company');
+    const title = document.getElementById('user-info-title');
+    const department = document.getElementById('user-info-department');
+    const tabel_number = document.getElementById('user-info-tabel-number');
+
+
+    company.textContent = `${status.company}`;
+    title.textContent = `${status.title}`;
+    department.textContent = `${status.department}`;
+    tabel_number.textContent = `${status.tabel_number}`;
 
     if (status.is_online) {
         statusElement.innerHTML = '<span style="color: green;">Активен</span>';
@@ -302,32 +309,24 @@ function updateStatusUI(status) {
         }`;
     }
 }
-//
-//function showErrorNotification(message) {
-//    // Реализация показа уведомления
-//    console.error(message);
-//    alert(message);
-//}
+
+$(document).ready(function() {
+    $('#id-filter-modal-btn').click(() => $('#id-filter-modal').modal('show'));
+    $('#close-id-modal').click(() => $('#id-filter-modal').modal('hide'));
+    $('#filter-by-date-range-custom').click(() => $('#date-range-modal').modal('show'));
+});
+
 function refreshDialogs() {
-    // Можно добавить индикатор загрузки
     const refreshBtn = document.getElementById('refresh-dialogs');
+
     refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i>';
     refreshBtn.disabled = true;
 
-    // Применяем текущие фильтры
     applyFilters().finally(() => {
-        // Возвращаем кнопку в исходное состояние
         refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
         refreshBtn.disabled = false;
     });
 }
 
-// И привязать кнопку к этой функции
-document.getElementById('refresh-dialogs').addEventListener('click', refreshDialogs);
 
-// Инициализация обработчиков модальных окон
-$(document).ready(function() {
-    $('#open-id-filter-modal').click(() => $('#id-filter-modal').modal('show'));
-    $('#close-id-modal').click(() => $('#id-filter-modal').modal('hide'));
-    $('#filter-by-date-range-custom').click(() => $('#date-range-modal').modal('show'));
-});
+document.getElementById('refresh-dialogs').addEventListener('click', refreshDialogs);

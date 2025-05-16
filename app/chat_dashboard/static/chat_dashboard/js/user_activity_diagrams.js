@@ -20,10 +20,10 @@ function processUserActivityData(data) {
         const selected = new Date(selectedDate);
         start = new Date(selected);
         end = new Date(selected);
-    } else if (selectedMonth) {
-        const selected = new Date(selectedMonth);
-        start = new Date(selected.getFullYear(), selected.getMonth(), 1);
-        end = new Date(selected.getFullYear(), selected.getMonth() + 1, 0);
+    } else if (selectedMonth !== null && selectedYear !== null) {
+        start = new Date(selectedYear, selectedMonth, 1);
+        end = new Date(selectedYear, selectedMonth + 1, 0);
+        end.setHours(23,59,59,999);
     } else {
         ({ start, end } = getDateRange());
     }
@@ -43,22 +43,11 @@ function processUserActivityData(data) {
         }
     });
 
-    // Подсчёт уникальных
     for (const date in groupedData) {
         groupedData[date] = groupedData[date].size;
     }
 
-    currentExportData = {
-        meta: {
-            dateRange: {
-                start: formatDate(start),
-                end: formatDate(end)
-            },
-            generatedAt: new Date().toISOString()
-        },
-        data: groupedData
-    };
-
+    currentExportData = groupedData;
     return groupedData;
 }
 

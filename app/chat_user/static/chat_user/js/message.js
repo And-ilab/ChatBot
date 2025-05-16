@@ -1,4 +1,5 @@
-const appendMessage = (sender, content, timestamp, showButton = false) => {
+const appendMessage = async (sender, content, timestamp, showButton = false) => {
+    await startOrRestartTimer();
     const messageDiv = document.createElement('div');
     messageDiv.className = sender === 'bot' ? 'message bot-message' : 'message user-message';
     const date = new Date(timestamp);
@@ -46,11 +47,11 @@ const appendMessage = (sender, content, timestamp, showButton = false) => {
 
 const sendMessageToAPI = async (dialog_id, senderType, messageType, content, timestamp) => {
     try {
+        console.log(`Send message to API for dialog ${dialog_id}`);
         const response = await fetch(`/api/send-message/${dialog_id}/`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X_CSRFTOKEN': csrfToken,
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 sender_type: senderType,
@@ -87,7 +88,7 @@ const sendUserMessage = async () => {
     if (!message) return;
 
     const userMessageTimestamp = getTimestamp()
-    appendMessage('Вы', message, userMessageTimestamp);
+    await appendMessage('Вы', message, userMessageTimestamp);
 
     chatInput.value = '';
     try {
@@ -121,9 +122,11 @@ async function drawDocument(content) {
         const link = document.createElement('a');
         link.href = filePath;
         link.download = docName;
-        documentButton.onclick = () => {
+        link.target = '_blank';
+        documentButton.addEventListener('click', function (e) {
+            e.preventDefault();
             link.click();
-        };
+        });
         documentMessageDiv.appendChild(documentButton);
         chatMessagesArea.appendChild(documentMessageDiv);
     } catch (error) {
@@ -234,19 +237,20 @@ const loadMessages = async () => {
             } else if (message_type === 'message') {
                 if (isLastMessage) {
                     if (content === 'Насколько полезным был для Вас этот ответ?') {
-                        appendMessage(sender, content, timestamp);
+                        await appendMessage(sender, content, timestamp);
                         await appendBotFeedbackButtons();
                     } else {
-                        appendMessage(sender, content, timestamp);
+                        await appendMessage(sender, content, timestamp);
                         await showSectionButtons();
                     }
                 } else {
-                    appendMessage(sender, content, timestamp);
+                    await appendMessage(sender, content, timestamp);
                 }
             }
         }
         enableUserActions();
         updateChatLayout();
+        showSectionButtons();
         setTimeout(scrollToBottom, 0);
 
     } catch (error) {

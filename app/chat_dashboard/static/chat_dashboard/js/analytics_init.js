@@ -2,6 +2,7 @@ const canvasContainer = document.querySelector(".analytics-canvas");
 
 let selectedDate = null;
 let selectedMonth = null;
+let selectedYear = null;
 let chartInstance = null;
 let currentExportData = null;
 let currentFilter = {
@@ -31,9 +32,12 @@ function getDateRange() {
             };
 
         case 'custom-month':
+            const customStartMonth = new Date(selectedYear, selectedMonth, 1);
+            const customEndMonth = new Date(selectedYear, selectedMonth + 1, 0);
+            customEndMonth.setHours(23,59,59,999);
             return {
-                start: currentFilter.value.start,
-                end: currentFilter.value.end
+                start: customStartMonth,
+                end: customEndMonth
             };
 
         case 'custom-date':
@@ -42,7 +46,7 @@ function getDateRange() {
                 end: currentFilter.value.end
             };
 
-        default: // month
+        default:
             const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
             endMonth.setHours(23,59,59,999);

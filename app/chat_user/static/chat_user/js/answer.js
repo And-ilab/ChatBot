@@ -1,17 +1,31 @@
 const userMessageHandler = async (message) => {
     const cleanedMessage = message
-        .trim()
-        .replace(/[^\w\sа-яА-ЯёЁ]/g, '')
-        .toLowerCase();
+    .trim()
+    .replace(/[^\w\sа-яА-ЯёЁ]/g, '')
+    .toLowerCase();
 
-    const isGreeting = greetings.some(greeting => cleanedMessage.includes(greeting));
+    const messageWords = cleanedMessage.split(/\s+/);
+
+    const greetings = [
+        'привет', 'здравствуй', 'добрый день', 'добрый вечер', 'приветствую',
+        'здравия желаю', 'хай', 'хей', 'здарова', 'здаров', 'здорова', 'здоров',
+        'салам', 'доброй ночи', 'приветик', 'хаюшки'
+    ];
+
+    const isPureGreeting = greetings.some(greeting => {
+        if (greeting.includes(' ')) {
+            return cleanedMessage === greeting;
+        }
+        return messageWords.length === 1 && messageWords[0] === greeting;
+    });
+
     const isMenu = menu.some(menu => cleanedMessage.includes(menu));
 
     document.querySelectorAll('.operator-button').forEach(button => {
         button.disabled = true;
     });
 
-    if (isGreeting) {
+    if (isPureGreeting) {
         showGreetingMessages();
         return;
     }
@@ -74,7 +88,7 @@ const showGreetingMessages = async () => {
     const messages = [getRandomElement(greetingsStart), getRandomElement(greetingOptions)];
 
     for (const message of messages) {
-        appendMessage('bot', message, getTimestamp());
+        await appendMessage('bot', message, getTimestamp());
         await sendBotMessage(message);
     }
     await showSectionButtons();
@@ -87,7 +101,6 @@ async function recognizeAndProcessMessage(cleanedMessage) {
         typingBlock.style.display = 'flex';
         chatMessagesArea.style.paddingBottom = '20px';
         state['message_to_operator'] = cleanedMessage;
-        await sendPopularRequest('Иное');
         const recognizedQuestion = await recognizeQuestion(cleanedMessage);
         if (recognizedQuestion) {
             state['recognition_response_message'] = recognizedQuestion;
@@ -105,11 +118,10 @@ async function recognizeAndProcessMessage(cleanedMessage) {
 
 async function recognizeQuestion(message) {
     try {
-        const response = await fetch("/api/recognize-question/", {
+        const response = await fetch(`/api/recognize-question/`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X_CSRFTOKEN": csrfToken,
             },
             body: JSON.stringify({ message }),
         });
@@ -126,6 +138,32 @@ async function recognizeQuestion(message) {
     }
 }
 
+
+const fetchSectionNameByQuestion = async (questionID) => {
+    const encodeQuestionID = encodeURIComponent(questionID);
+    try {
+        const response = await fetch(`/api/get-section-by-question/?questionID=${encodeQuestionID}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! Status: ${response.status}, Text: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data.name || null;
+
+    } catch (error) {
+        console.error('Error fetching section by question:', error.message);
+        return null;
+    }
+};
+
+
 async function processRecognizedQuestion(questionContent) {
     try {
         const encodedContent = encodeURIComponent(questionContent);
@@ -137,6 +175,8 @@ async function processRecognizedQuestion(questionContent) {
 
         const data = await response.json();
         const questionID = data.result["@rid"];
+        const sectionName = await fetchSectionNameByQuestion(questionID);
+        await sendPopularRequest(sectionName);
         await showAnswer(questionID, 'recognition');
     } catch (error) {
         console.error("Ошибка при обработке распознанного вопроса:", error.message);
@@ -175,27 +215,30 @@ async function handleUnrecognizedMessage(message) {
     typingBlock.style.display = 'flex';
     chatMessagesArea.style.paddingBottom = '20px';
     let is_neural_active = false;
-    await fetch('/api/neural-status/')
+    await fetch(`/api/neural-status/`)
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            is_neural_active = true;
+            is_neural_active = data.neural_active;
         }
     });
     let neuralMessage = '';
     if (is_neural_active) {
+        await sendPopularRequest('Иное');
+        disableCloseButton();
         neuralMessage = await sendRequestToFastAPI(message);
-        appendMessage('bot', neuralMessage, getTimestamp(), false);
+        await appendMessage('bot', neuralMessage, getTimestamp(), false);
         await sendBotMessage(neuralMessage);
         state['neural_response_message'] = neuralMessage;
         await createFeedbackElements();
+        enableCloseButton();
     } else {
         neuralMessage = withoutNeuralMessages[Math.floor(Math.random() * withoutNeuralMessages.length)];
-        appendMessage('bot', neuralMessage, getTimestamp(), false);
+        await appendMessage('bot', neuralMessage, getTimestamp(), false);
         await sendBotMessage(neuralMessage);
         state['neural_response_message'] = neuralMessage;
         const botAnswerMessage = customResponses[Math.floor(Math.random() * customResponses.length)];
-        appendMessage('bot', botAnswerMessage, getTimestamp(), false);
+        await appendMessage('bot', botAnswerMessage, getTimestamp(), false);
         await sendBotMessage(botAnswerMessage);
         typingBlock.style.display = 'none';
         chatMessagesArea.style.paddingBottom = '10px';

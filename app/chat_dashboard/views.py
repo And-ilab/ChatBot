@@ -903,6 +903,7 @@ def user_list(request):
         'search_query': search_query
     })
 #@role_required('admin')
+@csrf_exempt
 def user_create(request):
     """Creates a new user."""
     logger.info("Creating a new user.")
@@ -963,6 +964,7 @@ def get_user_model_by_type(user_type):
 
 
 #@role_required('admin')
+@csrf_exempt
 def user_update(request, user_type, pk):
     """Updates user data for both User and ChatUser models."""
     logger.info(f"Updating {user_type} user with ID: {pk}")
@@ -998,6 +1000,7 @@ def user_update(request, user_type, pk):
     })
 
 #@role_required('admin')
+@csrf_exempt
 def user_delete(request, user_type, pk):
     """Deletes a user from specified model."""
     logger.info(f"Attempting to delete {user_type} user with ID: {pk}")
@@ -1368,29 +1371,20 @@ def update_settings(request):
     if request.method == 'POST':
         try:
             session_duration = int(request.POST.get('session_duration'))
-            ip_address = request.POST.get('ip_address')
-            enable_ad = request.POST.get('enable_ad') == 'on'  # Проверяем на 'on'
-            ldap_server = request.POST.get('ad_server')
-            domain = request.POST.get('ad_domain')
             retention_months = request.POST.get('message_retention_months')
             logs_backup = request.POST.get('logs_backup')
             neural_active = request.POST.get('neural_active') == 'on'
-
             settings = Settings.objects.first()
             settings.session_duration = session_duration
-            settings.ip_address = ip_address
             settings.logs_backup = logs_backup
-            settings.ad_enabled = enable_ad  # Обновляем значение AD
-            settings.ldap_server = ldap_server
-            settings.domain = domain
             settings.neural_active = neural_active
-            settings.message_retention_days = int(
-                retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
+            settings.message_retention_days = int(retention_months) * 30 if retention_months.isdigit() else settings.message_retention_days
             settings.save()
 
             return JsonResponse({'status': 'success', 'message': 'Настройки успешно обновлены!'})
 
         except Exception as e:
+
             return JsonResponse({'status': 'error', 'message': str(e)})
 
     return JsonResponse({'status': 'error', 'message': 'Неверный запрос'})
@@ -1648,3 +1642,69 @@ def add_new_question_from_teaching(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def delete_relation(request):
+    """Creates a relation between two nodes."""
+    user = request.user
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            document = data.get('document_id')
+            answer = data.get('answer_id')
+
+            if not document or not answer:
+                logger.warning("Missing required fields for relation creation.")
+                user_action.warning(
+                    f"Missing required fields for relation creation.",
+                    extra={
+                        'user_id': user.id,
+                        'user_name': user.first_name + ' ' + user.last_name,
+                        'action_type': 'delete_node',
+                        'time': datetime.now(),
+                        'details': json.dumps({
+                            'status': f"Missing required fields for relation creation.",
+                        })
+
+                    }
+                )
+                return JsonResponse({'error': 'Missing required fields'}, status=400)
+
+            command = f"DELETE EDGE Includes WHERE out ={answer} AND in={document}"
+            headers = {'Content-Type': 'application/json'}
+            json_data = {"command": command}
+
+            response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
+                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),proxies={"http":None, "https":None})
+
+            user_action.info(
+                f"Node successfully deleted",
+                extra={
+                    'user_id': user.id,
+                    'user_name': user.first_name + ' ' + user.last_name,
+                    'action_type': 'delete_node',
+                    'time': datetime.now(),
+                    'details': json.dumps({
+                        'status': f"Node successfully deleted.",
+                    })
+
+                }
+            )
+
+            return JsonResponse({'message': 'Node successfully deleted'}, status=201)
+        except Exception as e:
+            user_action.warning(
+                "An error occurred while creating a relation.",
+                extra={
+                    'user_id': user.id,
+                    'user_name': user.first_name + ' ' + user.last_name,
+                    'action_type': 'delete_node',
+                    'time': datetime.now(),
+                    'details': json.dumps({
+                        'status': "An error occurred while creating a relation.",
+                    })
+
+                }
+            )
+            logger.exception("An error occurred while creating a relation.")
+            return JsonResponse({'error': str(e)}, status=400)

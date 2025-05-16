@@ -9,8 +9,12 @@ class ChatUser(models.Model):
         ('user', 'Пользователь'),
     ]
     id = models.AutoField(primary_key=True)
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    tabel_number = models.CharField(max_length=100, default='b0000000')
+    title = models.CharField(max_length=100, default='No info')
+    company = models.CharField(max_length=100, default='No info')
+    department = models.CharField(max_length=100, default='No info')
     email = models.EmailField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')

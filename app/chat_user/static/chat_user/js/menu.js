@@ -1,33 +1,142 @@
 const menuButtonsContainer = document.querySelector(".menu-buttons");
 const menuButton = document.getElementById("user-menu-button");
 const typingBlock = document.querySelector('.typing-animation');
+const exitButton = document.getElementById('user-close-chat');
+const chatToggle = document.getElementById("user-chat-toggle");
+const chatWindow = document.getElementById("user-chat-window");
 
 let navigationStack = [];
 
-const updateChatLayout = () => {
-    chatMessagesArea.style.height = '390px';
-    menuButtonsContainer.style.display = 'flex';
-    menuButton.style.display = 'flex';
-    setTimeout(scrollToBottom, 10);
-};
+function hideChat() {
+    chatWindow.classList.remove("show");
+    setTimeout(() => {
+        chatWindow.style.display = "none";
+        chatToggle.style.display = "block";
+    }, 300);
+}
 
-menuButton.addEventListener('click', async () => {
-    if (menuButtonsContainer.style.display === 'none' || menuButtonsContainer.style.display === '') {
-        await showSectionButtons();
-    } else {
-        menuButtonsContainer.style.display = 'none';
-        chatMessagesArea.style.height = '570px';
-    }
-});
+function clearState() {
+    state['dialog_id'] = null;
+    state['user_id'] = null;
+    state['username'] = null;
+    state['started_at'] = null;
+    state['is_first_time_chat_opened'] = true;
+}
 
 const hideMenu = () => {
     chatMessagesArea.style.height = '570px';
     menuButtonsContainer.style.display = 'none';
     menuButton.style.display = 'none';
+    setTimeout(scrollToBottom, 10);
 }
 
+let timerID = null;
+
+const timerCallback = () => {
+    closeChatWindow();
+};
+
+async function extendSession() {
+    const sessionToken = localStorage.getItem("sessionToken");
+    if (!sessionToken) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/extend-session/`, {
+            method: "POST",
+            headers: {
+                "Authorization": sessionToken,
+                "Content-Type": "application/json",
+            },
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            localStorage.setItem("sessionToken", sessionToken);
+        } else {
+            console.log("Failed to extend session:", data.message);
+        }
+    } catch (error) {
+        console.error("Error extending session:", error);
+    }
+}
+
+
+const getSessionDuration = async () => {
+    const response = await fetch(`/api/get-session-duration/`, {method: 'GET'})
+
+     if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error fetching session duration: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.duration;
+}
+
+const startOrRestartTimer = async () => {
+    const session_duration = await getSessionDuration();
+    const delay = session_duration * 60 * 1000;
+    if (timerID) {
+        clearTimeout(timerID);
+    }
+    await extendSession();
+    timerID = setTimeout(timerCallback, delay);
+}
+
+const stopTimer = () => {
+    if (timerID) {
+        clearTimeout(timerID);
+        timerID = null;
+    }
+}
+
+async function closeChatWindow() {
+    await closeSession();
+    hideChat();
+    chatMessagesArea.innerHTML = "";
+    clearState();
+    hideMenu();
+    stopTimer();
+}
+
+const updateChatLayout = async () => {
+    menuButtonsContainer.style.display = 'flex';
+    menuButton.style.display = 'flex';
+    menuButtonsContainer.style.opacity = '0';
+    chatMessagesArea.style.height = '390px';
+    menuButtonsContainer.style.opacity = '1';
+    setTimeout(scrollToBottom, 10);
+};
+
+const disableCloseButton = () => {
+    exitButton.disabled = true;
+}
+
+
+const enableCloseButton = () => {
+    exitButton.disabled = false;
+}
+
+
+menuButton.addEventListener('click', async () => {
+    if (menuButtonsContainer.style.display === 'none' || !menuButtonsContainer.style.display) {
+        menuButtonsContainer.style.display = 'flex';
+        menuButton.style.display = 'flex';
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        chatMessagesArea.style.height = '390px';
+        await showSectionButtons();
+    } else {
+        menuButtonsContainer.style.opacity = '0';
+        menuButtonsContainer.style.display = 'none';
+        chatMessagesArea.style.height = '570px';
+    }
+    setTimeout(scrollToBottom, 10);
+});
+
 async function sendPopularRequest(requestType) {
-    const url = "/api/add-popular-request/";
+    const url = `/api/add-popular-request/`;
     const requestData = {
         sender_id: state['user_id'],
         type: requestType
@@ -38,7 +147,6 @@ async function sendPopularRequest(requestType) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X_CSRFTOKEN": csrfToken
             },
             body: JSON.stringify(requestData)
         });
@@ -48,7 +156,6 @@ async function sendPopularRequest(requestType) {
             throw new Error(data.error || "Ошибка запроса");
         }
 
-        console.log("Успешно отправлено:", data);
         return data;
     } catch (error) {
         console.error("Ошибка при отправке запроса:", error.message);
@@ -83,7 +190,6 @@ const fetchNodes = async (type) => {
 };
 
 const fetchNodesWithRelation = async (startNodeType, startNodeName, finishNodeType) => {
-    console.log(startNodeType, startNodeName, finishNodeType);
     const encodeStartNodeType = encodeURIComponent(startNodeType);
     const encodeStartNodeName = encodeURIComponent(startNodeName);
     const encodeFinishNodeType = encodeURIComponent(finishNodeType);
@@ -144,7 +250,7 @@ const goBack = async () => {
         return;
     }
     let time = getTimestamp();
-    appendMessage('user', 'Назад', time);
+    await appendMessage('user', 'Назад', time);
     await sendMessageToAPI(state['dialog_id'], 'user', 'message', 'Назад', time);
 
     const { type, name } = navigationStack[navigationStack.length - 1];
@@ -188,7 +294,7 @@ const showSectionButtons = async () => {
     const nodes = await fetchNodes('Section');
 
     createButtonsFromNodes(nodes, async (selectedNode) => {
-        appendMessage('user', selectedNode.name, getTimestamp());
+        await appendMessage('user', selectedNode.name, getTimestamp());
         await sendMessageToAPI(state['dialog_id'], 'user', 'message', selectedNode.name, getTimestamp());
         navigationStack.push({ type: 'Section', name: selectedNode.name, fetchFunction: fetchNodes });
         await sendPopularRequest(selectedNode.name);
@@ -198,10 +304,8 @@ const showSectionButtons = async () => {
 
 const showTopicButtons = async (sectionName) => {
     const nodes = await fetchNodesWithRelation('Section', sectionName, 'Topic');
-    console.log(sectionName);
-    console.log(nodes);
     createButtonsFromNodes(nodes, async (selectedNode) => {
-        appendMessage('user', selectedNode.name, getTimestamp());
+        await appendMessage('user', selectedNode.name, getTimestamp());
         await sendMessageToAPI(state['dialog_id'], 'user', 'message', selectedNode.name, getTimestamp());
         navigationStack.push({ type: 'Topic', name: selectedNode.name, fetchFunction: fetchNodesWithRelation });
         await showQuestionsButtons(selectedNode.name);
@@ -211,7 +315,7 @@ const showTopicButtons = async (sectionName) => {
 const showQuestionsButtons = async (topicName) => {
     const nodes = await fetchNodesWithRelation('Topic', topicName, 'Question');
     createButtonsFromNodes(nodes, async (selectedNode) => {
-        appendMessage('user', selectedNode.name, getTimestamp());
+        await appendMessage('user', selectedNode.name, getTimestamp());
         await sendMessageToAPI(state['dialog_id'], 'user', 'message', selectedNode.name, getTimestamp());
         navigationStack.push({ type: 'Question', name: selectedNode.name, fetchFunction: fetchNodesWithRelation });
         await showAnswer(selectedNode.id, 'script');
@@ -229,6 +333,7 @@ const showAnswer = async (questionID, requestType) => {
     if (answer) {
         typingBlock.style.display = 'flex';
         chatMessagesArea.style.paddingBottom = '20px';
+        disableCloseButton();
         const randomDelay = Math.floor(Math.random() * 2000) + 2000;
         await new Promise(resolve => setTimeout(resolve, randomDelay));
 
@@ -236,16 +341,16 @@ const showAnswer = async (questionID, requestType) => {
 
         for (const part of answerParts) {
             if (part.trim()) {
-                setTimeout(scrollToBottom, 0);
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 const formattedPart = part.replace(/\n/g, '<br>');
-                appendMessage('bot', formattedPart, getTimestamp());
+                await appendMessage('bot', formattedPart, getTimestamp());
                 await sendBotMessage(formattedPart);
             }
         }
         await showArtifacts(answer.id);
         typingBlock.style.display = 'none';
         chatMessagesArea.style.paddingBottom = '10px';
+        enableCloseButton();
         if (requestType === 'script') {
             enableUserActions();
             await showSectionButtons();
@@ -256,7 +361,7 @@ const showAnswer = async (questionID, requestType) => {
         }
     } else {
         let message = 'Не удалось найти ответ на выбранный вопрос, попробуйте еще раз';
-        appendMessage('bot', message, getTimestamp());
+        await appendMessage('bot', message, getTimestamp());
         await sendBotMessage(message);
         await showSectionButtons();
         enableUserActions();
@@ -278,7 +383,7 @@ const createArtifactsBlock = async (artifacts) => {
         } else {
             docMessage = `${state['username']}, еще больше информации Вы можете получить в документе:`;
         }
-        appendMessage('bot', docMessage, getTimestamp());
+        await appendMessage('bot', docMessage, getTimestamp());
         await sendBotMessage(docMessage);
 
         // Обрабатываем документы
@@ -302,10 +407,13 @@ const createArtifactsBlock = async (artifacts) => {
 
                 const link = document.createElement('a');
                 link.href = filePath;
-                link.download = doc.name; // Указываем имя файла для скачивания
-                documentButton.onclick = () => {
-                    link.click(); // Скачивание файла при нажатии на кнопку
-                };
+                link.download = doc.name;
+                link.target = '_blank';
+                documentButton.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    await startOrRestartTimer();
+                    link.click();
+                });
                 documentMessageDiv.appendChild(documentButton);
                 chatMessagesArea.appendChild(documentMessageDiv);
                 await sendMessageToAPI(state['dialog_id'], 'bot', 'document', `${doc.name}^_^${doc.uuid}`, getTimestamp());
@@ -318,19 +426,14 @@ const createArtifactsBlock = async (artifacts) => {
             }
         }
 
-        setTimeout(scrollToBottom, 0);
-
-        // После завершения обработки документов выводим ссылки
         if (links.length > 0) {
-            console.log('Jopa');
-            console.log(links);
             let linkMessage;
             if (links.length > 1) {
                 linkMessage = `... а также на страницах портала:`;
             } else {
                 linkMessage = `... а также на странице портала:`;
             }
-            appendMessage('bot', linkMessage, getTimestamp());
+            await appendMessage('bot', linkMessage, getTimestamp());
             await sendBotMessage(linkMessage);
 
             for (const link of links) {
@@ -349,8 +452,6 @@ const createArtifactsBlock = async (artifacts) => {
                 chatMessagesArea.appendChild(messageDiv);
                 await sendMessageToAPI(state['dialog_id'], 'bot', 'link', `${link.name}^_^${link.content}`, getTimestamp());
             }
-
-            setTimeout(scrollToBottom, 0);
         }
     } else {
         let message = ''
@@ -359,7 +460,7 @@ const createArtifactsBlock = async (artifacts) => {
         } else {
             message = `${state['username']}, еще больше информации Вы можете получить на странице портала:`;
         }
-        appendMessage('bot', message, getTimestamp());
+        await appendMessage('bot', message, getTimestamp());
         await sendBotMessage(message);
         links.forEach(async (link) => {
             const messageDiv = document.createElement('div');
@@ -370,33 +471,32 @@ const createArtifactsBlock = async (artifacts) => {
                     <i class="fas fa-external-link-alt" style="margin-left: 8px;"></i>
                 `;
 
-                linkButton.addEventListener('click', () => {
+                linkButton.addEventListener('click', async () => {
+                    await startOrRestartTimer();
                     window.open(link.content, '_blank');
                 });
                 messageDiv.appendChild(linkButton);
                 chatMessagesArea.appendChild(messageDiv);
                 await sendMessageToAPI(state['dialog_id'], 'bot', 'link', `${link.name}^_^${link.content}`, getTimestamp());
         });
-        setTimeout(scrollToBottom, 0);
     }
 }
 
 const showArtifacts = async (answerID) => {
     const artifactsData = await fetchArtifacts(answerID);
-    console.log(artifactsData);
     await createArtifactsBlock(artifactsData);
+    await startOrRestartTimer();
     typingBlock.style.display = 'none';
     chatMessagesArea.style.paddingBottom = '10px';
 };
 
 const sendFeedback = async (messageType, answerContent = null) => {
     try {
-        const response = await fetch('/api/add-feedback/', {
+        const response = await fetch(`/api/add-feedback/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Token ${localStorage.getItem('token')}`,
-                "X_CSRFTOKEN": csrfToken
             },
             body: JSON.stringify({
                 user: state['user_id'],
@@ -411,7 +511,6 @@ const sendFeedback = async (messageType, answerContent = null) => {
         }
 
         const data = await response.json();
-        console.log('Отзыв отправлен:', data);
     } catch (error) {
         console.error('Ошибка при отправке отзыва:', error);
     }
@@ -419,7 +518,7 @@ const sendFeedback = async (messageType, answerContent = null) => {
 
 const sendThanksFeedbackMessage = async () => {
     let message = 'Спасибо за Ваш отзыв!';
-    appendMessage('bot', message, getTimestamp());
+    await appendMessage('bot', message, getTimestamp());
     await sendBotMessage(message);
     state['message_to_operator'] = '';
     state['neural_response_message'] = '';
@@ -429,20 +528,17 @@ const sendThanksFeedbackMessage = async () => {
 
 async function fetchAllQuestions() {
     try {
-        const response = await fetch('/api/get-all-questions/');
+        const response = await fetch(`/api/get-all-questions/`);
 
         if (!response.ok) {
             throw new Error('Ошибка при запросе данных');
         }
 
         const data = await response.json();
-        console.log(data);
 
         if (data.result && data.result.length > 0) {
-            console.log('Найдены вопросы:', data.result);
             return data.result;
         } else {
-            console.log('Вопросы не найдены.');
             return [];
         }
     } catch (error) {
@@ -457,12 +553,10 @@ async function deleteOperatorButton() {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'X_CSRFTOKEN': csrfToken,
             },
         });
 
         const data = await response.json();
-        console.log(data);
 
         if (response.ok) {
             state['message_to_operator'] = ''
@@ -501,11 +595,10 @@ async function addOperatorButton(message, neural_message, recognized_message, to
     } else {
         operatorButton.addEventListener('click', async (e) => {
             try {
-                await fetch("/api/create-training-message/", {
+                await fetch(`/api/create-training-message/`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "X_CSRFTOKEN": csrfToken,
                     },
                     body: JSON.stringify({
                         sender_id: state['user_id'],
@@ -524,7 +617,7 @@ async function addOperatorButton(message, neural_message, recognized_message, to
             await deleteOperatorButton();
             operatorButtonContainer.remove();
 
-            appendMessage('bot', confirmMessage, getTimestamp());
+            await appendMessage('bot', confirmMessage, getTimestamp());
             await sendBotMessage(confirmMessage);
             state['message_to_operator'] = '';
             state['neural_response_message'] = '';
@@ -532,13 +625,15 @@ async function addOperatorButton(message, neural_message, recognized_message, to
             enableUserActions();
             await showSectionButtons();
             setTimeout(scrollToBottom, 0);
+            await startOrRestartTimer();
         });
     }
 }
 
 const sendFeedbackRequest = async () => {
+    await sendFeedback('dislike');
     const botAnswerMessage = customResponses[Math.floor(Math.random() * customResponses.length)];
-    appendMessage('bot', botAnswerMessage, getTimestamp(), false);
+    await appendMessage('bot', botAnswerMessage, getTimestamp(), false);
     await sendBotMessage(botAnswerMessage);
     await addOperatorButton(state['message_to_operator'], state['neural_response_message'], state['recognition_response_message'], true, false);
 };
@@ -555,6 +650,7 @@ const appendBotFeedbackButtons = async () => {
         dislikeButton.remove();
         await sendMessageToAPI(state['dialog_id'], 'bot', 'like', 'Useful', getTimestamp());
         await sendFeedback('like');
+        await startOrRestartTimer();
         sendThanksFeedbackMessage();
     };
 
@@ -564,6 +660,7 @@ const appendBotFeedbackButtons = async () => {
         dislikeButton.disabled = true;
         likeButton.remove();
         await sendMessageToAPI(state['dialog_id'], 'bot', 'dislike', 'Not useful', getTimestamp());
+        await startOrRestartTimer();
         await sendFeedbackRequest();
     };
 
@@ -579,8 +676,9 @@ const appendBotFeedbackButtons = async () => {
 const createFeedbackElements = async () => {
     enableUserActions();
     updateChatLayout();
+    showSectionButtons();
     let message = 'Насколько полезным был для Вас этот ответ?';
-    appendMessage('bot', message, getTimestamp());
+    await appendMessage('bot', message, getTimestamp());
     await sendBotMessage(message);
-    appendBotFeedbackButtons();
+    await appendBotFeedbackButtons();
 };

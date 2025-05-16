@@ -55,8 +55,7 @@ async function extendSession() {
             method: "POST",
             headers: {
                 "Authorization": sessionToken,
-                "Content-Type": "application/json",
-                "X_CSRFTOKEN": csrfToken,
+                "Content-Type": "application/json"
             },
         });
 

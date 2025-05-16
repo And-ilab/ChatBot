@@ -169,6 +169,7 @@ const updateDocumentList = (documents) => {
             if (!confirm('Вы уверены, что хотите удалить этот документ?')) return;
 
             const documentId = button.getAttribute('data-id');
+            const answer = await fetchAnswer(selectedQuestion.value);
             const currentQuestion = questionSelect.options[questionSelect.selectedIndex];
 
             if (!currentQuestion || !currentQuestion.value) {
@@ -180,13 +181,13 @@ const updateDocumentList = (documents) => {
                 const answer = await fetchAnswer(currentQuestion.value);
                 if (!answer || !answer.id) throw new Error('Ответ не найден');
 
-                const response = await fetch('/api/delete-node/', {
+                const response = await fetch('/api/delete-relation/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': getCookie('csrftoken'),
                     },
-                    body: JSON.stringify({ node_id: documentId }),
+                    body: JSON.stringify({ document_id: documentId, answer_id: answer.id }),
                 });
 
                 if (!response.ok) throw new Error(await response.text());
@@ -247,9 +248,10 @@ const updateLinkList = (links) => {
 
     document.querySelectorAll('.delete-link-btn').forEach((button) => {
         button.addEventListener('click', async (event) => {
-            if (!confirm('Вы уверены, что хотите удалить эту ссылку?')) return;
+            if (!confirm('Вы уверены, что хотите удалить этот документ?')) return;
 
             const linkId = button.getAttribute('data-id');
+            const answer = await fetchAnswer(selectedQuestion.value);
             const currentQuestion = questionSelect.options[questionSelect.selectedIndex];
 
             if (!currentQuestion || !currentQuestion.value) {
@@ -261,20 +263,19 @@ const updateLinkList = (links) => {
                 const answer = await fetchAnswer(currentQuestion.value);
                 if (!answer || !answer.id) throw new Error('Ответ не найден');
 
-                // 2. Удаляем ссылку
-                const response = await fetch('/api/delete-node/', {
+                const response = await fetch('/api/delete-relation/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': getCookie('csrftoken'),
                     },
-                    body: JSON.stringify({ node_id: linkId }),
+                    body: JSON.stringify({ document_id: linkId, answer_id: answer.id }),
                 });
 
                 if (!response.ok) throw new Error(await response.text());
 
                 await updateArtifacts(answer.id);
-                showNotification('Ссылка удалена', 'alert-success');
+                showNotification('Документ удален', 'alert-success');
 
             } catch (error) {
                 console.error('Ошибка удаления:', error);
@@ -283,6 +284,8 @@ const updateLinkList = (links) => {
         });
     });
 };
+
+
 
 const populateExistingLinks = async () => {
     const existingLinkSelect = document.getElementById('existing-link');
@@ -997,6 +1000,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showNotification('Пожалуйста, заполните все поля', 'alert-danger');
                 return;
             }
+            formData.append("file",file);
+            formData.append("title",fileTitle);
 
             try {
                 // 1. Загружаем файл
@@ -1026,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     body: JSON.stringify({
                         class: 'document',
                         name: fileTitle,
-                        content: '',
+                        content: fileTitle,
                         uuid: uploadResult.data.file_id
                     }),
                 });
@@ -1348,4 +1353,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
-
