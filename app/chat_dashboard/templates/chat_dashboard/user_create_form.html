@@ -17,7 +17,8 @@
         {% endif %}
 
         <form method="post" id="userForm">
-{% csrf_token %}            <div class="mb-3">
+            {% csrf_token %}
+            <div class="mb-3">
                 {{ form.id.label }}
                 {{ form.id }}
             </div>
@@ -61,12 +62,13 @@
 </div>
 
 {% if email_exists %}
-<div class="modal" id="emailErrorModal" tabindex="-1" role="dialog" style="display: block;">
+<!-- Исправленное модальное окно с правильными классами Bootstrap -->
+<div class="modal fade show" id="emailErrorModal" tabindex="-1" role="dialog" aria-labelledby="emailErrorModalLabel" style="display: block; background-color: rgba(0,0,0,0.5);">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Ошибка</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeModal()">
+                <h5 class="modal-title" id="emailErrorModalLabel">Ошибка</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -74,12 +76,15 @@
                 <p>Пользователь с адресом электронной почты "{{ email }}" уже зарегистрирован.</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="clearEmailField()">Понятно</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Понятно</button>
             </div>
         </div>
     </div>
 </div>
 {% endif %}
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
     function togglePasswordVisibility() {
@@ -96,13 +101,11 @@
         }
     }
 
-    function clearEmailField() {
-        document.getElementById('id_email').value = '';
-        closeModal();
-    }
-
-    function closeModal() {
-        document.getElementById('emailErrorModal').style.display = 'none';
-    }
+    // Инициализация модального окна
+    $(document).ready(function() {
+        {% if email_exists %}
+        $('#emailErrorModal').modal('show');
+        {% endif %}
+    });
 </script>
 {% endblock %}

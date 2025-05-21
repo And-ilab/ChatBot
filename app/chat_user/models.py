@@ -16,6 +16,7 @@ class ChatUser(models.Model):
     company = models.CharField(max_length=100, default='No info')
     department = models.CharField(max_length=100, default='No info')
     email = models.EmailField(unique=True)
+    is_archived = models.BooleanField(default=False, verbose_name="Архивный")
     created_at = models.DateTimeField(auto_now_add=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
 

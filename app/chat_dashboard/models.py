@@ -40,6 +40,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_active = models.DateTimeField(null=True, blank=True)
     is_online = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False, verbose_name="Архивный")
     activation_token = models.CharField(max_length=32, blank=True, null=True)
     activation_token_created = models.DateTimeField(blank=True, null=True)
 
@@ -77,6 +78,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_role_display(self):
         return dict(self.ROLE_CHOICES).get(self.role, self.role)
+
+
+class ActionLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    action = models.TextField()
+
+    def __str__(self):
+        return f"{self.timestamp} - {self.user}: {self.action}"
 
 
 class Dialog(models.Model):

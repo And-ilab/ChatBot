@@ -1,85 +1,39 @@
 {% extends "base/layout.html" %}
 {% load static %}
+
+{% block title %}Управление пользователями{% endblock %}
 {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token }}">
-    <title>{% block title %}Пользователи{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'chat_dashboard/css/style.css' %}">
-    <style>
-            .table-container {
-                overflow-x: auto; /* Оставить на случай экстренной прокрутки */
-                width: 100%;
-                max-width: 100vw; /* Не позволит выйти за пределы экрана */
-            }
 
-            .full-width-table {
-                width: 100% !important;
-                min-width: unset !important; /* Убрать фиксированную минимальную ширину */
-                table-layout: auto; /* Автоматическое распределение ширины */
-            }
-
-            .table th, .table td {
-                white-space: normal !important; /* Разрешить перенос текста */
-                max-width: 200px; /* Максимальная ширина ячеек */
-                word-wrap: break-word; /* Перенос длинных слов */
-            }
-            .pagination {
-                justify-content: center;
-                margin-top: 20px;
-            }
-            .pagination {
-                justify-content: center;
-                margin-top: 20px;
-            }
-            .modal-dialog {
-                max-width: 600px;
-                width: 90%;
-
-            .sortable {
-                cursor: pointer;
-            }
-            .sort-icon {
-                font-size: 0.75rem; /* Уменьшенный размер иконок */
-                margin-left: 5px; /* Отступ слева от иконок */
-                vertical-align: middle; /* Выравнивание по центру */
-            }
-                @media (max-width: 768px) {
-            .table th, .table td {
-                font-size: 14px; /* Уменьшить размер текста */
-                padding: 8px; /* Уменьшить отступы */
-            }
-
-            .btn-sm {
-                padding: 4px 8px; /* Уменьшить кнопки */
-                font-size: 12px;
-            }
-        }
-    </style>
-</head>
-<body>
 <div class="container my-5">
     <div class="header mb-4">
         <div class="d-flex justify-content-between align-items-center">
             <h1 class="text-dark">Пользователи</h1>
             <div>
-                <a href="{% url 'chat_dashboard:user_create' %}" class="btn btn-success btn-sm">Добавить
-                    пользователя</a>
+                <a href="{% url 'chat_dashboard:user_create' %}" class="btn btn-success btn-sm">Добавить пользователя</a>
             </div>
         </div>
     </div>
 
-    <!-- Поле поиска (под кнопкой "Добавить пользователя") -->
-    <form method="GET" class="mb-4">
-        <div class="input-group justify-content-center" style="max-width: 400px; margin: 0 auto;">
-            <input type="text" name="search" class="form-control" placeholder="Поиск по пользователям"
-                   value="{{ request.GET.search }}">
-            <button type="submit" class="btn btn-primary">Поиск</button>
+    <!-- Фильтр и поиск -->
+    <form method="GET" class="mb-4" id="filter-form">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-4">
+                <select name="archive_filter" class="form-select" onchange="this.form.submit()">
+                    <option value="active" {% if request.GET.archive_filter == 'active' %}selected{% endif %}>Активные</option>
+                    <option value="archived" {% if request.GET.archive_filter == 'archived' %}selected{% endif %}>Архивные</option>
+                    <option value="all" {% if request.GET.archive_filter == 'all' or not request.GET.archive_filter %}selected{% endif %}>Все</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" placeholder="Поиск по пользователям" value="{{ request.GET.search }}">
+                    <!-- Сохраняем текущую сортировку если она есть -->
+                    {% if request.GET.sort %}
+                    <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">Применить</button>
+                </div>
+            </div>
         </div>
     </form>
 
@@ -88,29 +42,18 @@
             <table class="table table-striped table-bordered">
                 <thead class="table-light">
                 <tr>
-                    <th class="text-center sortable" onclick="sortTable('first_name')">Имя <i
-                            class="bi bi-arrow-up sort-icon" aria-hidden="true"></i><i
-                            class="bi bi-arrow-down sort-icon" aria-hidden="true"></i></th>
-                    <th class="text-center sortable" onclick="sortTable('last_name')">Фамилия <i
-                            class="bi bi-arrow-up sort-icon" aria-hidden="true"></i><i
-                            class="bi bi-arrow-down sort-icon" aria-hidden="true"></i></th>
-                    <th class="text-center sortable" onclick="sortTable('email')">Email <i
-                            class="bi bi-arrow-up sort-icon" aria-hidden="true"></i><i
-                            class="bi bi-arrow-down sort-icon" aria-hidden="true"></i></th>
-                    <th class="text-center sortable" onclick="sortTable('id')">ID пользователя <i
-                            class="bi bi-arrow-up sort-icon" aria-hidden="true"></i><i
-                            class="bi bi-arrow-down sort-icon" aria-hidden="true"></i></th>
-                    <th class="text-center sortable" onclick="sortTable('role')">Роль <i
-                            class="bi bi-arrow-up sort-icon" aria-hidden="true"></i><i
-                            class="bi bi-arrow-down sort-icon" aria-hidden="true"></i></th>
-                                <th class="text-center sortable" onclick="sortTable('role')">Действие <i
-                    class="bi bi-arrow-up sort-icon" aria-hidden="true"></i><i
-                    class="bi bi-arrow-down sort-icon" aria-hidden="true"></i></th>
+                    <th class="text-center sortable" onclick="sortTable('first_name')">Имя <i class="bi bi-arrow-up sort-icon" aria-hidden="true"></i><i class="bi bi-arrow-down sort-icon" aria-hidden="true"></i></th>
+                    <th class="text-center sortable" onclick="sortTable('last_name')">Фамилия <i class="bi bi-arrow-up sort-icon" aria-hidden="true"></i><i class="bi bi-arrow-down sort-icon" aria-hidden="true"></i></th>
+                    <th class="text-center sortable" onclick="sortTable('email')">Email <i class="bi bi-arrow-up sort-icon" aria-hidden="true"></i><i class="bi bi-arrow-down sort-icon" aria-hidden="true"></i></th>
+                    <th class="text-center sortable" onclick="sortTable('id')">ID пользователя <i class="bi bi-arrow-up sort-icon" aria-hidden="true"></i><i class="bi bi-arrow-down sort-icon" aria-hidden="true"></i></th>
+                    <th class="text-center sortable" onclick="sortTable('role')">Роль <i class="bi bi-arrow-up sort-icon" aria-hidden="true"></i><i class="bi bi-arrow-down sort-icon" aria-hidden="true"></i></th>
+                    <th class="text-center sortable">Статус</th>
+                    <th class="text-center sortable">Действие</th>
                 </tr>
                 </thead>
                 <tbody>
                 {% for user in page_obj.object_list %}
-                <tr>
+                <tr class="{% if user.is_archived %}archived{% endif %}">
                     <td class="text-center text-dark">{{ user.first_name }}</td>
                     <td class="text-center text-dark">{{ user.last_name }}</td>
                     <td class="text-center text-dark">{{ user.email }}</td>
@@ -120,16 +63,33 @@
                     </td>
                     <td class="text-center text-dark">{{ user.role }}</td>
                     <td class="text-center">
-                        <a href="{% url 'chat_dashboard:user_update' user.type user.id %}"
-                           class="btn btn-sm btn-outline-info mx-1">Изменить</a>
-                        <button class="btn btn-sm btn-outline-danger mx-1"
-                                data-bs-toggle="modal"
-                                data-bs-target="#deleteModal"
-                                data-user-id="{{ user.id }}"
-                                data-user-type="{{ user.type }}"
-                                data-user-name="{{ user.username }}">
-                            Удалить
-                        </button>
+                        {% if user.is_archived %}
+                            <span class="archived-badge">Архивный</span>
+                        {% else %}
+                            <span class="badge bg-success">Активный</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if not user.is_archived %}
+                            <a href="{% url 'chat_dashboard:user_update' user.type user.id %}" class="btn btn-sm btn-outline-info mx-1">Изменить</a>
+                            <button class="btn btn-sm btn-outline-danger mx-1 archive-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#archiveModal"
+                                    data-user-id="{{ user.id }}"
+                                    data-user-type="{{ user.type }}"
+                                    data-user-name="{{ user.username }}">
+                                В архив
+                            </button>
+                        {% else %}
+                            <button class="btn btn-sm btn-outline-success mx-1 restore-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#restoreModal"
+                                    data-user-id="{{ user.id }}"
+                                    data-user-type="{{ user.type }}"
+                                    data-user-name="{{ user.username }}">
+                                Восстановить
+                            </button>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -139,20 +99,22 @@
     </div>
 </div>
 
-<!-- Модальное окно подтверждения удаления -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+<!-- Модальное окно подтверждения архивирования -->
+<div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Подтверждение удаления</h5>
+                <h5 class="modal-title" id="archiveModalLabel">Подтверждение архивирования</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                Вы уверены, что хотите удалить пользователя <span id="user-name"></span>?
+                Вы уверены, что хотите отправить в архив пользователя <span id="archive-user-name"></span>?
+                <p class="text-muted mt-2">Пользователь будет скрыт из списка по умолчанию, но останется в системе.</p>
             </div>
             <div class="modal-footer">
-                <form id="delete-form" method="post" action="">
-        {% csrf_token %}                    <button type="submit" class="btn btn-danger">Удалить</button>
+                <form id="archive-form" method="post" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning">В архив</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                 </form>
             </div>
@@ -160,16 +122,36 @@
     </div>
 </div>
 
+<!-- Модальное окно подтверждения восстановления -->
+<div class="modal fade" id="restoreModal" tabindex="-1" aria-labelledby="restoreModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="restoreModalLabel">Подтверждение восстановления</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Вы уверены, что хотите восстановить пользователя <span id="restore-user-name"></span> из архива?
+            </div>
+            <div class="modal-footer">
+                <form id="restore-form" method="post" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">Восстановить</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <nav aria-label="Page navigation">
     <ul class="pagination">
         {% if page_obj.has_previous %}
         <li class="page-item">
-            <a class="page-link" href="?page=1&sort={{ sort_column }}&search={{ search_query }}">&laquo; Первая</a>
+            <a class="page-link" href="?page=1{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}&archive_filter={{ request.GET.archive_filter|default:'all' }}">&laquo; Первая</a>
         </li>
         <li class="page-item">
-            <a class="page-link"
-               href="?page={{ page_obj.previous_page_number }}&sort={{ sort_column }}&search={{ search_query }}">Назад</a>
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}&archive_filter={{ request.GET.archive_filter|default:'all' }}">Назад</a>
         </li>
         {% endif %}
 
@@ -180,51 +162,84 @@
         </li>
         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
         <li class="page-item">
-            <a class="page-link" href="?page={{ num }}&sort={{ sort_column }}&search={{ search_query }}">{{ num }}</a>
+            <a class="page-link" href="?page={{ num }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}&archive_filter={{ request.GET.archive_filter|default:'all' }}">{{ num }}</a>
         </li>
         {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
         <li class="page-item">
-            <a class="page-link"
-               href="?page={{ page_obj.next_page_number }}&sort={{ sort_column }}&search={{ search_query }}">Вперед</a>
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}&archive_filter={{ request.GET.archive_filter|default:'all' }}">Вперед</a>
         </li>
         <li class="page-item">
-            <a class="page-link"
-               href="?page={{ page_obj.paginator.num_pages }}&sort={{ sort_column }}&search={{ search_query }}">Последняя
-                &raquo;</a>
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}&archive_filter={{ request.GET.archive_filter|default:'all' }}">Последняя &raquo;</a>
         </li>
         {% endif %}
     </ul>
 </nav>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Инициализация модального окна
-const deleteModal = document.getElementById('deleteModal');
-deleteModal.addEventListener('show.bs.modal', function (event) {
-    const button = event.relatedTarget;
-    const userId = button.getAttribute('data-user-id');
-    const userType = button.getAttribute('data-user-type');
-    const userName = button.getAttribute('data-user-name');
-
-    const userNameSpan = document.getElementById('user-name');
-    userNameSpan.textContent = userName;
-
-    const form = document.getElementById('delete-form');
-    form.action = `/chat_dashboard/users/delete/${userType}/${userId}/`;
-});
-
-    // Функция сортировки таблицы
+    // Функция сортировки таблицы с учетом фильтра архива
     function sortTable(column) {
         const currentUrl = new URL(window.location.href);
         const currentSort = currentUrl.searchParams.get('sort');
+        const searchQuery = currentUrl.searchParams.get('search') || '';
+        const archiveFilter = currentUrl.searchParams.get('archive_filter') || 'active';
+
         const newSort = currentSort === column ? `-${column}` : column;
-        currentUrl.searchParams.set('sort', newSort);
-        window.location.href = currentUrl.toString();
+
+        // Собираем новый URL со всеми параметрами
+        let newUrl = `?sort=${newSort}`;
+        if (searchQuery) newUrl += `&search=${encodeURIComponent(searchQuery)}`;
+        newUrl += `&archive_filter=${archiveFilter}`;
+
+        window.location.href = newUrl;
+    }
+
+    // Инициализация модальных окон (остается без изменений)
+    const archiveModal = document.getElementById('archiveModal');
+    archiveModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const userId = button.getAttribute('data-user-id');
+        const userType = button.getAttribute('data-user-type');
+        const userName = button.getAttribute('data-user-name');
+
+        document.getElementById('archive-user-name').textContent = userName;
+        document.getElementById('archive-form').action = `/chat_dashboard/users/archive/${userType}/${userId}/`;
+    });
+
+    const restoreModal = document.getElementById('restoreModal');
+    restoreModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const userId = button.getAttribute('data-user-id');
+        const userType = button.getAttribute('data-user-type');
+        const userName = button.getAttribute('data-user-name');
+
+        document.getElementById('restore-user-name').textContent = userName;
+        document.getElementById('restore-form').action = `/chat_dashboard/users/restore/${userType}/${userId}/`;
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterForm = document.getElementById('filter-form');
+        const archiveFilter = filterForm.querySelector('[name="archive_filter"]');
+
+        archiveFilter.addEventListener('change', function() {
+            filterForm.submit();
+        });
+    });
+
+    // Функция сортировки с сохранением всех параметров
+    function sortTable(column) {
+        const url = new URL(window.location.href);
+        const currentSort = url.searchParams.get('sort');
+
+        if (currentSort === column) {
+            url.searchParams.set('sort', `-${column}`);
+        } else {
+            url.searchParams.set('sort', column);
+        }
+
+        window.location.href = url.toString();
     }
 </script>
-</body>
-</html>
 {% endblock %}

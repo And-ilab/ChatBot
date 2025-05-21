@@ -69,6 +69,9 @@
                     <button type="button" class="btn btn-sm btn-outline-danger" id="delete-question" style="height: 38px; width: 38px;" title="Удалить вопрос">
                         <i class="bi bi-trash"></i>
                     </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="move-question" style="height: 38px; width: 38px;" title="Перенести в другую тему">
+                        <i class="bi bi-arrow-left-right"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -379,6 +382,72 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
                 <button type="button" class="btn btn-primary" id="save-document">Добавить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для переноса вопроса -->
+<div class="modal fade" id="moveQuestionModal" tabindex="-1" aria-labelledby="moveQuestionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="moveQuestionModalLabel">Перенос вопроса</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Выберите тему, в которую хотите перенести вопрос:</p>
+                <select class="form-select" id="target-topic-select">
+                    <option value="" disabled selected>Выберите тему</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="confirm-move-question">Перенести</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования документа -->
+<div class="modal fade" id="editDocumentModal" tabindex="-1" aria-labelledby="editDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editDocumentModalLabel">Редактирование документа</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="edit-document-name" class="form-label">Название документа</label>
+                <input type="text" class="form-control" id="edit-document-name">
+                <input type="hidden" id="edit-document-id">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-document-changes">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования ссылки -->
+<div class="modal fade" id="editLinkModal" tabindex="-1" aria-labelledby="editLinkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editLinkModalLabel">Редактирование ссылки</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="edit-link-name" class="form-label">Название ссылки</label>
+                <input type="text" class="form-control" id="edit-link-name">
+                <label for="edit-link-url" class="form-label mt-2">URL</label>
+                <input type="url" class="form-control" id="edit-link-url">
+                <input type="hidden" id="edit-link-id">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="save-link-changes">Сохранить</button>
             </div>
         </div>
     </div>

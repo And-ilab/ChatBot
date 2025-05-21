@@ -1,6 +1,5 @@
 import logging
-from pathlib import Path
-
+import pytz
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth import get_user_model
 from django.forms import CharField
@@ -10,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Exists, OuterRef, Subquery, Value, Case, When, F, Count
 from django.db.models.functions import TruncDate, Concat
 from django.utils.timezone import now
-from .models import Dialog, Message, User, TrainingMessage, Settings, Documents
+from .models import Dialog, Message, User, TrainingMessage, Settings, Documents, ActionLog
 from django.db.models import CharField
 from chat_user.models import ChatUser, Session
 from .forms import UserForm, UserFormUpdate
@@ -37,6 +36,27 @@ import uuid
 logger = logging.getLogger('chat_dashboard')
 user_action = logging.getLogger('user_actions')
 
+
+def log_action(action_text):
+    try:
+        print('SUKA')
+        # if not user or not isinstance(user, User):
+        #     return False
+        #
+        # if not action_text or not isinstance(action_text, str):
+        #     return False
+
+        # role_display = user.get_role_display()
+        # last_name = user.last_name if user.last_name else ""
+        formatted_action = f"{'Администратор'} -- {action_text}"
+        print(formatted_action)
+
+        ActionLog.objects.create(user=None, action=formatted_action)
+        return True
+
+    except Exception:
+        return False
+
 #@role_required(['admin', 'operator'])
 def analytics(request):
     user = request.user
@@ -57,6 +77,46 @@ def analytics(request):
     logger.info("Accessing analytics page.")
     return render(request, 'chat_dashboard/analytics.html')
 
+#@role_required(['admin', 'operator'])
+def logs_view(request):
+    logger.info("Accessing logs page.")
+
+    period = int(request.GET.get('period', 0))
+    user_id = request.GET.get('user_id', '').strip()
+
+    logs = ActionLog.objects.all()
+
+    # Фильтрация по дате
+    if period == 1:  # Сегодня
+        today = datetime.now().date()
+        logs = logs.filter(timestamp__date=today)
+    elif period == 7:  # За последние 7 дней
+        start_date = datetime.now() - timedelta(days=7)
+        logs = logs.filter(timestamp__gte=start_date)
+    elif period == 30:  # За последние 30 дней
+        start_date = datetime.now() - timedelta(days=30)
+        logs = logs.filter(timestamp__gte=start_date)
+
+    # Фильтрация по ID пользователя
+    if user_id.isdigit():
+        logs = logs.filter(user_id=user_id)
+
+    logs = logs.order_by('-timestamp')
+
+    # Форматирование логов
+    moscow_tz = pytz.timezone('Europe/Moscow')
+    formatted_logs = []
+    for log in logs:
+        local_time = log.timestamp.astimezone(moscow_tz)
+        formatted_time = local_time.strftime('%Y-%m-%d %H:%M:%S')
+        formatted_logs.append(f"[{formatted_time}] - {log.action}")
+
+    logs_text = "\n".join(formatted_logs)
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'logs_text': logs_text})
+
+    return render(request, 'chat_dashboard/logs.html', {'logs_text': logs_text})
 
 @csrf_exempt
 def send_message(request, dialog_id):
@@ -516,6 +576,7 @@ def create_node(request):
                 # )
                 try:
                     response_data = response.json()
+                    log_action(f"Создание новой вершины {node_class} | {node_content}.")
                     return JsonResponse({'status': 'success', 'data': response_data['result']}, status=201)
 
                 except ValueError as e:
@@ -585,18 +646,7 @@ def create_relation(request):
 
             if not start_node_id or not end_node_id:
                 logger.warning("Missing required fields for relation creation.")
-                # user_action.info(
-                #     f"Missing required fields for relation creation.",
-                #     extra={
-                #         'user_id': user.id,
-                #         'user_name': user.first_name + ' ' + user.last_name,
-                #         'action_type': 'create_relation',
-                #         'time': datetime.now(),
-                #         'details': json.dumps({
-                #             'status': f"Missing required fields for relation creation.",
-                #         })
-                #     }
-                # )
+
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
             check_relation_command = f"SELECT FROM Includes WHERE out = {start_node_id} AND in = {end_node_id}"
@@ -638,18 +688,6 @@ def create_relation(request):
 
         except Exception as e:
             logger.exception("An error occurred while creating a relation.")
-            # user_action.error(
-            #     "An error occurred while creating a relation.",
-            #     extra={
-            #         'user_id': user.id,
-            #         'user_name': user.first_name + ' ' + user.last_name,
-            #         'action_type': 'create_relation',
-            #         'time': datetime.now(),
-            #         'details': json.dumps({
-            #             'status': "An error occurred while creating a relation.",
-            #         })
-            #     }
-            # )
             return JsonResponse({'error': str(e)}, status=400)
 
 
@@ -699,7 +737,7 @@ def delete_node(request):
             #
             #     }
             # )
-
+            log_action(f"Удаление вершины {node_id_to_delete}.")
             return JsonResponse({'message': 'Node successfully deleted'}, status=201)
         except Exception as e:
             # user_action.warning(
@@ -821,20 +859,31 @@ def create_training_message(request):
     logger.warning("Invalid method: only POST is supported.")
     return JsonResponse({'error': 'Method not supported. Use POST.'}, status=405)
 
+# chat_dashboard/views.py
+
 #@role_required(['admin',])
 def user_list(request):
     """Displays a combined list of User and ChatUser."""
     logger.info("Accessing user list.")
-    user = request.user
 
     search_query = request.GET.get('search', '')
     sort_column = request.GET.get('sort', 'username')
     page_number = request.GET.get('page', 1)
+    archive_filter = request.GET.get('archive_filter', 'all')
 
+    print(archive_filter)
 
+    # Получаем пользователей с учетом фильтра архива
     users = User.objects.all()
     chat_users = ChatUser.objects.all()
 
+    if archive_filter == 'active':
+        users = users.filter(is_archived=False)
+        chat_users = chat_users.filter(is_archived=False)
+    elif archive_filter == 'archived':
+        users = users.filter(is_archived=True)
+        chat_users = chat_users.filter(is_archived=True)
+    # Для 'all' - оставляем всех пользователей без фильтрации
 
     combined_users = []
     for user in users:
@@ -846,6 +895,7 @@ def user_list(request):
             'username': user.username,
             'email': user.email,
             'role': user.get_role_display(),
+            'is_archived': user.is_archived
         })
 
     for chat_user in chat_users:
@@ -857,6 +907,7 @@ def user_list(request):
             'username': chat_user.username,
             'email': chat_user.email,
             'role': chat_user.get_role_display(),
+            'is_archived': chat_user.is_archived
         })
 
     # Фильтрация по поисковому запросу
@@ -878,30 +929,55 @@ def user_list(request):
         reverse=reverse_sort
     )
 
-    paginator = Paginator(combined_users, 10)  # 10 элементов на странице
+    paginator = Paginator(combined_users, 10)
     try:
         page_obj = paginator.page(page_number)
     except PageNotAnInteger:
         page_obj = paginator.page(1)
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
-    # user_action.info(
-    #     f"Access to user_list",
-    #     extra={
-    #         'user_id': user.id,
-    #         'user_name': user.first_name + ' ' + user.last_name,
-    #         'action_type': 'access to user_list',
-    #         'time': datetime.now(),
-    #         'details': json.dumps({
-    #             'status': f"Access to user_list",
-    #         })
-    #     })
+
     return render(request, 'chat_dashboard/users.html', {
-        #'users': combined_users,
         'page_obj': page_obj,
         'sort_column': sort_column,
-        'search_query': search_query
+        'search_query': search_query,
+        'archive_filter': archive_filter  # Передаём текущий фильтр в шаблон
     })
+
+@csrf_exempt
+#@role_required('admin')
+def archive_user(request, user_type, user_id):
+    """Archive a user instead of deleting."""
+    if user_type == 'admin':
+        user = get_object_or_404(User, id=user_id)
+    else:
+        user = get_object_or_404(ChatUser, id=user_id)
+
+    if request.method == 'POST':
+        user.is_archived = True
+        user.save()
+        messages.success(request, f'Пользователь {user.username} перемещен в архив.')
+        return redirect('chat_dashboard:user_list')
+
+    return redirect('chat_dashboard:user_list')
+
+@csrf_exempt
+#@role_required('admin')
+def restore_user(request, user_type, user_id):
+    """Restore an archived user."""
+    if user_type == 'admin':
+        user = get_object_or_404(User, id=user_id)
+    else:
+        user = get_object_or_404(ChatUser, id=user_id)
+
+    if request.method == 'POST':
+        user.is_archived = False
+        user.save()
+        messages.success(request, f'Пользователь {user.username} восстановлен из архива.')
+        return redirect('chat_dashboard:user_list')
+
+    return redirect('chat_dashboard:user_list')
+
 #@role_required('admin')
 @csrf_exempt
 def user_create(request):
@@ -913,18 +989,8 @@ def user_create(request):
         email = request.POST.get('email')
         if User.objects.filter(email=email).exists():
             logger.error(f"Attempt to create user failed: Email already registered - {email}")
-            user_action.warning(
-                f"Attempt to create user failed: Email already registered - {email}",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'create_user',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': f"Attempt to create user failed: Email already registered - {email}",
-                    })
-                })
             # Возвращаем информацию о том, что email уже зарегистрирован
+            log_action(f"Ошибка создания нового пользователя. Почта {email} уже зарегистрирована.")
             return render(request, 'chat_dashboard/user_create_form.html', {
                 'form': form,
                 'email_exists': True,
@@ -937,7 +1003,7 @@ def user_create(request):
             #user.is_active = True
             user.save()
             logger.info(f"User created: ID={user.id}, Username={user.username}, Email={user.email}")
-
+            log_action(f"Создание нового пользователя. ID: {user.id}, email: {user.email}, role: {user.get_role_display()}.")
             # user_action.info(
             #     f"User created: ID={user.id}, Username={user.username}, Email={user.email}",
             #     extra={
@@ -979,6 +1045,7 @@ def user_update(request, user_type, pk):
                 user.set_password(form.cleaned_data['password'])
             user.save()
             logger.info(f"{user_type.capitalize()} user updated: ID={pk}")
+            log_action(f"Обновление данных пользователя. ID: {pk}, email: {user.email}, role: {user.get_role_display()}")
             # user_action.info(
             #     f"{user_type.capitalize()} user updated: ID={pk}",
             #     extra={
@@ -1021,6 +1088,7 @@ def user_delete(request, user_type, pk):
         #         })
         #     })
         logger.info(f"user deleted: ID={pk}")
+        log_action(f"Удаление пользователя. ID: {pk}.")
         return redirect('chat_dashboard:user_list')
 
     return render(request, 'chat_dashboard/user_delete_form.html', {
@@ -1650,8 +1718,9 @@ def delete_relation(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            document = data.get('document_id')
-            answer = data.get('answer_id')
+            node_id = data.get('node_id')
+            name = data.get('name')
+            content = data.get('content', None)
 
             if not document or not answer:
                 logger.warning("Missing required fields for relation creation.")
@@ -1708,3 +1777,79 @@ def delete_relation(request):
             )
             logger.exception("An error occurred while creating a relation.")
             return JsonResponse({'error': str(e)}, status=400)
+
+@csrf_exempt
+def delete_topic_relation(request):
+    user = request.user
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            topic = data.get('start_node_id')
+            question = data.get('end_node_id')
+
+            if not topic or not question:
+                logger.warning("Missing required fields for relation deletion.")
+                return JsonResponse({'error': 'Missing required fields'}, status=400)
+
+            command = f"DELETE EDGE Includes WHERE out ={topic} AND in={question}"
+            headers = {'Content-Type': 'application/json'}
+            json_data = {"command": command}
+
+            response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
+                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),proxies={"http":None, "https":None})
+
+            return JsonResponse({'message': 'Node successfully deleted'}, status=201)
+        except Exception as e:
+            logger.exception("An error occurred while creating a relation.")
+            return JsonResponse({'error': str(e)}, status=400)
+
+@csrf_exempt
+def update_node(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            node_id = data.get('node_id')
+            name = data.get('name')
+            type = data.get('type')
+            content = data.get('content', None)
+
+            if not node_id or not content or not type:
+                logger.error("Missing required fields")
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+
+            # Экранируем специальные символы
+            escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
+
+            if type == 'link':
+                query = f"UPDATE link SET content = '{escaped_content}', name = '{name}' WHERE @rid = '{node_id}'"
+            else:
+                query = f"UPDATE document SET name = '{name}' WHERE @rid = '{node_id}'"
+
+            # Отправляем запрос
+            response = requests.get(
+                config_settings.ORIENT_COMMAND_URL,
+                auth=('root', 'guregure'),
+                headers={"Content-Type": "application/json; charset=utf-8"},
+                json={"command": query},
+            )
+
+            logger.info(f"Response status: {response.status_code}.")
+
+            # Проверка успешности запроса
+            if not response.ok:
+                logger.warning(f"Node with ID {node_id} not found.")
+                return JsonResponse({"error": "Node not found"}, status=404)
+            else:
+                return JsonResponse({"message": "Successfully updated node"}, status=200)
+
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+        except requests.RequestException as e:
+            logger.error(f"Request error: {e}")
+            return JsonResponse({'error': 'Error sending request to database'}, status=500)
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return JsonResponse({'error': 'Internal server error'}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)

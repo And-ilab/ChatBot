@@ -15,6 +15,59 @@
     z-index: 1000; /* Устанавливаем приоритет слоя */
 }
 
+.table-container {
+    overflow-x: auto;
+    width: 100%;
+    max-width: 100vw;
+}
+.full-width-table {
+    width: 100% !important;
+    min-width: unset !important;
+    table-layout: auto;
+}
+.table th, .table td {
+    white-space: normal !important;
+    max-width: 200px;
+    word-wrap: break-word;
+}
+.pagination {
+    justify-content: center;
+    margin-top: 20px;
+}
+.modal-dialog {
+    max-width: 600px;
+    width: 90%;
+}
+.sortable {
+    cursor: pointer;
+}
+.sort-icon {
+    font-size: 0.75rem;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+.archived {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+.archived-badge {
+    background-color: #6c757d;
+    color: white;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+@media (max-width: 768px) {
+    .table th, .table td {
+        font-size: 14px;
+        padding: 8px;
+    }
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+}
+
 .nav-item {
     width: 100%;
 }

@@ -16,6 +16,9 @@ urlpatterns = [
     #path('user/delete/<int:pk>/', views.user_delete, name='user_delete'),
     path('users/update/<str:user_type>/<int:pk>/', views.user_update, name='user_update'),
     path('users/delete/<str:user_type>/<int:pk>/', views.user_delete, name='user_delete'),
+    path('users/archive/<str:user_type>/<int:user_id>/', views.archive_user, name='archive_user'),
+    path('users/restore/<str:user_type>/<int:user_id>/', views.restore_user, name='restore_user'),
     path('settings/', views.settings_view, name='settings'),
+    path('logs/', views.logs_view, name='logs'),
 
 ]

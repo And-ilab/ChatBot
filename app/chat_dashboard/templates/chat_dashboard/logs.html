@@ -1,0 +1,234 @@
+{% extends 'base/layout.html' %}
+{% load custom_filters %}
+
+{% block title %}Логи действий{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0 h-100" style="margin-left: 51px; width: calc(100% - 51px);">
+    <div class="row h-100 m-0 p-0">
+        <!-- Основное содержимое -->
+        <div class="col-md-12 p-0 h-100 m-0 d-flex justify-content-center">
+          <div class="d-flex flex-column h-100" style="width: 80%;">
+              <!-- Заголовок -->
+              <div class="py-2 sidebar-header d-flex align-items-center justify-content-center border-bottom">
+                  <h3 class="mb-0">Логи действий</h3>
+              </div>
+
+              <!-- Панель фильтров -->
+              <div class="filter-panel p-3 border-bottom">
+                  <div class="d-flex gap-2 mb-3 justify-content-center">
+                      <div class="dropdown">
+                          <button class="btn btn-primary dropdown-toggle d-flex align-items-center"
+                                  id="dropdownMenuButton"
+                                  data-bs-toggle="dropdown">
+                              <i class="bi bi-funnel me-2"></i>Фильтры
+                          </button>
+                          <div class="dropdown-menu shadow-lg">
+                              <a class="dropdown-item filter-option" data-period="0">
+                                  <i class="bi bi-clock-history me-2"></i>Все логи
+                              </a>
+                              <div class="dropdown-divider"></div>
+                              <a class="dropdown-item filter-option" data-period="1">
+                                  <i class="bi bi-sun me-2"></i>Сегодня
+                              </a>
+                              <a class="dropdown-item filter-option" data-period="7">
+                                  <i class="bi bi-calendar-week me-2"></i>За неделю
+                              </a>
+                              <a class="dropdown-item filter-option" data-period="30">
+                                  <i class="bi bi-calendar-month me-2"></i>За месяц
+                              </a>
+                              <div class="dropdown-divider"></div>
+                              <a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#id-filter-modal">
+                                  <i class="bi bi-person-badge me-2"></i>По ID пользователя
+                              </a>
+                          </div>
+                      </div>
+                      <button class="btn btn-primary" id="refresh-logs" title="Обновить логи">
+                          <i class="bi bi-arrow-clockwise"></i> Обновить логи
+                      </button>
+                      <button class="btn btn-danger" id="reset-filter" title="Сбросить фильтры">
+                          <i class="bi bi-trash"></i> Сбросить фильтры
+                      </button>
+                      <button class="btn btn-success" id="export-logs" title="Экспорт в файл">
+                          <i class="bi bi-download me-2"></i>Экспорт в файл
+                      </button>
+                  </div>
+              </div>
+
+              <!-- Область вывода логов -->
+              <div class="flex-grow-1 p-3" style="overflow-y: auto;">
+                  <div class="mb-4">
+                      <div class="d-flex">
+                          <textarea class="form-control bg-light"
+                                    id="logs-content"
+                                    rows="20"
+                                    style="resize: none; height: 75vh; font-family: monospace;"
+                                    readonly>{{ logs_text }}
+                          </textarea>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+    </div>
+</div>
+
+<!-- Модальное окно фильтра по ID -->
+<div class="modal fade" id="id-filter-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-fingerprint me-2"></i>Фильтр по ID
+                </h5>
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal">
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Введите ID пользователя</label>
+                    <div class="input-group">
+                        <input type="text"
+                               id="filter-id"
+                               class="form-control"
+                               placeholder="Пример: 123">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">
+                    Отмена
+                </button>
+                <button type="button"
+                        class="btn btn-primary"
+                        id="apply-id-filter">
+                    Применить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const refreshButton = document.getElementById('refresh-logs');
+        const exportButton = document.getElementById('export-logs');
+        const logsContent = document.getElementById('logs-content');
+        const filterOptions = document.querySelectorAll('.filter-option');
+        const idFilterBtn = document.getElementById('apply-id-filter');
+        const resetFilterBtn = document.getElementById('reset-filter');
+
+        let currentPeriod = 0;
+        let currentUserId = '';
+
+        async function loadLogs() {
+            try {
+                refreshButton.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Загрузка логов...';
+
+                const params = new URLSearchParams();
+                if (currentPeriod) params.append('period', currentPeriod);
+                if (currentUserId) params.append('user_id', currentUserId);
+
+                const response = await fetch(`?${params.toString()}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+
+                const data = await response.json();
+                logsContent.value = data.logs_text;
+            } catch (error) {
+                console.error('Ошибка при загрузке логов:', error);
+            } finally {
+                refreshButton.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Обновить логи';
+            }
+        }
+
+        function exportLogs() {
+            const content = logsContent.value;
+            if (!content.trim()) {
+                alert('Нет данных для экспорта');
+                return;
+            }
+
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+            const fileName = `logs_${dateStr}_${timeStr}.txt`;
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        // Слушатели фильтров
+        filterOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                currentPeriod = parseInt(option.getAttribute('data-period'), 10);
+                loadLogs();
+            });
+        });
+
+        idFilterBtn.addEventListener('click', () => {
+            const idInput = document.getElementById('filter-id');
+            currentUserId = idInput.value.trim();
+            if (!currentUserId) return alert('Введите ID');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('id-filter-modal'));
+            modal.hide();
+            loadLogs();
+        });
+
+        resetFilterBtn.addEventListener('click', () => {
+            currentPeriod = 0;
+            currentUserId = '';
+            document.getElementById('filter-id').value = '';
+            loadLogs();
+        });
+
+        refreshButton.addEventListener('click', loadLogs);
+        exportButton.addEventListener('click', exportLogs);
+
+        const openIdFilterBtn = document.getElementById('id-filter-modal-btn');
+        openIdFilterBtn.addEventListener('click', () => {
+            const modal = new bootstrap.Modal(document.getElementById('id-filter-modal'));
+            modal.show();
+        });
+
+    });
+</script>
+
+<style>
+.logs-output {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+#logs-content {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    font-family: monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+</style>
+{% endblock %}

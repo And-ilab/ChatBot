@@ -154,6 +154,10 @@ const updateDocumentList = (documents) => {
             <span>${escapeHtml(doc.name)}</span>
             <div class="d-flex gap-2">
                 ${doc.url ? `<a href="${doc.url}" class="btn btn-sm btn-outline-primary" download title="Скачать"><i class="bi bi-download"></i></a>` : ''}
+                <button type="button" class="btn btn-sm btn-outline-warning edit-doc-btn"
+                        data-id="${doc.id}" data-name="${escapeHtml(doc.name)}" title="Редактировать">
+                    <i class="bi bi-pencil"></i>
+                </button>
                 <button type="button" class="btn btn-sm btn-outline-danger delete-doc-btn"
                         data-id="${doc.id}" title="Удалить">
                     <i class="bi bi-trash"></i>
@@ -162,6 +166,19 @@ const updateDocumentList = (documents) => {
         `;
 
         documentList.appendChild(listItem);
+    });
+
+    document.querySelectorAll('.edit-doc-btn').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+            const documentId = button.getAttribute('data-id');
+            const documentName = button.getAttribute('data-name');
+
+            document.getElementById('edit-document-id').value = documentId;
+            document.getElementById('edit-document-name').value = documentName;
+
+            const editDocumentModal = new bootstrap.Modal(document.getElementById('editDocumentModal'));
+            editDocumentModal.show();
+        });
     });
 
     document.querySelectorAll('.delete-doc-btn').forEach((button) => {
@@ -236,6 +253,10 @@ const updateLinkList = (links) => {
                 ${escapeHtml(link.name)}
             </a>
             <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-warning edit-link-btn"
+                        data-id="${link.id}" data-name="${escapeHtml(link.name)}" data-url="${link.content}" title="Редактировать">
+                    <i class="bi bi-pencil"></i>
+                </button>
                 <button type="button" class="btn btn-sm btn-outline-danger delete-link-btn"
                         data-id="${link.id}" title="Удалить">
                     <i class="bi bi-trash"></i>
@@ -244,6 +265,22 @@ const updateLinkList = (links) => {
         `;
 
         linkList.appendChild(listItem);
+    });
+
+    // Добавляем обработчики для кнопок редактирования ссылок
+    document.querySelectorAll('.edit-link-btn').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+            const linkId = button.getAttribute('data-id');
+            const linkName = button.getAttribute('data-name');
+            const linkUrl = button.getAttribute('data-url');
+
+            document.getElementById('edit-link-id').value = linkId;
+            document.getElementById('edit-link-name').value = linkName;
+            document.getElementById('edit-link-url').value = linkUrl;
+
+            const editLinkModal = new bootstrap.Modal(document.getElementById('editLinkModal'));
+            editLinkModal.show();
+        });
     });
 
     document.querySelectorAll('.delete-link-btn').forEach((button) => {
@@ -370,12 +407,100 @@ function closeModal(modalId) {
     }
 }
 
+// Обработчик сохранения изменений документа
+document.getElementById('save-document-changes').addEventListener('click', async () => {
+    const documentId = document.getElementById('edit-document-id').value;
+    const newName = document.getElementById('edit-document-name').value.trim();
+
+    if (!documentId || !newName) {
+        showNotification('Пожалуйста, заполните все поля', 'alert-danger');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/update-node/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                node_id: documentId,
+                name: newName,
+                type: 'doc'
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Ошибка при обновлении документа');
+        }
+
+        // Обновляем список документов
+        const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
+        if (selectedQuestion && selectedQuestion.value) {
+            const answer = await fetchAnswer(selectedQuestion.value);
+            await updateArtifacts(answer.id);
+        }
+
+        showNotification('Документ успешно обновлен', 'alert-success');
+        bootstrap.Modal.getInstance(document.getElementById('editDocumentModal')).hide();
+    } catch (error) {
+        console.error('Ошибка обновления документа:', error);
+        showNotification(`Ошибка обновления документа: ${error.message}`, 'alert-danger');
+    }
+});
+
+// Обработчик сохранения изменений ссылки
+document.getElementById('save-link-changes').addEventListener('click', async () => {
+    const linkId = document.getElementById('edit-link-id').value;
+    const newName = document.getElementById('edit-link-name').value.trim();
+    const newUrl = document.getElementById('edit-link-url').value.trim();
+
+    if (!linkId || !newName || !newUrl) {
+        showNotification('Пожалуйста, заполните все поля', 'alert-danger');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/update-node/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                node_id: linkId,
+                name: newName,
+                content: newUrl,
+                type: 'link'
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Ошибка при обновлении ссылки');
+        }
+
+        // Обновляем список ссылок
+        const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
+        if (selectedQuestion && selectedQuestion.value) {
+            const answer = await fetchAnswer(selectedQuestion.value);
+            await updateArtifacts(answer.id);
+        }
+
+        showNotification('Ссылка успешно обновлена', 'alert-success');
+        bootstrap.Modal.getInstance(document.getElementById('editLinkModal')).hide();
+    } catch (error) {
+        console.error('Ошибка обновления ссылки:', error);
+        showNotification(`Ошибка обновления ссылки: ${error.message}`, 'alert-danger');
+    }
+});
 
 document.addEventListener('DOMContentLoaded', async () => {
     const answerTextarea = document.getElementById('answer');
     const editAnswerButton = document.getElementById('edit-answer');
     const deleteAnswerButton = document.getElementById('delete-answer');
     const editQuestionButton = document.getElementById('edit-question');
+    const moveQuestionButton = document.getElementById('move-question');
     const editTopicButton = document.getElementById('edit-topic');
     const editSectionButton = document.getElementById('edit-section');
     const documentButton = document.getElementById('add-document');
@@ -400,6 +525,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addTopicModal = new bootstrap.Modal(document.getElementById('addTopicModal'));
     const confirmDeleteQuestionModal = new bootstrap.Modal(document.getElementById('confirmDeleteQuestionModal'));
     const addQuestionModal = new bootstrap.Modal(document.getElementById('addQuestionModal'));
+    const moveQuestionModal = new bootstrap.Modal(document.getElementById('moveQuestionModal'));
 
     try {
         const sections = await fetchNodes('Section');
@@ -426,7 +552,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const newSectionName = document.getElementById('new-section-name').value.trim();
 
         if (!newSectionName) {
-            alert('Пожалуйста, введите название раздела');
+            showNotification('Пожалуйста, введите название раздела.', 'alert-danger');
             return;
         }
 
@@ -487,15 +613,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     throw new Error(`Ошибка при обновлении раздела: ${response.status} - ${errorText}`);
                 }
 
-                alert('Раздел успешно обновлен!');
+                showNotification('Раздел успешно обновлен.', 'alert-success');
                 selectedOption.textContent = updatedSection;
                 sectionModal.hide();
             } catch (error) {
                 console.error('Ошибка при обновлении раздела:', error.message);
-                alert('Ошибка при обновлении раздела.');
+                showNotification('Ошибка при обновлении раздела.', 'alert-danger');
             }
         } else {
-            alert('Пожалуйста, введите новое название раздела.');
+            showNotification('Пожалуйста, введите новое название раздела.', 'alert-danger');
         }
     });
 
@@ -504,7 +630,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const selectedOption = sectionSelect.options[sectionSelect.selectedIndex];
 
         if (!selectedOption || !selectedOption.value) {
-            alert('Пожалуйста, выберите раздел для удаления');
+            showNotification('Пожалуйста, выберите раздел для удаления.', 'alert-danger');
             return;
         }
 
@@ -559,7 +685,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Обработчики для тем
     document.getElementById('add-topic').addEventListener('click', () => {
         if (!sectionSelect.value) {
-            alert('Пожалуйста, сначала выберите раздел');
+            showNotification('Пожалуйста, сначала выберите раздел.', 'alert-danger');
             return;
         }
         document.getElementById('new-topic-name').value = '';
@@ -571,7 +697,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sectionId = sectionSelect.value;
 
         if (!newTopicName) {
-            alert('Пожалуйста, введите название темы');
+            showNotification('Пожалуйста, введите название темы.', 'alert-danger');
             return;
         }
 
@@ -636,7 +762,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const selectedOption = topicSelect.options[topicSelect.selectedIndex];
 
         if (!selectedOption || !selectedOption.value) {
-            alert('Пожалуйста, выберите тему для удаления');
+            showNotification('Пожалуйста, выберите тему для удаления.', 'alert-danger');
             return;
         }
 
@@ -686,7 +812,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('add-question').addEventListener('click', () => {
         if (!topicSelect.value) {
-            alert('Пожалуйста, сначала выберите тему');
+            showNotification('Пожалуйста, сначала выберите тему.', 'alert-danger');
             return;
         }
         document.getElementById('new-question-name').value = '';
@@ -698,7 +824,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const topicId = topicSelect.value;
 
         if (!newQuestionName) {
-            alert('Пожалуйста, введите текст вопроса');
+            showNotification('Пожалуйста, введите текст вопроса.', 'alert-danger');
             return;
         }
 
@@ -762,7 +888,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const selectedOption = questionSelect.options[questionSelect.selectedIndex];
 
         if (!selectedOption || !selectedOption.value) {
-            alert('Пожалуйста, выберите вопрос для удаления');
+            showNotification('Пожалуйста, выберите вопрос для удаления.', 'alert-danger');
             return;
         }
 
@@ -831,7 +957,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             sectionInput.value = selectedOption.textContent.trim();
             sectionModal.show();
         } else {
-            alert('Пожалуйста, выберите раздел для редактирования.');
+            showNotification('Пожалуйста, выберите раздел для редактирования.', 'alert-danger');
         }
     });
 
@@ -841,7 +967,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             topicInput.value = selectedOption.textContent.trim();
             topicModal.show();
         } else {
-            alert('Пожалуйста, выберите тему для редактирования.');
+            showNotification('Пожалуйста, выберите тему для редактирования.', 'alert-danger');
         }
     });
 
@@ -866,7 +992,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     throw new Error(`Ошибка при обновлении темы: ${response.status} - ${errorText}`);
                 }
 
-                alert('Тема успешно обновлена!');
+                showNotification('Тема успешно обновлена!', 'alert-success');
                 const updatedOption = topicSelect.querySelector(`option[value="${selectedOption.value}"]`);
                 if (updatedOption) {
                     updatedOption.textContent = updatedTopic;
@@ -874,10 +1000,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 topicModal.hide();
             } catch (error) {
                 console.error('Ошибка при обновлении темы:', error.message);
-                alert('Ошибка при обновлении темы.');
+                showNotification('Ошибка при обновлении темы.', 'alert-danger');
             }
         } else {
-            alert('Пожалуйста, введите новый текст темы.');
+            showNotification('Пожалуйста, введите новый текст темы.', 'alert-danger');
         }
     });
 
@@ -887,7 +1013,95 @@ document.addEventListener('DOMContentLoaded', async () => {
             questionInput.value = selectedOption.textContent.trim();
             questionModal.show();
         } else {
-            alert('Пожалуйста, выберите вопрос для редактирования.');
+            showNotification('Пожалуйста, выберите вопрос для редактирования.', 'alert-danger');
+        }
+    });
+
+    moveQuestionButton.addEventListener('click', async () => {
+        const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
+        if (!selectedQuestion || !selectedQuestion.value) {
+            showNotification('Пожалуйста, выберите вопрос для переноса', 'alert-danger');
+            return;
+        }
+
+        // Получаем все темы (кроме текущей)
+        try {
+            const topics = await fetchNodes('Topic');
+            const targetTopicSelect = document.getElementById('target-topic-select');
+            targetTopicSelect.innerHTML = '<option value="" disabled selected>Выберите тему</option>';
+
+            const currentTopicId = topicSelect.value;
+
+            topics.forEach(topic => {
+                if (topic.id !== currentTopicId) {
+                    const option = document.createElement('option');
+                    option.value = topic.id;
+                    option.textContent = topic.name;
+                    targetTopicSelect.appendChild(option);
+                }
+            });
+
+            moveQuestionModal.show();
+        } catch (error) {
+            console.error('Ошибка загрузки тем:', error);
+            showNotification('Ошибка загрузки списка тем', 'alert-danger');
+        }
+    });
+
+    // Обработчик подтверждения переноса вопроса
+    document.getElementById('confirm-move-question').addEventListener('click', async () => {
+        const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
+        const targetTopicSelect = document.getElementById('target-topic-select');
+        const targetTopicId = targetTopicSelect.value;
+
+        if (!selectedQuestion || !selectedQuestion.value || !targetTopicId) {
+            showNotification('Пожалуйста, выберите тему для переноса', 'alert-danger');
+            return;
+        }
+
+        try {
+            const deleteResponse = await fetch('/api/delete-topic-relation/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    start_node_id: topicSelect.value,
+                    end_node_id: selectedQuestion.value,
+                }),
+            });
+
+            if (!deleteResponse.ok) {
+                throw new Error('Ошибка удаления текущей связи вопроса с темой');
+            }
+
+            const createResponse = await fetch('/api/create-relation/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    start_node_id: targetTopicId,
+                    end_node_id: selectedQuestion.value,
+                }),
+            });
+
+            if (!createResponse.ok) {
+                throw new Error('Ошибка создания новой связи вопроса с темой');
+            }
+
+            questionSelect.remove(questionSelect.selectedIndex);
+            answerTextarea.value = '';
+            updateDocumentList([]);
+            updateLinkList([]);
+
+            moveQuestionModal.hide();
+
+            showNotification('Вопрос успешно перенесен в новую тему', 'alert-success');
+
+        } catch (error) {
+            console.error('Ошибка переноса вопроса:', error);
+            showNotification(`Ошибка переноса вопроса: ${error.message}`, 'alert-danger');
         }
     });
 
@@ -1183,7 +1397,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const selectedQuestion = questionSelect.options[questionSelect.selectedIndex];
 
         if (!selectedQuestion || !selectedQuestion.value) {
-            alert('Пожалуйста, выберите вопрос');
+            showNotification('Пожалуйста, выберите вопрос.', 'alert-danger');
             return;
         }
 

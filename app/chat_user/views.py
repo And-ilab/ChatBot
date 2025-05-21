@@ -12,9 +12,9 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from django.http import JsonResponse
 from django.conf import settings
 from chat_dashboard.models import Dialog, Message, Settings, TrainingMessage, PopularRequests
+from chat_dashboard.views import log_action
 from .models import ChatUser, Session, Feedbacks
 from .serializers import FeedbackSerializer
-from chat_dashboard.models import Settings
 from urllib.parse import unquote
 from config import config_settings
 from rest_framework import status, generics
@@ -342,7 +342,7 @@ def get_nodes_by_type(request):
     node_type = urllib.parse.unquote(node_type)
 
     # Формируем URL для запроса
-    url = f"http://localhost:2480/query/chat-bot-db/sql/SELECT FROM {node_type}"
+    url = f"http://localhost:2480/query/chat-bot/sql/SELECT FROM {node_type}"
 
     try:
         response = requests.get(url, auth=('root','guregure'))
@@ -804,6 +804,7 @@ def update_answer(request):
                     )
 
                     if update_response.ok:
+                        log_action(f"Редактирование ответа на {content}")
                         return JsonResponse({
                             "message": "Answer updated successfully",
                             "answerID": answer_id
@@ -889,9 +890,11 @@ def update_section(request):
             logger.info(f"Response status: {response.status_code}.")
 
             if not response.ok:
+                log_action(f"Ошибка изменения навания секции {section_id}.")
                 logger.warning(f"Section not found for sectionID: {answer_id}")
                 return JsonResponse({"error": "Section not found"}, status=404)
             else:
+                log_action(f"Изменение навания секции {section_id} на {content}.")
                 return JsonResponse({"message": "Successfully updated"}, status=200)
 
         except json.JSONDecodeError as e:
@@ -944,9 +947,11 @@ def update_question(request):
 
             # Проверка успешности запроса
             if not response.ok:
+                log_action(f"Ошибка изменения навания вопроса {question_id}.")
                 logger.warning(f"Question with ID {question_id} not found.")
                 return JsonResponse({"error": "Question not found"}, status=404)
             else:
+                log_action(f"Изменение навания вопроса {question_id} на {content}.")
                 return JsonResponse({"message": "Successfully updated question"}, status=200)
 
         except json.JSONDecodeError as e:
@@ -991,9 +996,11 @@ def update_topic(request):
             logger.info(f"Response status: {response.status_code}.")
 
             if not response.ok:
-                logger.warning(f"Topic with ID {question_id} not found.")
+                log_action(f"Ошибка изменения навания темы {topic_id}.")
+                logger.warning(f"Topic with ID {topic_id} not found.")
                 return JsonResponse({"error": "Topic not found"}, status=404)
             else:
+                log_action(f"Изменение навания темы {topic_id} на {content}.")
                 return JsonResponse({"message": "Successfully updated topic"}, status=200)
 
         except json.JSONDecodeError as e:
@@ -1024,9 +1031,9 @@ def recognize_question(request):
             message = body['message']
             logger.info(f"Message to process: {message}")
 
-            recognized_question = settings.QUESTION_MATCHER.match_question(message)
-            return JsonResponse({'recognized_question': recognized_question})
-            # return JsonResponse({'recognized_question': ''})
+            # recognized_question = settings.QUESTION_MATCHER.match_question(message)
+            # return JsonResponse({'recognized_question': recognized_question})
+            return JsonResponse({'recognized_question': ''})
 
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error: {e}")
