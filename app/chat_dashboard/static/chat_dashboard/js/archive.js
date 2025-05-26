@@ -3,11 +3,13 @@ let currentFilters = {
     period: 0,
     userId: null,
     startDate: null,
-    endDate: null
+    endDate: null,
+    lastName: null,
+    content: null,
+    ratingType: null
 };
 
 
-// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     initModals();
     loadFiltersFromLocalStorage();
@@ -27,6 +29,64 @@ function initModals() {
         $('#end-date').val(currentFilters.endDate || '');
     });
 }
+
+document.getElementById('name-filter-modal-btn').addEventListener('click', () => {
+    $('#name-filter-modal').modal('show');
+});
+
+document.getElementById('content-filter-modal-btn').addEventListener('click', () => {
+    $('#content-filter-modal').modal('show');
+});
+
+document.getElementById('rating-filter-modal-btn').addEventListener('click', () => {
+    $('#rating-filter-modal').modal('show');
+});
+
+// Apply name filter
+document.getElementById('apply-name-filter').addEventListener('click', () => {
+    currentFilters.lastName = document.getElementById('filter-name').value.trim();
+    applyFilters();
+    $('#name-filter-modal').modal('hide');
+});
+
+// Apply content filter
+document.getElementById('apply-content-filter').addEventListener('click', () => {
+    currentFilters.content = document.getElementById('filter-content').value.trim();
+    applyFilters();
+    $('#content-filter-modal').modal('hide');
+});
+
+// Apply rating filter
+document.getElementById('apply-rating-filter').addEventListener('click', () => {
+    currentFilters.ratingType = document.getElementById('filter-rating-type').value;
+    applyFilters();
+    $('#rating-filter-modal').modal('hide');
+});
+
+// Excel export
+document.getElementById('export-excel-btn').addEventListener('click', async () => {
+    try {
+        const params = new URLSearchParams();
+
+        // Add all current filters to the export request
+        if (currentFilters.period > 0) params.append('period', currentFilters.period);
+        if (currentFilters.userId) params.append('user_id', currentFilters.userId);
+        if (currentFilters.startDate && currentFilters.endDate) {
+            params.append('start', currentFilters.startDate);
+            params.append('end', currentFilters.endDate);
+        }
+        if (currentFilters.lastName) params.append('last_name', currentFilters.lastName);
+        if (currentFilters.content) params.append('content', currentFilters.content);
+        if (currentFilters.ratingType) params.append('rating_type', currentFilters.ratingType);
+
+        // Trigger download
+        window.open(`/api/export_to_excel/?${params}`, '_blank');
+
+    } catch (error) {
+        showNotification('Ошибка при экспорте данных', 'alert-danger');
+        console.error('Export error:', error);
+    }
+});
 
 // Инициализация datepicker
 function initDatePicker() {
@@ -54,39 +114,38 @@ function restoreActiveFilters() {
 }
 
 async function applyFilters() {
-     try {
+    try {
         const refreshBtn = document.getElementById('refresh-dialogs');
-
         if (refreshBtn) {
             refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i>';
             refreshBtn.disabled = true;
         }
+
         const params = new URLSearchParams();
         if (currentFilters.period > 0) params.append('period', currentFilters.period);
         if (currentFilters.userId) params.append('user_id', currentFilters.userId);
         if (currentFilters.startDate && currentFilters.endDate) {
-           params.append('start', currentFilters.startDate);
-           params.append('end', currentFilters.endDate);
+            params.append('start', currentFilters.startDate);
+            params.append('end', currentFilters.endDate);
         }
-        const response = await fetch(`/api/filter_dialogs/?${params}`);
+        if (currentFilters.lastName) params.append('last_name', currentFilters.lastName);
+        if (currentFilters.content) params.append('content', currentFilters.content);
+        if (currentFilters.ratingType) params.append('rating_type', currentFilters.ratingType);
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        const response = await fetch(`/api/filter_dialogs/?${params}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
         const data = await response.json();
         updateDialogList(data);
         saveFiltersToLocalStorage();
 
     } catch (error) {
-        showErrorNotification('Произошла ошибка при загрузке данных, проверьте введенные данные');
-
+        showNotification('Произошла ошибка при загрузке данных', 'alert-danger');
     } finally {
         const refreshBtn = document.getElementById('refresh-dialogs');
-
         if (refreshBtn) {
             refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
             refreshBtn.disabled = false;
-
         }
     }
 }
@@ -186,7 +245,7 @@ async function loadMessages(dialogId) {
         const data = await response.json();
         renderMessages(data.messages);
     } catch (error) {
-        showErrorNotification('Не удалось загрузить сообщения');
+        showNotification('Не удалось загрузить сообщения', 'alert-danger');
     }
 }
 
@@ -253,10 +312,22 @@ document.getElementById('submit-date-range').addEventListener('click', () => {
 });
 
 document.getElementById('reset-filter').addEventListener('click', () => {
-    currentFilters = { period: 0, userId: null, startDate: null, endDate: null };
+    currentFilters = {
+        period: 0,
+        userId: null,
+        startDate: null,
+        endDate: null,
+        lastName: null,
+        content: null,
+        ratingType: null
+    };
+
     document.getElementById('filter-id').value = '';
     document.getElementById('start-date').value = '';
     document.getElementById('end-date').value = '';
+    document.getElementById('filter-name').value = '';
+    document.getElementById('filter-content').value = '';
+
     $('.dropdown-item').removeClass('active');
     $('[data-period="0"]').addClass('active');
     applyFilters();

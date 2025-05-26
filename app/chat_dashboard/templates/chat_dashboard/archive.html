@@ -38,6 +38,19 @@
                         <a class="dropdown-item filter-option" id="id-filter-modal-btn">
                             <i class="bi bi-person-badge me-2"></i>По ID
                         </a>
+                        <a class="dropdown-item filter-option" id="name-filter-modal-btn">
+                            <i class="bi bi-person-lines-fill me-2"></i>По фамилии
+                        </a>
+                        <a class="dropdown-item filter-option" id="content-filter-modal-btn">
+                            <i class="bi bi-search me-2"></i>По содержанию
+                        </a>
+                        <a class="dropdown-item filter-option" id="rating-filter-modal-btn">
+                            <i class="bi bi-hand-thumbs-up me-2"></i>По оценкам
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" id="export-excel-btn">
+                            <i class="bi bi-file-earmark-excel me-2"></i>Экспорт в Excel
+                        </a>
                     </div>
                 </div>
                 <button class="btn btn-primary" id="refresh-dialogs" title="Обновить диалоги">
@@ -150,6 +163,84 @@
                         id="submit-date-range">
                     Применить
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="name-filter-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-lines-fill me-2"></i>Фильтр по фамилии
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Введите фамилию</label>
+                    <div class="input-group">
+                        <input type="text" id="filter-name" class="form-control" placeholder="Пример: Иванов">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="apply-name-filter">Поиск</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="content-filter-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-search me-2"></i>Фильтр по содержанию
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Введите текст для поиска</label>
+                    <div class="input-group">
+                        <input type="text" id="filter-content" class="form-control" placeholder="Пример: договор">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="apply-content-filter">Поиск</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rating-filter-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-hand-thumbs-up me-2"></i>Фильтр по оценкам
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Выберите тип оценки</label>
+                    <select class="form-select" id="filter-rating-type">
+                        <option value="like">Только с лайками</option>
+                        <option value="dislike">Только с дизлайками</option>
+                        <option value="any">С любой оценкой</option>
+                        <option value="none">Без оценок</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="apply-rating-filter">Применить</button>
             </div>
         </div>
     </div>

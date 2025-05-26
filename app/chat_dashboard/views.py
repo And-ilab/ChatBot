@@ -13,6 +13,10 @@ from .models import Dialog, Message, User, TrainingMessage, Settings, Documents,
 from django.db.models import CharField
 from chat_user.models import ChatUser, Session
 from .forms import UserForm, UserFormUpdate
+from django.http import HttpResponse
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, Alignment
 import json
 import re
 import spacy
@@ -1220,6 +1224,9 @@ def filter_dialogs(request):
     user_id = request.GET.get('user_id')
     start_date = request.GET.get('start')
     end_date = request.GET.get('end')
+    last_name = request.GET.get('last_name')
+    content = request.GET.get('content')
+    rating_type = request.GET.get('rating_type')
 
     try:
         period = int(period)
@@ -1229,7 +1236,10 @@ def filter_dialogs(request):
     dialogs = Dialog.objects.annotate(
         has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
         last_message=Subquery(
-            Message.objects.filter(dialog=OuterRef('pk'))
+            Message.objects.filter(
+                dialog=OuterRef('pk'),
+                message_type__in=['message', 'document', 'link', 'operator']  # Exclude like/dislike from last message
+            )
             .order_by('-created_at')
             .values('content')[:1]
         ),
@@ -1239,7 +1249,10 @@ def filter_dialogs(request):
             .values('created_at')[:1]
         ),
         last_message_sender_id=Subquery(
-            Message.objects.filter(dialog=OuterRef('pk'))
+            Message.objects.filter(
+                dialog=OuterRef('pk'),
+                message_type__in=['message', 'document', 'link',]  # Exclude like/dislike from sender
+            )
             .order_by('-created_at')
             .values('sender_id')[:1]
         ),
@@ -1263,11 +1276,33 @@ def filter_dialogs(request):
             Value(' '),
             F('user__last_name'),
             output_field=CharField()
+        ),
+        # Updated annotations for ratings using message_type
+        has_likes=Exists(
+            Message.objects.filter(
+                dialog=OuterRef('pk'),
+                message_type='like'
+            )
+        ),
+        has_dislikes=Exists(
+            Message.objects.filter(
+                dialog=OuterRef('pk'),
+                message_type='dislike'
+            )
+        ),
+        has_any_rating=Exists(
+            Message.objects.filter(
+                dialog=OuterRef('pk'),
+                message_type__in=['like', 'dislike']
+            )
         )
     ).filter(has_messages=True)
 
     if user_id:
         dialogs = dialogs.filter(user_id=user_id)
+
+    if last_name:
+        dialogs = dialogs.filter(user__last_name__icontains=last_name)
 
     if period > 0:
         time_filter = timezone.now() - timedelta(days=period)
@@ -1281,6 +1316,27 @@ def filter_dialogs(request):
         except ValueError:
             return JsonResponse({'error': 'Invalid date format'}, status=400)
 
+    if content:
+        dialogs = dialogs.filter(
+            Exists(
+                Message.objects.filter(
+                    dialog=OuterRef('pk'),
+                    content__icontains=content,
+                    message_type__in=['message', 'document', 'link', 'operator']  # Only search in actual messages
+                )
+            )
+        )
+
+    if rating_type:
+        if rating_type == 'like':
+            dialogs = dialogs.filter(has_likes=True)
+        elif rating_type == 'dislike':
+            dialogs = dialogs.filter(has_dislikes=True)
+        elif rating_type == 'any':
+            dialogs = dialogs.filter(has_any_rating=True)
+        elif rating_type == 'none':
+            dialogs = dialogs.filter(has_any_rating=False)
+
     dialogs = dialogs.order_by('-last_message_timestamp').distinct()
 
     dialogs_data = [
@@ -1288,67 +1344,177 @@ def filter_dialogs(request):
             'id': dialog.id,
             'user': {
                 'id': dialog.user.id,
-                'username': dialog.username
+                'username': dialog.username,
+                'last_name': dialog.user.last_name,
+                'first_name': dialog.user.first_name,
+                'tabel_number': dialog.user.tabel_number
             },
             'last_message': dialog.last_message,
             'last_message_timestamp': dialog.last_message_timestamp,
-            'last_message_username': dialog.last_message_username
+            'last_message_username': dialog.last_message_username,
+            'has_likes': dialog.has_likes,
+            'has_dislikes': dialog.has_dislikes
         }
         for dialog in dialogs
     ]
 
     return JsonResponse(dialogs_data, safe=False)
 
-def filter_dialogs_by_id(request):
-    user = request.user
-    user_id = request.GET.get('user_id')
-    if not user_id:
-        return JsonResponse({'error': 'user_id parameter is required'}, status=400)
 
+def export_to_excel(request):
+    # Получаем параметры фильтрации
     period = request.GET.get('period', 0)
+    user_id = request.GET.get('user_id')
+    start_date = request.GET.get('start')
+    end_date = request.GET.get('end')
+    last_name = request.GET.get('last_name')
+    content = request.GET.get('content')
+    rating_type = request.GET.get('rating_type')
 
-    logger.info(f"Filtering dialogs by user {user} with user ID {user_id}.")
     try:
-        dialogs = Dialog.objects.filter(user_id=user_id).annotate(
-            has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
-            username=Concat(F('user__first_name'), Value(' '), F('user__last_name')),
-            last_message=Subquery(
-                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('content')[:1]),
-            last_message_timestamp=Subquery(
-                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('created_at')[:1]),
-            last_message_sender_id=Subquery(
-                Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender_id')[:1]),
-            last_message_username=Case(
-                When(last_message_sender_id=None, then=Value('Bot')),
-                default=Subquery(
-                    Message.objects.filter(dialog=OuterRef('pk')).order_by('-created_at').values('sender__first_name')[:1])
-            ),
-        ).filter(has_messages=True).order_by('-last_message_timestamp')
+        period = int(period)
+    except ValueError:
+        period = 0
 
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    # Базовый запрос с аннотациями
+    dialogs = Dialog.objects.annotate(
+        has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
+        last_message=Subquery(
+            Message.objects.filter(
+                dialog=OuterRef('pk'),
+                message_type__in=['message', 'document', 'link', 'operator']
+            )
+            .order_by('-created_at')
+            .values('content')[:1]
+        ),
+        last_message_timestamp=Subquery(
+            Message.objects.filter(dialog=OuterRef('pk'))
+            .order_by('-created_at')
+            .values('created_at')[:1]
+        ),
+        # Упрощаем получение имени отправителя
+        last_message_sender=Case(
+            When(messages__message_type__in=['message', 'document', 'link', 'operator'],
+                 then=Concat(
+                     F('messages__sender__first_name'),
+                     Value(' '),
+                     F('messages__sender__last_name')
+                 )),
+            default=Value('Bot'),
+            output_field=CharField()
+        ),
+        has_likes=Exists(
+            Message.objects.filter(
+                dialog=OuterRef('pk'),
+                message_type='like'
+            )
+        ),
+        has_dislikes=Exists(
+            Message.objects.filter(
+                dialog=OuterRef('pk'),
+                message_type='dislike'
+            )
+        )
+    ).filter(has_messages=True)
 
-    dialogs_data = [
-        {
-            'id': dialog.id,
-            'user': {
-                'id': dialog.user.id,
-                'username': dialog.user.username
-            },
-            'last_message': dialog.last_message,
-            'last_message_timestamp': dialog.last_message_timestamp,
-            'last_message_username': dialog.last_message_username
-        }
-        for dialog in dialogs
+    # Применяем фильтры
+    if user_id:
+        dialogs = dialogs.filter(user_id=user_id)
+    if last_name:
+        dialogs = dialogs.filter(user__last_name__icontains=last_name)
+    if period > 0:
+        time_filter = timezone.now() - timedelta(days=period)
+        dialogs = dialogs.filter(last_message_timestamp__gte=time_filter)
+    if start_date and end_date:
+        try:
+            start = timezone.make_aware(datetime.strptime(start_date, '%Y-%m-%d'))
+            end = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d')) + timedelta(days=1)
+            dialogs = dialogs.filter(last_message_timestamp__range=(start, end))
+        except ValueError:
+            return JsonResponse({'error': 'Invalid date format'}, status=400)
+    if content:
+        dialogs = dialogs.filter(
+            Exists(
+                Message.objects.filter(
+                    dialog=OuterRef('pk'),
+                    content__icontains=content,
+                    message_type__in=['message', 'document', 'link', 'operator']
+                )
+            )
+        )
+    if rating_type:
+        if rating_type == 'like':
+            dialogs = dialogs.filter(has_likes=True)
+        elif rating_type == 'dislike':
+            dialogs = dialogs.filter(has_dislikes=True)
+        elif rating_type == 'any':
+            dialogs = dialogs.filter(has_likes=True) | dialogs.filter(has_dislikes=True)
+        elif rating_type == 'none':
+            dialogs = dialogs.exclude(has_likes=True).exclude(has_dislikes=True)
+
+    # Получаем данные с нужными полями
+    dialogs = dialogs.select_related('user').order_by('-last_message_timestamp').distinct()
+
+    # Создаем Excel файл
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "История чатов"
+
+    # Заголовки
+    headers = [
+        "ID диалога",
+        "Фамилия",
+        "Имя",
+        "Табельный номер",
+        "Дата последнего сообщения",
+        "Последнее сообщение",
+        "Отправитель последнего сообщения",
+        "Есть лайки",
+        "Есть дизлайки"
     ]
 
-    if not dialogs_data:
-        return JsonResponse({
-            'message': 'Диалогов не найдено',
-            'data': []
-        }, status=200)
+    for col_num, header in enumerate(headers, 1):
+        col_letter = get_column_letter(col_num)
+        cell = ws[f"{col_letter}1"]
+        cell.value = header
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal='center')
 
-    return JsonResponse(dialogs_data, safe=False)
+    # Заполняем данные
+    for row_num, dialog in enumerate(dialogs, 2):
+        ws[f"A{row_num}"] = dialog.id
+        ws[f"B{row_num}"] = dialog.user.last_name
+        ws[f"C{row_num}"] = dialog.user.first_name
+        ws[f"D{row_num}"] = dialog.user.tabel_number
+        ws[f"E{row_num}"] = dialog.last_message_timestamp.strftime(
+            '%Y-%m-%d %H:%M:%S') if dialog.last_message_timestamp else ''
+        ws[f"F{row_num}"] = dialog.last_message if dialog.last_message else ''
+        ws[f"G{row_num}"] = dialog.last_message_sender if hasattr(dialog, 'last_message_sender') else 'Bot'
+        ws[f"H{row_num}"] = "Да" if dialog.has_likes else "Нет"
+        ws[f"I{row_num}"] = "Да" if dialog.has_dislikes else "Нет"
+
+    # Автоподбор ширины столбцов
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2) * 1.2
+        ws.column_dimensions[column].width = adjusted_width
+
+    # Формируем ответ
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={'Content-Disposition': 'attachment; filename="chat_history.xlsx"'},
+    )
+    wb.save(response)
+
+    return response
+
 
 def get_messages(request, dialog_id):
     """Retrieves all messages in a dialog."""
@@ -1813,7 +1979,7 @@ def update_node(request):
             type = data.get('type')
             content = data.get('content', None)
 
-            if not node_id or not content or not type:
+            if not node_id or not name or not type:
                 logger.error("Missing required fields")
                 return JsonResponse({"error": "Missing required fields"}, status=400)
 

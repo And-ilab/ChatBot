@@ -422,7 +422,6 @@ document.getElementById('save-document-changes').addEventListener('click', async
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'),
             },
             body: JSON.stringify({
                 node_id: documentId,
@@ -466,7 +465,6 @@ document.getElementById('save-link-changes').addEventListener('click', async () 
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'),
             },
             body: JSON.stringify({
                 node_id: linkId,

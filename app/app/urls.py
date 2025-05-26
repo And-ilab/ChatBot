@@ -36,6 +36,7 @@ urlpatterns = [
     path('api/update-section/', chat_views.update_section, name='update_section'),
     path('api/user/<int:user_id>/', chat_views.get_user_details, name='get_user_details'),
     path('api/register/', authentication_views.api_register_view, name='api_register_view'),
+    path('api/export_to_excel/', dashboard_views.export_to_excel, name='export_to_excel'),
     path('api/get-nodes-by-type/', chat_views.get_nodes_by_type, name='get_nodes_by_type'),
     path('api/dialogs/latest/<int:user_id>/', chat_views.get_latest_dialog, name='get_latest_dialog'),
     path('api/update-settings/', dashboard_views.update_settings, name='update_settings'),
