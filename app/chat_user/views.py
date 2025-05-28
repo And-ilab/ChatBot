@@ -345,7 +345,7 @@ def get_nodes_by_type(request):
     url = f"http://localhost:2480/query/chat-bot/sql/SELECT FROM {node_type}"
 
     try:
-        response = requests.get(url, auth=('root','guregure'))
+        response = requests.get(url, auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
 
         if response.status_code == 200:
             logger.info(f"Successfully fetched data for type: {node_type}")
@@ -938,7 +938,7 @@ def update_question(request):
             # Отправляем запрос
             response = requests.get(
                 config_settings.ORIENT_COMMAND_URL,
-                auth=('root', 'guregure'),
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
@@ -988,7 +988,7 @@ def update_topic(request):
 
             response = requests.get(
                 config_settings.ORIENT_COMMAND_URL,
-                auth=('root', 'guregure'),
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )

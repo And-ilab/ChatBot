@@ -1994,7 +1994,7 @@ def update_node(request):
             # Отправляем запрос
             response = requests.get(
                 config_settings.ORIENT_COMMAND_URL,
-                auth=('root', 'guregure'),
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                 headers={"Content-Type": "application/json; charset=utf-8"},
                 json={"command": query},
             )
