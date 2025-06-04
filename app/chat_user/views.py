@@ -3,6 +3,7 @@ import jwt
 import logging
 import requests
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from django.shortcuts import render, get_object_or_404
 from django.utils.timezone import make_aware, now
@@ -329,112 +330,219 @@ def process_keywords(request):
 
 
 def get_nodes_by_type(request):
-    """Fetch nodes of a specific type from the OrientDB database."""
+    """Fetch nodes of a specific type from the OrientDB database with validation and safety."""
 
-    node_type = request.GET.get('type')
-    logger.info(f"Fetching nodes of type: {node_type}")
+    if request.method != 'GET':
+        logger.warning(f"Invalid request method: {request.method}")
+        return JsonResponse({
+            "status": "error",
+            "message": "Only GET method is supported"
+        }, status=405)
 
+    node_type = request.GET.get('type', '').strip()
     if not node_type:
-        logger.warning("Node type not provided.")
-        return JsonResponse({"status": "error", "message": "Node type is required."}, status=400)
-
-    logger.info(f"Fetching nodes of type: {node_type}")
-    node_type = urllib.parse.unquote(node_type)
-
-    # Формируем URL для запроса
-    url = f"http://localhost:2480/query/chat-bot/sql/SELECT FROM {node_type}"
+        logger.warning("Node type parameter missing")
+        return JsonResponse({
+            "status": "error",
+            "message": "Node type parameter is required"
+        }, status=400)
 
     try:
-        response = requests.get(url, auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
+        # Validate and sanitize node_type (must be a valid class name in OrientDB)
+        node_type = urllib.parse.unquote(node_type)
+        if not re.fullmatch(r'^[a-zA-Z_][a-zA-Z0-9_]*$', node_type):
+            logger.error(f"Invalid node type format: {node_type}")
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid node type format"
+            }, status=400)
 
-        if response.status_code == 200:
-            logger.info(f"Successfully fetched data for type: {node_type}")
+        query = f"SELECT FROM {node_type} LIMIT 1000"
 
+        response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={'Content-Type': 'application/json'},
+            json={"command": query},
+            proxies={"http": None, "https": None}
+        )
+
+        if response.status_code != 200:
+            logger.error(f"Database error: {response.status_code} - {response.text}")
+            return JsonResponse({
+                "status": "error",
+                "message": "Error fetching data from database"
+            }, status=500)
+
+        try:
+            data = response.json()
+        except ValueError as e:
+            logger.error(f"JSON decode error: {str(e)}")
+            return JsonResponse({
+                "status": "error",
+                "message": "Error decoding database response"
+            }, status=500)
+
+        results = data.get('result')
+        if not isinstance(results, list):
+            logger.error("Invalid response format: expected 'result' as list")
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid database response format"
+            }, status=500)
+
+        # Process nodes
+        nodes_data = []
+        for node in results:
             try:
-                # Логируем текст ответа для отладки
-                logger.debug(f"Response text: {response.text}")
+                if isinstance(node, dict) and '@rid' in node:
+                    node_data = {
+                        'id': node['@rid'],
+                        'name': node.get('content', '')
+                    }
+                    nodes_data.append(node_data)
+            except Exception as e:
+                logger.warning(f"Error processing node: {str(e)}")
+                continue
 
-                # Пытаемся распарсить JSON ответ
-                data = response.json()
+        # Optional custom sorting by predefined names
+        custom_order = [
+            "Организационно-кадровая работа",
+            "Оказание материальной помощи и оплата труда",
+            "Обучение, тестирование, практика",
+            "Вопросы для психологов",
+            "Образцы заявлений"
+        ]
 
-                # Проверяем, есть ли в ответе поле 'result'
-                if 'result' in data:
-                    nodes_data = []
-                    for node in data['result']:
-                        # Убедимся, что в узле есть поля 'content' и '@rid'
-                        if 'content' in node and '@rid' in node:
-                            nodes_data.append({'id': node['@rid'], 'name': node['content']})
+        nodes_data.sort(
+            key=lambda x: custom_order.index(x['name']) if x.get('name') in custom_order else len(custom_order)
+        )
 
+        logger.info(f"Returning {len(nodes_data)} nodes of type {node_type}")
+        return JsonResponse({
+            'status': 'success',
+            'count': len(nodes_data),
+            'result': nodes_data
+        }, status=200)
 
-                    custom_order = [
-                        "Организационно-кадровая работа",
-                        "Оказание материальной помощи и оплата труда",
-                        "Обучение, тестирование, практика",
-                        "Вопросы для психологов",
-                        "Образцы заявлений"
-                    ]
-                    nodes_data.sort(
-                        key=lambda x: custom_order.index(x['name']) if x['name'] in custom_order else float('inf'))
+    except requests.RequestException as e:
+        logger.error(f"Database connection error: {str(e)}")
+        return JsonResponse({
+            "status": "error",
+            "message": "Database connection error"
+        }, status=500)
 
-                    logger.info(f"Found {len(nodes_data)} nodes.")
-                    return JsonResponse({'result': nodes_data})
-
-                else:
-                    logger.error(f"Unexpected response format: 'result' field missing.")
-                    return JsonResponse({"status": "error", "message": "Unexpected response format."}, status=500)
-
-            except ValueError as e:
-                logger.error(f"Error parsing JSON response: {e}")
-                return JsonResponse({"status": "error", "message": "Error parsing response data."}, status=500)
-
-        else:
-            logger.error(f"Error fetching data: HTTP {response.status_code} - {response.text}")
-            return JsonResponse({"status": "error", "message": "Error fetching data from the database."}, status=500)
-
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Request error: {e}")
-        return JsonResponse({"status": "error", "message": "Error executing the request to the database."}, status=500)
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        return JsonResponse({"status": "error", "message": "Internal server error."}, status=500)
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        return JsonResponse({
+            "status": "error",
+            "message": "Internal server error"
+        }, status=500)
 
 
 def get_nodes_by_type_with_relation(request):
-    """Fetch nodes of a specific type related to another node type based on a relationship."""
-    if request.method == 'GET':
-        start_node_type = urllib.parse.unquote(request.GET.get('startNodeType'))
-        start_node_name = urllib.parse.unquote(request.GET.get('startNodeName'))
-        finish_node_type = urllib.parse.unquote(request.GET.get('finishNodeType'))
+    """Fetch nodes of a specific type related to another node type with security protections."""
+    if request.method != 'GET':
+        logger.warning(f"Invalid request method: {request.method}")
+        return JsonResponse({
+            "status": "error",
+            "message": "Only GET method is supported"
+        }, status=405)
 
-        if start_node_type and start_node_name and finish_node_type:
-            logger.info(f"Fetching nodes with type of start node: {start_node_type}")
+    try:
+        # Validate and decode parameters
+        start_node_type = urllib.parse.unquote(request.GET.get('startNodeType', ''))
+        start_node_name = urllib.parse.unquote(request.GET.get('startNodeName', ''))
+        finish_node_type = urllib.parse.unquote(request.GET.get('finishNodeType', ''))
 
-            url = (f"{config_settings.ORIENT_COMMAND_URL}/SELECT FROM {finish_node_type} "
-                   f"WHERE @rid IN (SELECT OUT('Includes') "
-                   f"FROM (SELECT FROM {start_node_type} WHERE content = '{start_node_name}'))")
-            try:
-                response = requests.get(url, auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
+        # Validate required parameters
+        if not all([start_node_type, start_node_name, finish_node_type]):
+            logger.warning("Missing required parameters")
+            return JsonResponse({
+                "status": "error",
+                "message": "startNodeType, startNodeName and finishNodeType are required"
+            }, status=400)
 
-                if not response.ok:
-                    logger.warning("Base node not found.")
-                    return JsonResponse([], safe=False, status=200)
+        # Validate node type formats
+        if not all(re.fullmatch(r'^[a-zA-Z_][a-zA-Z0-9_]*$', t) for t in [start_node_type, finish_node_type]):
+            logger.error(f"Invalid node type format: {start_node_type} or {finish_node_type}")
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid node type format"
+            }, status=400)
 
-                data = response.json()
-                if 'result' in data:
-                    nodes_data = []
-                    for node in data['result']:
-                        if 'content' in node and '@rid' in node:
-                            nodes_data.append({'id': node['@rid'], 'name': node['content']})
+        # Use parameterized query
+        query = """
+            SELECT FROM :finish_node_type 
+            WHERE @rid IN (
+                SELECT OUT('Includes') 
+                FROM (
+                    SELECT FROM :start_node_type 
+                    WHERE content = :start_node_name
+                )
+            )
+        """
 
-                    logger.info(f"Found {len(nodes_data)} nodes.")
-                    logger.info(nodes_data)
-                    return JsonResponse({'result': nodes_data})
-                else:
-                    logger.error(f"Unexpected response format.")
+        response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={'Content-Type': 'application/json'},
+            json={
+                "command": query,
+                "parameters": {
+                    "start_node_type": start_node_type,
+                    "finish_node_type": finish_node_type,
+                    "start_node_name": start_node_name
+                },
+                "limit": 1000  # Prevent excessive results
+            }
+        )
 
-            except Exception as e:
-                logger.error(f"Error fetching data: {e}")
-                return JsonResponse({"error": "Failed to fetch data"}, status=500)
+        if not response.ok:
+            logger.error(f"Database error: {response.status_code} - {response.text}")
+            return JsonResponse({
+                "status": "error",
+                "message": "Database operation failed"
+            }, status=500)
+
+        try:
+            data = response.json()
+            nodes_data = []
+
+            if isinstance(data.get('result'), list):
+                for node in data['result']:
+                    if isinstance(node, dict) and '@rid' in node:
+                        nodes_data.append({
+                            'id': node['@rid'],
+                            'name': node.get('content', '')
+                        })
+
+                logger.info(f"Found {len(nodes_data)} related nodes")
+                return JsonResponse({
+                    "status": "success",
+                    "count": len(nodes_data),
+                    "result": nodes_data
+                })
+
+            return JsonResponse({
+                "status": "success",
+                "count": 0,
+                "result": []
+            })
+
+        except ValueError as e:
+            logger.error(f"JSON decode error: {str(e)}")
+            return JsonResponse({
+                "status": "error",
+                "message": "Error processing database response"
+            }, status=500)
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        return JsonResponse({
+            "status": "error",
+            "message": "Internal server error"
+        }, status=500)
 
 def get_all_questions(request):
     """Fetch all nodes of type 'question' from OrientDB."""
@@ -509,198 +617,303 @@ def get_all_topics(request):
 
 
 def get_question_id_by_content(request):
-    """Fetch question for a specific question ID."""
-    if request.method == 'GET':
-        question_content = urllib.parse.unquote(request.GET.get('questionContent'))
+    """Fetch question ID for a specific question content with security protections."""
+    if request.method != 'GET':
+        logger.warning(f"Invalid request method: {request.method}")
+        return JsonResponse({
+            "status": "error",
+            "message": "Only GET method is supported"
+        }, status=405)
 
-        if question_content:
-            logger.info(f"Received question content: {question_content}")
-            query = f"SELECT @rid FROM Question WHERE content = '{question_content}'"
+    try:
+        question_content = urllib.parse.unquote(request.GET.get('questionContent', ''))
 
-            try:
-                response = requests.get(
-                    config_settings.ORIENT_COMMAND_URL,
-                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
-                    headers={"Content-Type": "application/json"},
-                    json={"command": query}
-                )
+        if not question_content:
+            logger.error("No questionContent provided")
+            return JsonResponse({
+                "status": "error",
+                "message": "questionContent parameter is required"
+            }, status=400)
 
-                logger.info(f"Response status: {response.status_code}.")
+        logger.info(f"Searching question ID for content: [REDACTED]")  # Don't log full content
 
+        # Use parameterized query
+        response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={"Content-Type": "application/json"},
+            json={
+                "command": "SELECT @rid FROM Question WHERE content = :content LIMIT 1",
+                "parameters": {
+                    "content": question_content
+                }
+            }
+        )
 
-                if not response.ok:
-                    logger.warning("Question not found for the given ID.")
-                    return JsonResponse({"error": "Question not found"}, status=404)
-                else:
-                    data = response.json()
-                    logger.info(f"Data = {data}")
+        if not response.ok:
+            logger.error(f"Database error: {response.status_code}")
+            return JsonResponse({
+                "status": "error",
+                "message": "Database operation failed"
+            }, status=500)
 
-                    if 'result' in data:
-                        id = data['result'][0]
+        try:
+            data = response.json()
+            if not isinstance(data.get('result'), list):
+                logger.error("Invalid response format from database")
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Invalid database response format"
+                }, status=500)
 
-                    return JsonResponse({'result': id})
+            if not data['result']:
+                logger.info("Question not found")
+                return JsonResponse({
+                    "status": "success",
+                    "result": None,
+                    "message": "Question not found"
+                }, status=200)
 
-            except Exception as e:
-                logger.error(f"Error fetching answer: {e}")
-                return JsonResponse({"error": "Failed to fetch answer"}, status=500)
-        else:
-            logger.error("No questionId provided.")
-            return JsonResponse({"error": "No questionId provided"}, status=400)
+            question_id = data['result'][0].get('@rid')
+            if not question_id:
+                logger.error("Question ID not found in response")
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Invalid question data format"
+                }, status=500)
+
+            logger.info("Question ID found successfully")
+            return JsonResponse({
+                "status": "success",
+                "result": question_id
+            })
+
+        except ValueError as e:
+            logger.error(f"JSON decode error: {str(e)}")
+            return JsonResponse({
+                "status": "error",
+                "message": "Error processing database response"
+            }, status=500)
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        return JsonResponse({
+            "status": "error",
+            "message": "Internal server error"
+        }, status=500)
 
 
 def get_answer(request):
-    """Fetch answer for a specific question ID."""
-    if request.method == 'GET':
-        question_id = urllib.parse.unquote(request.GET.get('questionId'))
+    """Fetch answer for a specific question ID with protection against SQL injection."""
+    if request.method != 'GET':
+        logger.warning(f"Invalid request method: {request.method}")
+        return JsonResponse({
+            "status": "error",
+            "message": "Only GET method is supported"
+        }, status=405)
 
-        if question_id:
-            logger.info(f"Received questionId: {question_id}")
-            query = f"SELECT FROM Answer WHERE @rid IN (SELECT OUT('Includes') FROM Question WHERE @rid = '{question_id}')"
-            try:
-                response = requests.get(
-                    config_settings.ORIENT_COMMAND_URL,
-                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
-                    headers={"Content-Type": "application/json"},
-                    json={"command": query}
-                )
-                logger.info(f"Response status: {response.status_code}.")
+    try:
+        question_id = urllib.parse.unquote(request.GET.get('questionId', ''))
 
-                if not response.ok:
-                    logger.warning("Answer not found for the given answer ID.")
-                    return JsonResponse({"error": "Answer not found"}, status=404)
-                else:
-                    data = response.json()
-                    logger.info(f"Data = {data}")
-
-                    if 'result' in data:
-                        nodes_data = []
-                        for node in data['result']:
-                            if 'content' in node and '@rid' in node:
-                                nodes_data.append({'id': node['@rid'], 'content': node['content']})
-
-                        logger.info(f"Found {len(nodes_data)} nodes.")
-                        logger.info(nodes_data)
-                        return JsonResponse({'result': nodes_data})
-                    else:
-                        logger.error(f"Unexpected response format")
-
-            except Exception as e:
-                logger.error(f"Error fetching answer: {e}")
-                return JsonResponse({"error": "Failed to fetch answer"}, status=500)
-        else:
+        if not question_id:
             logger.error("No questionId provided.")
-            return JsonResponse({"error": "No questionId provided"}, status=400)
+            return JsonResponse({
+                "status": "error",
+                "message": "questionId parameter is required"
+            }, status=400)
+
+        logger.info("Received questionId [REDACTED]")  # Не логируем ID напрямую
+
+        # Используем параметризованный запрос
+        query = """
+            SELECT FROM Answer 
+            WHERE @rid IN (
+                SELECT OUT('Includes') 
+                FROM Question 
+                WHERE @rid = :question_id
+            )
+        """
+
+        response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={"Content-Type": "application/json"},
+            json={
+                "command": query,
+                "parameters": {
+                    "question_id": question_id
+                }
+            }
+        )
+
+        logger.info(f"Response status: {response.status_code}")
+
+        if not response.ok:
+            logger.warning("Answer not found for the given question ID.")
+            return JsonResponse({"error": "Answer not found"}, status=404)
+
+        data = response.json()
+        logger.info("Data received from DB")
+
+        if 'result' not in data or not isinstance(data['result'], list):
+            logger.error("Invalid response format from database")
+            return JsonResponse({"error": "Invalid database response"}, status=500)
+
+        nodes_data = []
+        for node in data['result']:
+            if 'content' in node and '@rid' in node:
+                nodes_data.append({'id': node['@rid'], 'content': node['content']})
+
+        logger.info(f"Found {len(nodes_data)} answer(s)")
+        return JsonResponse({'result': nodes_data})
+
+    except Exception as e:
+        logger.error(f"Error fetching answer: {str(e)}", exc_info=True)
+        return JsonResponse({"error": "Internal server error"}, status=500)
+
 
 
 def get_artifacts(request):
-    """Получение документов и ссылок, связанных с ответом по заданному ID."""
-    if request.method == 'GET':
-        # Извлекаем answerID из GET-запроса
-        answer_id = urllib.parse.unquote(request.GET.get('answerID'))
+    """Получение документов и ссылок, связанных с ответом по заданному ID (безопасно)."""
+    if request.method != 'GET':
+        logger.warning(f"Invalid request method: {request.method}")
+        return JsonResponse({"error": "Only GET method is supported"}, status=405)
 
-        if answer_id:
-            nodes_data = []
-            logger.info(f"Received answerId: {answer_id}")
+    answer_id = urllib.parse.unquote(request.GET.get('answerID', ''))
+    if not answer_id:
+        logger.error("No answerID provided.")
+        return JsonResponse({"error": "No answerID provided"}, status=400)
 
-            # Формируем запрос для получения документов
-            documents_query = f"SELECT FROM document WHERE @rid IN (SELECT OUT('Includes') FROM Answer WHERE @rid = '{answer_id}')"
-            logger.info(f"Sending documents query: {documents_query}")
+    nodes_data = []
+    logger.info("Fetching artifacts for answerID: [REDACTED]")  # answer_id не логируем
 
-            # Формируем запрос для получения ссылок
-            links_query = f"SELECT FROM link WHERE @rid IN (SELECT OUT('Includes') FROM Answer WHERE @rid = '{answer_id}')"
-            logger.info(f"Sending links query: {links_query}")
+    try:
+        # Получаем документы
+        response_docs = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={"Content-Type": "application/json"},
+            json={
+                "command": "SELECT FROM document WHERE @rid IN (SELECT OUT('Includes') FROM Answer WHERE @rid = :answer_id)",
+                "parameters": {"answer_id": answer_id}
+            }
+        )
 
-            try:
-                # Получаем данные документов
-                response = requests.get(
-                    config_settings.ORIENT_COMMAND_URL,
-                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
-                    headers={"Content-Type": "application/json"},
-                    json={"command": documents_query}
-                )
+        if response_docs.ok:
+            documents_data = response_docs.json()
+            logger.info("Documents fetched successfully")
 
-                documents_data = response.json()
-                logger.info(f"Documents data = {documents_data}")
-
-                if 'result' in documents_data:
-                    for node in documents_data['result']:
-                        if '@rid' in node:
-                            if 'content' in node and 'uuid' in node:
-                                nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content'],
-                                                   'type': 'document', 'uuid': node['uuid']})
-                            elif 'content' in node:
-                                nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content'], 'type': 'document'})
-                            elif 'uuid' in node:
-                                nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': '', 'type': 'document', 'uuid': node['uuid']})
-                            else:
-                                nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': '', 'type': 'document'})
-                    logger.info(f"Found {len(nodes_data)} documents.")
-                    logger.info(nodes_data)
-                else:
-                    logger.error(f"Unexpected response format")
-
-            except Exception as e:
-                logger.error(f"Error fetching documents: {e}")
-                return JsonResponse({"error": "Failed to fetch documents"}, status=500)
-
-            try:
-                # Получаем данные ссылок
-                response = requests.get(
-                    config_settings.ORIENT_COMMAND_URL,
-                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
-                    headers={"Content-Type": "application/json"},
-                    json={"command": links_query}
-                )
-
-                links_data = response.json()
-                logger.info(f"Links data = {links_data}")
-
-                if 'result' in links_data:
-                    for node in links_data['result']:
-                        if 'content' in node and '@rid' in node:
-                            nodes_data.append({'id': node['@rid'], 'name': node['name'], 'content': node['content'], 'type': 'link'})
-                    logger.info(f"Found {len(nodes_data)} links.")
-                    logger.info(nodes_data)
-                else:
-                    logger.error(f"Unexpected response format: {links_data}")
-
-            except Exception as e:
-                logger.error(f"Error fetching links: {e}")
-                return JsonResponse({"error": "Failed to fetch links"}, status=500)
-
-            # Возвращаем найденные документы и ссылки
-            return JsonResponse({'result': nodes_data})
+            if 'result' in documents_data:
+                for node in documents_data['result']:
+                    if '@rid' in node:
+                        entry = {
+                            'id': node['@rid'],
+                            'name': node.get('name', ''),
+                            'content': node.get('content', ''),
+                            'type': 'document'
+                        }
+                        if 'uuid' in node:
+                            entry['uuid'] = node['uuid']
+                        nodes_data.append(entry)
+                logger.info(f"Found {len(nodes_data)} documents.")
         else:
-            logger.error("No answerID provided.")
-            return JsonResponse({"error": "No answerID provided"}, status=400)
+            logger.error("Failed to fetch documents")
+            return JsonResponse({"error": "Failed to fetch documents"}, status=500)
+
+    except Exception as e:
+        logger.error(f"Error fetching documents: {e}", exc_info=True)
+        return JsonResponse({"error": "Failed to fetch documents"}, status=500)
+
+    try:
+        # Получаем ссылки
+        response_links = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={"Content-Type": "application/json"},
+            json={
+                "command": "SELECT FROM link WHERE @rid IN (SELECT OUT('Includes') FROM Answer WHERE @rid = :answer_id)",
+                "parameters": {"answer_id": answer_id}
+            }
+        )
+
+        if response_links.ok:
+            links_data = response_links.json()
+            logger.info("Links fetched successfully")
+
+            if 'result' in links_data:
+                for node in links_data['result']:
+                    if '@rid' in node:
+                        nodes_data.append({
+                            'id': node['@rid'],
+                            'name': node.get('name', ''),
+                            'content': node.get('content', ''),
+                            'type': 'link'
+                        })
+                logger.info(f"Found {len(nodes_data)} links.")
+        else:
+            logger.error("Failed to fetch links")
+            return JsonResponse({"error": "Failed to fetch links"}, status=500)
+
+    except Exception as e:
+        logger.error(f"Error fetching links: {e}", exc_info=True)
+        return JsonResponse({"error": "Failed to fetch links"}, status=500)
+
+    return JsonResponse({'result': nodes_data})
 
 def get_artifact_by_id(request):
-    if request.method == 'GET':
-        artifact_type = urllib.parse.unquote(request.GET.get('artifactType'))
-        artifact_id = urllib.parse.unquote(request.GET.get('artifactID'))
+    """Безопасное получение одного артефакта (документа или ссылки) по ID."""
+    if request.method != 'GET':
+        logger.warning(f"Invalid request method: {request.method}")
+        return JsonResponse({"error": "Only GET method is supported"}, status=405)
 
-        if artifact_type == 'link':
-            query = f"SELECT FROM link WHERE @rid = '{artifact_id}'"
+    artifact_type = urllib.parse.unquote(request.GET.get('artifactType', ''))
+    artifact_id = urllib.parse.unquote(request.GET.get('artifactID', ''))
+
+    if not artifact_type or not artifact_id:
+        logger.error("Missing artifactType or artifactID.")
+        return JsonResponse({"error": "Missing artifactType or artifactID"}, status=400)
+
+    if artifact_type == 'link':
+        query = "SELECT FROM link WHERE @rid = :artifact_id"
+    else:
+        query = "SELECT FROM document WHERE @rid = :artifact_id"
+
+    try:
+        response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={"Content-Type": "application/json"},
+            json={
+                "command": query,
+                "parameters": {"artifact_id": artifact_id}
+            }
+        )
+
+        if not response.ok:
+            logger.error(f"OrientDB returned HTTP error: {response.status_code}")
+            return JsonResponse({"error": "Failed to fetch artifact"}, status=500)
+
+        data = response.json()
+
+        if 'result' in data and data['result']:
+            node = data['result'][0]
+            return JsonResponse({
+                'status': 200,
+                'result': {
+                    'id': node.get('@rid'),
+                    'name': node.get('name', ''),
+                    'content': node.get('content', ''),
+                    'type': artifact_type
+                }
+            })
         else:
-            query = f"SELECT FROM document WHERE @rid = '{artifact_id}'"
+            logger.warning(f"No artifact found with ID: {artifact_id}")
+            return JsonResponse({"error": "Artifact not found"}, status=404)
 
-        try:
-            response = requests.get(
-                config_settings.ORIENT_COMMAND_URL,
-                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
-                headers={"Content-Type": "application/json"},
-                json={"command": query}
-            )
+    except Exception as e:
+        logger.error(f"Error fetching artifact: {e}", exc_info=True)
+        return JsonResponse({"error": "Failed to fetch artifact"}, status=500)
 
-            data = response.json()
-
-            if 'result' in data:
-                node = data['result'][0]
-                return JsonResponse({'status': 200, 'result': {'id': node['@rid'], 'name': node['name'], 'content': node['content'], 'type': artifact_type}})
-
-        except Exception as e:
-            logger.error(f"Error fetching documents: {e}")
-            return JsonResponse({"error": "Failed to fetch documents"}, status=500)
 
 
 @require_http_methods(["GET"])
@@ -767,102 +980,119 @@ def escape_sql_string(value):
 
 @csrf_exempt
 def update_answer(request):
-    if request.method == 'POST':
-        try:
-            body = json.loads(request.body.decode('utf-8'))
-            question_id = body.get('questionID')
-            content = body.get('content')
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-            if not question_id:
-                return JsonResponse({"error": "questionID is required"}, status=400)
-            if not content:
-                return JsonResponse({"error": "Content cannot be empty"}, status=400)
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+        question_id = body.get('questionID')
+        content = body.get('content')
 
-            escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
+        if not question_id:
+            return JsonResponse({"error": "questionID is required"}, status=400)
+        if not content or not content.strip():
+            return JsonResponse({"error": "Content cannot be empty"}, status=400)
 
-            check_query = f"""
-            SELECT FROM answer WHERE IN('Includes').@rid ={question_id} LIMIT 1
+        clean_content = content.replace("\u200b", "").strip()
+
+        # 1. Проверка: существует ли уже ответ на этот вопрос
+        check_query = """
+        SELECT FROM answer WHERE IN('Includes').@rid = :question_id LIMIT 1
+        """
+        check_response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            json={
+                "command": check_query,
+                "parameters": {"question_id": question_id}
+            },
+        )
+
+        if not check_response.ok:
+            logger.error(f"Check answer failed: {check_response.text}")
+            return JsonResponse({"error": "Failed to check existing answer"}, status=500)
+
+        result = check_response.json().get('result', [])
+
+        # 2. Если ответ существует — обновляем
+        if result:
+            answer_id = result[0]['@rid']
+            update_query = """
+            UPDATE answer SET content = :content WHERE @rid = :answer_id
             """
-            check_response = requests.get(
+            update_response = requests.post(
                 config_settings.ORIENT_COMMAND_URL,
                 auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                 headers={"Content-Type": "application/json; charset=utf-8"},
-                json={"command": check_query},
+                json={
+                    "command": update_query,
+                    "parameters": {"content": clean_content, "answer_id": answer_id}
+                },
             )
 
-            if check_response.ok:
-                result = check_response.json().get('result', [])
-                # 2. Если ответ существует - обновляем
-                if result:
-                    answer_id = result[0]['@rid']
-                    update_query = f"UPDATE answer SET content = '{escaped_content}' WHERE @rid ={answer_id}"
-                    update_response = requests.get(
-                        config_settings.ORIENT_COMMAND_URL,
-                        auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
-                        headers={"Content-Type": "application/json; charset=utf-8"},
-                        json={"command": update_query},
-                    )
-
-                    if update_response.ok:
-                        log_action(f"Редактирование ответа на {content}")
-                        return JsonResponse({
-                            "message": "Answer updated successfully",
-                            "answerID": answer_id
-                        }, status=200)
-                    else:
-                        logger.error(f"Update failed: {update_response.text}")
-                        return JsonResponse({"error": "Failed to update answer"}, status=500)
-
-            # 3. Если ответа нет - создаем новый
-            # Сначала создаем узел ответа
-            create_node_query = f"""
-            INSERT INTO answer SET content = '{escaped_content}'
-            RETURN @rid
-            """
-            create_node_response = requests.get(
-                config_settings.ORIENT_COMMAND_URL,
-                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
-                headers={"Content-Type": "application/json; charset=utf-8"},
-                json={"command": create_node_query},
-            )
-
-            if not create_node_response.ok:
-                logger.error(f"Create node failed: {create_node_response.text}")
-                return JsonResponse({"error": "Failed to create answer node"}, status=500)
-
-            new_answer_id = create_node_response.json().get('result', [{}])[0].get('@rid')
-
-            if not new_answer_id:
-                return JsonResponse({"error": "Failed to get new answer ID"}, status=500)
-
-            # Затем создаем связь с вопросом
-            create_relation_query = f"""
-            CREATE EDGE Includes FROM {question_id} TO {new_answer_id}
-            """
-            create_relation_response = requests.get(
-                config_settings.ORIENT_COMMAND_URL,
-                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
-                headers={"Content-Type": "application/json; charset=utf-8"},
-                json={"command": create_relation_query},
-            )
-
-            if create_relation_response.ok:
+            if update_response.ok:
+                log_action(f"Редактирование ответа: {clean_content}")
                 return JsonResponse({
-                    "message": "New answer created successfully",
-                    "answerID": new_answer_id
-                }, status=201)
+                    "message": "Answer updated successfully",
+                    "answerID": answer_id
+                }, status=200)
             else:
-                logger.error(f"Create relation failed: {create_relation_response.text}")
-                return JsonResponse({"error": "Failed to create relation"}, status=500)
+                logger.error(f"Update failed: {update_response.text}")
+                return JsonResponse({"error": "Failed to update answer"}, status=500)
 
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error: {e}")
-            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
-        except Exception as e:
-            logger.error(f"Unexpected error: {e}")
-            return JsonResponse({'error': str(e)}, status=500)
+        # 3. Ответа нет — создаем новый
+        create_node_query = """
+        INSERT INTO answer SET content = :content RETURN @rid
+        """
+        create_node_response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            json={
+                "command": create_node_query,
+                "parameters": {"content": clean_content}
+            },
+        )
 
-    return JsonResponse({'error': 'Invalid request method'}, status=400)
+        if not create_node_response.ok:
+            logger.error(f"Create answer node failed: {create_node_response.text}")
+            return JsonResponse({"error": "Failed to create answer node"}, status=500)
+
+        new_answer_id = create_node_response.json().get('result', [{}])[0].get('@rid')
+        if not new_answer_id:
+            return JsonResponse({"error": "Failed to retrieve new answer ID"}, status=500)
+
+        # 4. Создаем связь с вопросом
+        create_relation_query = """
+        CREATE EDGE Includes FROM :question_id TO :answer_id
+        """
+        create_relation_response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            json={
+                "command": create_relation_query,
+                "parameters": {"question_id": question_id, "answer_id": new_answer_id}
+            },
+        )
+
+        if create_relation_response.ok:
+            return JsonResponse({
+                "message": "New answer created successfully",
+                "answerID": new_answer_id
+            }, status=201)
+        else:
+            logger.error(f"Create relation failed: {create_relation_response.text}")
+            return JsonResponse({"error": "Failed to create relation"}, status=500)
+
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error: {e}")
+        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}", exc_info=True)
+        return JsonResponse({'error': 'Internal server error'}, status=500)
+
 
 
 @csrf_exempt
@@ -1162,56 +1392,72 @@ def delete_last_chat_message(request, dialog_id):
 
 @csrf_exempt
 def get_section_by_question(request):
-    if request.method == 'GET':
-        question_id = urllib.parse.unquote(request.GET.get('questionID', ''))
-        logger.info(f'Question ID = {question_id}')
+    if request.method != 'GET':
+        logger.warning("Invalid request method for section lookup")
+        return JsonResponse({"error": "Method not allowed"}, status=405)
 
-        if not question_id:
-            return JsonResponse({"error": "questionID parameter is required"}, status=400)
+    question_id = urllib.parse.unquote(request.GET.get('questionID', '')).strip()
+    logger.info(f"Received questionID: {question_id}")
 
-        try:
-            # Валидация question_id (должен быть в формате #cluster:position)
-            if not re.match(r'^#\d+:\d+$', question_id):
-                return JsonResponse({"error": "Invalid questionID format"}, status=400)
+    if not question_id:
+        logger.warning("Missing questionID parameter")
+        return JsonResponse({"error": "questionID parameter is required"}, status=400)
 
-            # Безопасный запрос с параметрами
-            query = f"SELECT @rid, content FROM Section WHERE (SELECT @rid FROM Topic WHERE {question_id} IN out('Includes').@rid) in out('Includes').@rid"
+    try:
+        # Валидация формата question_id (#12:0 и т.д.)
+        if not re.fullmatch(r'^#\d+:\d+$', question_id):
+            logger.warning(f"Invalid questionID format: {question_id}")
+            return JsonResponse({"error": "Invalid questionID format. Expected format: #cluster:position"}, status=400)
 
-            url = f"{config_settings.ORIENT_COMMAND_URL}/{urllib.parse.quote(query)}"
-            params = {'questionId': question_id}
+        # Корректный запрос: получаем Section, в которую входит Topic, содержащий указанный Question
+        query = """
+        SELECT @rid, content FROM Section 
+        WHERE @rid IN (
+            SELECT expand(out('Includes')) FROM Topic 
+            WHERE :question_id IN out('Includes').@rid
+        )
+        """
 
-            logger.info(f'Executing query: {query}')
-            logger.info(f'With parameters: {params}')
+        response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={'Content-Type': 'application/json'},
+            json={
+                "command": query,
+                "parameters": {"question_id": question_id}
+            },
+            proxies={"http": None, "https": None}
+        )
 
-            response = requests.get(
-                url,
-                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
-                params=params,
-                proxies={"http": None, "https": None}
-            )
+        if not response.ok:
+            logger.error(f'OrientDB error: {response.status_code} - {response.text}')
+            return JsonResponse({"error": "Database operation failed"}, status=500)
 
-            if not response.ok:
-                logger.error(f'OrientDB error: {response.text}')
-                return JsonResponse({"error": "Database error"}, status=500)
+        data = response.json()
+        logger.debug(f'OrientDB response: {json.dumps(data, ensure_ascii=False)}')
 
-            data = response.json()
-            logger.info(f'Response data: {data}')
+        sections = data.get('result', [])
+        if sections:
+            section = sections[0]
+            return JsonResponse({
+                "id": section.get('@rid'),
+                "name": section.get('content', '')
+            }, status=200)
 
-            # Обработка ответа OrientDB
-            if data.get('result'):
-                sections = data['result']
-                if sections:
-                    section = sections[0]  # Берем первый найденный раздел
-                    return JsonResponse({
-                        'id': section.get('@rid'),
-                        'name': section.get('content', '')
-                    })
+        logger.info(f"No section found for questionID {question_id}")
+        return JsonResponse({"error": "Section not found"}, status=404)
 
-            return JsonResponse({"error": "Section not found"}, status=404)
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON response from database")
+        return JsonResponse({"error": "Database response format error"}, status=500)
 
-        except Exception as e:
-            logger.error(f"Error fetching data: {str(e)}", exc_info=True)
-            return JsonResponse({"error": "Internal server error"}, status=500)
+    except requests.RequestException as e:
+        logger.error(f"Database connection error: {str(e)}")
+        return JsonResponse({"error": "Database connection failed"}, status=500)
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        return JsonResponse({"error": "Internal server error"}, status=500)
 
 def get_session_duration(request):
     if request.method == 'GET':

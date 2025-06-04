@@ -46,7 +46,7 @@ def correct_with_yandex(text):
     try:
         url = "https://speller.yandex.net/services/spellservice.json/checkText"
         params = {"text": text, "lang": "ru"}
-        response = requests.get(url, params=params,verify=False)
+        response = requests.get(url, params=params, verify=False)
         response.raise_for_status()
         errors = response.json()
 

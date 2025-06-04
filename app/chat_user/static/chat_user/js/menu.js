@@ -372,21 +372,20 @@ const createArtifactsBlock = async (artifacts) => {
     const documents = artifacts.filter(item => item.type === 'document');
     const links = artifacts.filter(item => item.type === 'link');
 
-    if (!documents || !links) {
-        return
+    // Ранний выход, если нет артефактов
+    if (documents.length === 0 && links.length === 0) {
+        return;
     }
 
+    // Обработка документов
     if (documents.length > 0) {
-        let docMessage;
-        if (documents.length > 1) {
-            docMessage = `${state['username']}, еще больше информации Вы можете получить в документах:`;
-        } else {
-            docMessage = `${state['username']}, еще больше информации Вы можете получить в документе:`;
-        }
+        let docMessage = documents.length > 1
+            ? `${state['username']}, еще больше информации Вы можете получить в документах:`
+            : `${state['username']}, еще больше информации Вы можете получить в документе:`;
+
         await appendMessage('bot', docMessage, getTimestamp());
         await sendBotMessage(docMessage);
 
-        // Обрабатываем документы
         for (const doc of documents) {
             const documentMessageDiv = document.createElement('div');
             const documentButton = document.createElement('button');
@@ -408,12 +407,15 @@ const createArtifactsBlock = async (artifacts) => {
                 const link = document.createElement('a');
                 link.href = filePath;
                 link.download = doc.name;
+                link.rel = 'noopener noreferrer'; // Безопасность для ссылок на документы
                 link.target = '_blank';
+
                 documentButton.addEventListener('click', async (e) => {
                     e.preventDefault();
                     await startOrRestartTimer();
                     link.click();
                 });
+
                 documentMessageDiv.appendChild(documentButton);
                 chatMessagesArea.appendChild(documentMessageDiv);
                 await sendMessageToAPI(state['dialog_id'], 'bot', 'document', `${doc.name}^_^${doc.uuid}`, getTimestamp());
@@ -425,62 +427,50 @@ const createArtifactsBlock = async (artifacts) => {
                 chatMessagesArea.appendChild(documentMessageDiv);
             }
         }
-
-        if (links.length > 0) {
-            let linkMessage;
-            if (links.length > 1) {
-                linkMessage = `... а также на страницах портала:`;
-            } else {
-                linkMessage = `... а также на странице портала:`;
-            }
-            await appendMessage('bot', linkMessage, getTimestamp());
-            await sendBotMessage(linkMessage);
-
-            for (const link of links) {
-                const messageDiv = document.createElement('div');
-                const linkButton = document.createElement('button');
-                linkButton.className = 'link-button';
-                linkButton.innerHTML = `
-                    ${link.name}
-                    <i class="fas fa-external-link-alt" style="margin-left: 8px;"></i>
-                `;
-
-                linkButton.addEventListener('click', () => {
-                    window.open(link.content, '_blank');
-                });
-                messageDiv.appendChild(linkButton);
-                chatMessagesArea.appendChild(messageDiv);
-                await sendMessageToAPI(state['dialog_id'], 'bot', 'link', `${link.name}^_^${link.content}`, getTimestamp());
-            }
-        }
-    } else {
-        let message = ''
-        if (links.length > 1) {
-            message = `${state['username']}, еще больше информации Вы можете получить на страницах портала:`;
-        } else {
-            message = `${state['username']}, еще больше информации Вы можете получить на странице портала:`;
-        }
-        await appendMessage('bot', message, getTimestamp());
-        await sendBotMessage(message);
-        links.forEach(async (link) => {
-            const messageDiv = document.createElement('div');
-                const linkButton = document.createElement('button');
-                linkButton.className = 'link-button';
-                linkButton.innerHTML = `
-                    ${link.name}
-                    <i class="fas fa-external-link-alt" style="margin-left: 8px;"></i>
-                `;
-
-                linkButton.addEventListener('click', async () => {
-                    await startOrRestartTimer();
-                    window.open(link.content, '_blank');
-                });
-                messageDiv.appendChild(linkButton);
-                chatMessagesArea.appendChild(messageDiv);
-                await sendMessageToAPI(state['dialog_id'], 'bot', 'link', `${link.name}^_^${link.content}`, getTimestamp());
-        });
     }
-}
+
+    // Обработка ссылок
+    if (links.length > 0) {
+        let linkMessage;
+
+        if (documents.length > 0) {
+            linkMessage = links.length > 1
+                ? `... а также на страницах портала:`
+                : `... а также на странице портала:`;
+        } else {
+            linkMessage = links.length > 1
+                ? `${state['username']}, еще больше информации Вы можете получить на страницах портала:`
+                : `${state['username']}, еще больше информации Вы можете получить на странице портала:`;
+        }
+
+        await appendMessage('bot', linkMessage, getTimestamp());
+        await sendBotMessage(linkMessage);
+
+        for (const link of links) {
+            const messageDiv = document.createElement('div');
+            const linkButton = document.createElement('button');
+            linkButton.className = 'link-button';
+            linkButton.innerHTML = `
+                ${link.name}
+                <i class="fas fa-external-link-alt" style="margin-left: 8px;"></i>
+            `;
+
+            linkButton.addEventListener('click', async () => {
+                await startOrRestartTimer();
+                // Безопасное открытие ссылки
+                const anchor = document.createElement('a');
+                anchor.href = link.content;
+                anchor.target = '_blank';
+                anchor.rel = 'noopener noreferrer'; // Защита от tabnabbing
+                anchor.click();
+            });
+
+            messageDiv.appendChild(linkButton);
+            chatMessagesArea.appendChild(messageDiv);
+            await sendMessageToAPI(state['dialog_id'], 'bot', 'link', `${link.name}^_^${link.content}`, getTimestamp());
+        }
+    }
+};
 
 const showArtifacts = async (answerID) => {
     const artifactsData = await fetchArtifacts(answerID);

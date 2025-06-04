@@ -510,189 +510,226 @@ def extract_keywords_view(request):
     logger.warning("Invalid method: only POST is supported.")
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
+@csrf_exempt
+def delete_relation(request):
+    """Deletes a relation (edge) between two nodes in the OrientDB database."""
+
+    if request.method != 'POST':
+        logger.warning(f"Invalid request method: {request.method}")
+        return JsonResponse({'error': 'Only POST method is allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        answer = data.get('answer_id')
+        document = data.get('document_id')
+
+        if not answer or not document:
+            logger.warning("Missing 'answer' or 'document' fields.")
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
+
+        # Optional: Validate RID format like #12:0 (OrientDB record ID)
+        rid_pattern = r'^#\d+:\d+$'
+        if not re.match(rid_pattern, answer) or not re.match(rid_pattern, document):
+            logger.warning(f"Invalid RID format: answer={answer}, document={document}")
+            return JsonResponse({'error': 'Invalid RID format'}, status=400)
+
+        command = f"DELETE EDGE Includes WHERE out = {answer} AND in = {document}"
+        headers = {'Content-Type': 'application/json'}
+        json_data = {"command": command}
+
+        response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            headers=headers,
+            json=json_data,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            proxies={"http": None, "https": None}
+        )
+
+        if response.status_code != 200:
+            logger.error(f"Failed to delete relation: {response.status_code}, {response.text}")
+            return JsonResponse({'error': 'Failed to delete relation'}, status=500)
+
+        logger.info(f"Relation deleted between {answer} and {document}")
+        return JsonResponse({'message': 'Relation successfully deleted'}, status=200)
+
+    except json.JSONDecodeError:
+        logger.exception("Invalid JSON in request body")
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    except Exception as e:
+        logger.exception("An unexpected error occurred while deleting the relation.")
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
-def create_node(request):
-    user = request.user
-    if request.method == 'POST':
+@csrf_exempt
+def get_nodes_by_type(request):
+    if request.method != 'GET':
+        logger.warning(f"Invalid request method: {request.method}")
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+    try:
+        node_type = request.GET.get('type', '').strip()
+        if not node_type:
+            logger.warning("Node type parameter missing")
+            return JsonResponse({'error': 'Node type parameter is required'}, status=400)
+
+        node_type = urllib.parse.unquote(node_type)
+
+        # Enhanced validation with allowlist approach
+        valid_classes = ['document', 'link', 'Topic', 'Question', 'Section']  # Add all valid class names
+        if node_type not in valid_classes:
+            logger.warning(f"Invalid node type requested: {node_type}")
+            return JsonResponse({'error': 'Invalid node type'}, status=400)
+
+        # Additional length validation
+        if len(node_type) > 50:
+            logger.warning(f"Node type parameter too long: {node_type[:50]}...")
+            return JsonResponse({'error': 'Node type parameter too long'}, status=400)
+
+        # Parameterized query using OrientDB's parameter binding
+        query = "SELECT FROM :node_type LIMIT -1"
+
+        response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            headers={'Content-Type': 'application/json'},
+            json={
+                "command": query,
+                "parameters": {"node_type": node_type}
+            },
+            timeout=10,  # Add timeout
+            proxies={"http": None, "https": None}
+        )
+
+        if response.status_code != 200:
+            logger.error(f"Database error ({response.status_code}) for node_type={node_type}")
+            return JsonResponse({
+                'error': 'Error fetching data from database',
+                'status_code': response.status_code
+            }, status=500)
+
         try:
-            data = json.loads(request.body)
+            data = response.json()
+        except ValueError as e:
+            logger.error(f"Error parsing JSON response: {e}")
+            return JsonResponse({'error': 'Failed to parse database response'}, status=500)
 
-            node_class = data.get('class')
-            node_name = data.get('name')
-            node_content = data.get('content')
-            node_uuid = data.get('uuid')
+        results = data.get('result')
+        if not isinstance(results, list):
+            logger.error("Invalid response format: 'result' field missing or not a list")
+            return JsonResponse({'error': 'Invalid database response format'}, status=500)
 
-            if not node_class or not node_content:
-                return JsonResponse({'error': 'Missing required fields: class or name'}, status=400)
+        # Sanitize output - remove internal fields
+        sanitized_results = []
+        for item in results:
+            if not isinstance(item, dict):
+                continue
 
-            if node_class == 'link':
-                check_sql = f"SELECT FROM {node_class} WHERE name = '{node_name}'"
-                check_response = requests.post(
-                    config_settings.ORIENT_COMMAND_URL,
-                    headers={'Content-Type': 'application/json'},
-                    json={"command": check_sql},
-                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
-                )
+            # Create a safe copy of the item
+            sanitized = {k: v for k, v in item.items() if not k.startswith('@')}
+            if '@rid' in item:
+                sanitized['id'] = item['@rid']
+            sanitized_results.append(sanitized)
 
-                if check_response.status_code == 200:
-                    existing_nodes = check_response.json().get('result', [])
-                    if existing_nodes:
-                        return JsonResponse({'error': 'Node with this name already exists'}, status=409)
+        return JsonResponse({
+            'status': 'success',
+            'count': len(sanitized_results),
+            'result': sanitized_results
+        }, status=200)
 
-                check_sql = f"SELECT FROM {node_class} WHERE content = '{node_content}'"
-                check_response = requests.post(
-                    config_settings.ORIENT_COMMAND_URL,
-                    headers={'Content-Type': 'application/json'},
-                    json={"command": check_sql},
-                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
-                )
-
-                if check_response.status_code == 200:
-                    existing_nodes = check_response.json().get('result', [])
-                    if existing_nodes:
-                        return JsonResponse({'error': 'Node with this content already exists'}, status=409)
-
-            sql_command = f"CREATE VERTEX {node_class} SET content = '{node_content}'"
-            if node_name:
-                sql_command += f", name = '{node_name}'"
-            if node_uuid:
-                sql_command += f", uuid = '{node_uuid}'"
-
-            headers = {'Content-Type': 'application/json'}
-            json_data = {"command": sql_command}
-            response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
-                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
-
-            if response.status_code == 200:
-                logger.info(f"Node created successfully: {response.text}")
-                # user_action.info(
-                #     f"Node created successfully: {response.text}",
-                #     extra={
-                #         'user_id': user.id,
-                #         'user_name': user.first_name + ' ' + user.last_name,
-                #         'action_type': 'create_node',
-                #         'time': datetime.now(),
-                #         'details': json.dumps({
-                #             'status': f"{user.first_name} {user.last_name}' create node successfully",
-                #         })
-                #     }
-                # )
-                try:
-                    response_data = response.json()
-                    log_action(f"Создание новой вершины {node_class} | {node_content}.")
-                    return JsonResponse({'status': 'success', 'data': response_data['result']}, status=201)
-
-                except ValueError as e:
-                    logger.error(f"Error parsing JSON response: {e}")
-                    # user_action.error(
-                    #     f"Error parsing JSON response: {e}",
-                    #     extra={
-                    #         'user_id': user.id,
-                    #         'user_name': user.first_name + ' ' + user.last_name,
-                    #         'action_type': 'create_node',
-                    #         'time': datetime.now(),
-                    #         'details': json.dumps({
-                    #             'status': f"Error parsing JSON response: {e}",
-                    #         })
-                    #
-                    #     }
-                    # )
-
-                    return JsonResponse({'error': 'Failed to parse response'}, status=500)
-
-            else:
-                logger.error(f"Error fetching data: HTTP {response.status_code} - {response.text}")
-                # user_action.error(
-                #     f"Error fetching data: HTTP {response.status_code} - {response.text}",
-                #     extra={
-                #         'user_id': user.id,
-                #         'user_name': user.first_name + ' ' + user.last_name,
-                #         'action_type': 'create_node',
-                #         'time': datetime.now(),
-                #         'details': json.dumps({
-                #             'status': f"Error fetching data: HTTP {response.status_code} - {response.text}",
-                #         })
-                #
-                #     }
-                # )
-                return JsonResponse({'error': f"Error {response.status_code}: {response.text}"},
-                                    status=response.status_code)
-
-        except Exception as e:
-            logger.error(f"Error in creating node: {e}")
-            # user_action.error(
-            #     f"Error in creating node: {e}",
-            #     extra={
-            #         'user_id': user.id,
-            #         'user_name': user.first_name + ' ' + user.last_name,
-            #         'action_type': 'create_node',
-            #         'time': datetime.now(),
-            #         'details': json.dumps({
-            #             'status': f"{user.first_name} {user.last_name}' create node unsuccessfully",
-            #         })
-            #
-            #     }
-            # )
-            return JsonResponse({'error': str(e)}, status=400)
+    except requests.Timeout:
+        logger.error("Database connection timed out")
+        return JsonResponse({'error': 'Database connection timeout'}, status=504)
+    except requests.RequestException as e:
+        logger.error(f"Database connection error: {str(e)}")
+        return JsonResponse({'error': 'Database connection error'}, status=500)
+    except Exception as e:
+        logger.exception(f"Unexpected error in get_nodes_by_type: {str(e)}")
+        return JsonResponse({'error': 'Internal server error'}, status=500)
 
 
 @csrf_exempt
 def create_relation(request):
-    user = request.user
-    if request.method == 'POST':
-        logger.info("Creating a new relation between nodes.")
-        try:
-            data = json.loads(request.body)
+    if request.method != 'POST':
+        logger.warning("Invalid request method for relation creation")
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-            start_node_id = data.get('start_node_id')
-            end_node_id = data.get('end_node_id')
+    try:
+        data = json.loads(request.body)
+        start_node_id = data.get('start_node_id')
+        end_node_id = data.get('end_node_id')
 
-            if not start_node_id or not end_node_id:
-                logger.warning("Missing required fields for relation creation.")
+        # Validate required fields
+        if not start_node_id or not end_node_id:
+            logger.warning("Missing required fields for relation creation")
+            return JsonResponse({'error': 'Missing required fields: start_node_id and end_node_id'}, status=400)
 
-                return JsonResponse({'error': 'Missing required fields'}, status=400)
+        # Check if relation already exists using parameterized query
+        check_response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            headers={'Content-Type': 'application/json'},
+            json={
+                "command": "SELECT FROM Includes WHERE out = :start_id AND in = :end_id",
+                "parameters": {
+                    "start_id": start_node_id,
+                    "end_id": end_node_id
+                }
+            },
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
+        )
 
-            check_relation_command = f"SELECT FROM Includes WHERE out = {start_node_id} AND in = {end_node_id}"
-            headers = {'Content-Type': 'application/json'}
-            json_data = {"command": check_relation_command}
+        # Handle check response
+        if not check_response.ok:
+            logger.error(f"Failed to check relation existence: {check_response.text}")
+            return JsonResponse({'error': 'Failed to verify relation status'}, status=500)
 
-            check_response = requests.post(
-                config_settings.ORIENT_COMMAND_URL,
-                headers=headers,
-                json=json_data,
-                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
-            )
+        check_data = check_response.json()
+        if check_data.get('result') and len(check_data['result']) > 0:
+            logger.warning(f"Relation exists between {start_node_id} and {end_node_id}")
+            return JsonResponse({
+                'error': 'Relation already exists',
+                'existing_relation': check_data['result'][0]
+            }, status=409)
 
-            if not check_response.ok:
-                logger.error("Failed to check relation existence.")
-                return JsonResponse({'error': 'Failed to check relation existence'}, status=500)
+        # Create the relation using parameterized query
+        create_response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            headers={'Content-Type': 'application/json'},
+            json={
+                "command": "CREATE EDGE Includes FROM :start_id TO :end_id",
+                "parameters": {
+                    "start_id": start_node_id,
+                    "end_id": end_node_id
+                }
+            },
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
+        )
 
-            check_data = check_response.json()
-            if 'result' in check_data and len(check_data['result']) > 0:
-                logger.warning(f"Relation already exists between nodes {start_node_id} and {end_node_id}.")
-                return JsonResponse({'error': 'Relation already exists'}, status=409)
+        # Handle create response
+        if create_response.ok:
+            result = create_response.json().get('result', {})
+            logger.info(f"Created relation between {start_node_id} and {end_node_id}")
+            return JsonResponse({
+                'message': 'Relation successfully created',
+                'relation': result
+            }, status=201)
+        else:
+            logger.error(f"Failed to create relation: {create_response.text}")
+            return JsonResponse({
+                'error': 'Failed to create relation',
+                'details': create_response.text
+            }, status=500)
 
-            create_relation_command = f"CREATE EDGE Includes FROM {start_node_id} TO {end_node_id}"
-            json_data = {"command": create_relation_command}
-
-            create_response = requests.post(
-                config_settings.ORIENT_COMMAND_URL,
-                headers=headers,
-                json=json_data,
-                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
-            )
-
-            if not create_response.ok:
-                logger.error("Failed to create relation.")
-                return JsonResponse({'error': 'Failed to create relation'}, status=500)
-
-            logger.info(f"Relation created between nodes {start_node_id} and {end_node_id}.")
-            return JsonResponse({'message': 'Relation successfully created'}, status=201)
-
-        except Exception as e:
-            logger.exception("An error occurred while creating a relation.")
-            return JsonResponse({'error': str(e)}, status=400)
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON format in request body")
+        return JsonResponse({'error': 'Invalid request format'}, status=400)
+    except requests.RequestException as e:
+        logger.error(f"Database connection error: {str(e)}")
+        return JsonResponse({'error': 'Database operation failed'}, status=500)
+    except Exception as e:
+        logger.exception(f"Unexpected error in relation creation: {str(e)}")
+        return JsonResponse({'error': 'Internal server error'}, status=500)
 
 
 @csrf_exempt
@@ -706,19 +743,6 @@ def delete_node(request):
 
             if not node_id_to_delete:
                 logger.warning("Missing required fields for relation creation.")
-                # user_action.warning(
-                #     f"Missing required fields for relation creation.",
-                #     extra={
-                #         'user_id': user.id,
-                #         'user_name': user.first_name + ' ' + user.last_name,
-                #         'action_type': 'delete_node',
-                #         'time': datetime.now(),
-                #         'details': json.dumps({
-                #             'status': f"Missing required fields for relation creation.",
-                #         })
-                #
-                #     }
-                # )
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
 
             command = f"DELETE VERTEX {node_id_to_delete}"
@@ -728,35 +752,10 @@ def delete_node(request):
             response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
                                      auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
 
-            # user_action.info(
-            #     f"Node successfully deleted",
-            #     extra={
-            #         'user_id': user.id,
-            #         'user_name': user.first_name + ' ' + user.last_name,
-            #         'action_type': 'delete_node',
-            #         'time': datetime.now(),
-            #         'details': json.dumps({
-            #             'status': f"Node successfully deleted.",
-            #         })
-            #
-            #     }
-            # )
             log_action(f"Удаление вершины {node_id_to_delete}.")
             return JsonResponse({'message': 'Node successfully deleted'}, status=201)
         except Exception as e:
-            # user_action.warning(
-            #     "An error occurred while creating a relation.",
-            #     extra={
-            #         'user_id': user.id,
-            #         'user_name': user.first_name + ' ' + user.last_name,
-            #         'action_type': 'delete_node',
-            #         'time': datetime.now(),
-            #         'details': json.dumps({
-            #             'status': "An error occurred while creating a relation.",
-            #         })
-            #
-            #     }
-            # )
+
             logger.exception("An error occurred while creating a relation.")
             return JsonResponse({'error': str(e)}, status=400)
 
@@ -1080,17 +1079,6 @@ def user_delete(request, user_type, pk):
 
     if request.method == 'POST':
         user.delete()
-        # user_action.info(
-        #     f"user deleted: ID={pk}",
-        #     extra={
-        #         'user_id': user.id,
-        #         'user_name': user.first_name + ' ' + user.last_name,
-        #         'action_type': 'delete_user',
-        #         'time': datetime.now(),
-        #         'details': json.dumps({
-        #             'status': f" user deleted: ID={pk}",
-        #         })
-        #     })
         logger.info(f"user deleted: ID={pk}")
         log_action(f"Удаление пользователя. ID: {pk}.")
         return redirect('chat_dashboard:user_list')
@@ -1112,17 +1100,6 @@ def archive(request):
     logger.info(f"Accessing archive page by user {user}.")
     if request.method == 'POST':
         user.delete()
-        # user_action.info(
-        #     f"Accessing archive page by user {user}.",
-        #     extra={
-        #         'user_id': user.id,
-        #         'user_name': user.first_name + ' ' + user.last_name,
-        #         'action_type': 'access to archive',
-        #         'time': datetime.now(),
-        #         'details': json.dumps({
-        #             'status': f"Accessing archive page by user {user}.",
-        #         })
-        #     })
 
     dialogs = Dialog.objects.annotate(
         has_messages=Exists(Message.objects.filter(dialog=OuterRef('pk'))),
@@ -1685,49 +1662,13 @@ def upload_document(request):
 
         except Exception as e:
             logger.error(f"Error uploading document '{file_name}': {e}")
-            # user_action.error(
-            #     f"Error uploading document '{file_name}' by user {user}.",
-            #     extra={
-            #         'user_id': user.id,
-            #         'user_name': user.first_name + ' ' + user.last_name,
-            #         'action_type': 'upload document',
-            #         'time': datetime.now(),
-            #         'details': json.dumps({
-            #             'status': f"Error uploading document '{file_name}' by user {user}.",
-            #         })
-            #     }
-            # )
             return JsonResponse({'message': 'Ошибка при загрузке файла!'}, status=500)
 
     # Если файл не был передан
     logger.warning("No file provided for upload.")
-    # user_action.info(
-    #     f"Trying upload document by user {user} unsuccess",
-    #     extra={
-    #         'user_id': user.id,
-    #         'user_name': user.first_name + ' ' + user.last_name,
-    #         'action_type': 'upload document',
-    #         'time': datetime.now(),
-    #         'details': json.dumps({
-    #             'status': f"Trying upload document by user {user} unsuccess",
-    #         })
-    #     }
-    # )
     return JsonResponse({'message': 'Файл не загружен!'}, status=400)
 
     logger.warning("No file provided for upload.")
-    # user_action.info(
-    #     f"Trying upload document by user {user} unsuccess",
-    #     extra={
-    #         'user_id': user.id,
-    #         'user_name': user.first_name + ' ' + user.last_name,
-    #         'action_type': 'upload document',
-    #         'time': datetime.now(),
-    #         'details': json.dumps({
-    #             'status': f"Trying upload document by user {user} unsuccess",
-    #         })
-    #     }
-    # )
     return JsonResponse({'message': 'Файл не загружен!'}, status=400)
 
 
@@ -1877,97 +1818,63 @@ def add_new_question_from_teaching(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-@csrf_exempt
-def delete_relation(request):
-    """Creates a relation between two nodes."""
-    user = request.user
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            node_id = data.get('node_id')
-            name = data.get('name')
-            content = data.get('content', None)
-
-            if not document or not answer:
-                logger.warning("Missing required fields for relation creation.")
-                user_action.warning(
-                    f"Missing required fields for relation creation.",
-                    extra={
-                        'user_id': user.id,
-                        'user_name': user.first_name + ' ' + user.last_name,
-                        'action_type': 'delete_node',
-                        'time': datetime.now(),
-                        'details': json.dumps({
-                            'status': f"Missing required fields for relation creation.",
-                        })
-
-                    }
-                )
-                return JsonResponse({'error': 'Missing required fields'}, status=400)
-
-            command = f"DELETE EDGE Includes WHERE out ={answer} AND in={document}"
-            headers = {'Content-Type': 'application/json'}
-            json_data = {"command": command}
-
-            response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
-                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),proxies={"http":None, "https":None})
-
-            user_action.info(
-                f"Node successfully deleted",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'delete_node',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': f"Node successfully deleted.",
-                    })
-
-                }
-            )
-
-            return JsonResponse({'message': 'Node successfully deleted'}, status=201)
-        except Exception as e:
-            user_action.warning(
-                "An error occurred while creating a relation.",
-                extra={
-                    'user_id': user.id,
-                    'user_name': user.first_name + ' ' + user.last_name,
-                    'action_type': 'delete_node',
-                    'time': datetime.now(),
-                    'details': json.dumps({
-                        'status': "An error occurred while creating a relation.",
-                    })
-
-                }
-            )
-            logger.exception("An error occurred while creating a relation.")
-            return JsonResponse({'error': str(e)}, status=400)
 
 @csrf_exempt
 def delete_topic_relation(request):
-    user = request.user
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            topic = data.get('start_node_id')
-            question = data.get('end_node_id')
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-            if not topic or not question:
-                logger.warning("Missing required fields for relation deletion.")
-                return JsonResponse({'error': 'Missing required fields'}, status=400)
+    try:
+        data = json.loads(request.body)
+        topic = data.get('start_node_id')
+        question = data.get('end_node_id')
 
-            command = f"DELETE EDGE Includes WHERE out ={topic} AND in={question}"
-            headers = {'Content-Type': 'application/json'}
-            json_data = {"command": command}
+        if not topic or not question:
+            logger.warning("Missing required fields for relation deletion")
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
 
-            response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
-                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),proxies={"http":None, "https":None})
+        # Параметризованный запрос
+        command = "DELETE EDGE Includes WHERE out = :topic AND in = :question"
+        params = {
+            "topic": topic,
+            "question": question
+        }
 
-            return JsonResponse({'message': 'Node successfully deleted'}, status=201)
-        except Exception as e:
-            logger.exception("An error occurred while creating a relation.")
-            return JsonResponse({'error': str(e)}, status=400)
+        response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            headers={'Content-Type': 'application/json'},
+            json={
+                "command": command,
+                "parameters": params
+            },
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
+            proxies={"http": None, "https": None}
+        )
+
+        # Проверка успешности операции
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('result'):
+                deleted_count = len(result['result'])
+                if deleted_count > 0:
+                    logger.info(f"Successfully deleted {deleted_count} relation(s)")
+                    return JsonResponse({'message': 'Relation successfully deleted'}, status=200)
+                else:
+                    logger.warning("No relations found to delete")
+                    return JsonResponse({'error': 'Relation not found'}, status=404)
+
+        logger.error(f"Database error: {response.text}")
+        return JsonResponse({'error': 'Database operation failed'}, status=500)
+
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON format in request")
+        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+    except requests.RequestException as e:
+        logger.error(f"Database connection error: {str(e)}")
+        return JsonResponse({'error': 'Database connection error'}, status=500)
+    except Exception as e:
+        logger.exception("Unexpected error in delete_topic_relation")
+        return JsonResponse({'error': 'Internal server error'}, status=500)
 
 @csrf_exempt
 def update_node(request):
@@ -1983,39 +1890,184 @@ def update_node(request):
                 logger.error("Missing required fields")
                 return JsonResponse({"error": "Missing required fields"}, status=400)
 
-            # Экранируем специальные символы
-            escaped_content = content.replace("\u200b", "").replace("\n", "\\n").replace("'", "''").strip()
+            # Подготовка параметров для безопасного запроса
+            params = {
+                'node_id': node_id,
+                'name': name
+            }
 
             if type == 'link':
-                query = f"UPDATE link SET content = '{escaped_content}', name = '{name}' WHERE @rid = '{node_id}'"
-            else:
-                query = f"UPDATE document SET name = '{name}' WHERE @rid = '{node_id}'"
+                if content is None:
+                    logger.error("Content is required for link nodes")
+                    return JsonResponse({"error": "Content is required for link nodes"}, status=400)
 
-            # Отправляем запрос
-            response = requests.get(
+                # Экранирование только для специальных нужд (не для безопасности!)
+                escaped_content = content.replace("\u200b", "").replace("\n", "\\n").strip()
+                params['content'] = escaped_content
+
+                query = """
+                    UPDATE link 
+                    SET content = :content, name = :name 
+                    WHERE @rid = :node_id
+                """
+            else:
+                query = """
+                    UPDATE document 
+                    SET name = :name 
+                    WHERE @rid = :node_id
+                """
+
+            # Отправляем параметризованный запрос
+            response = requests.post(
                 config_settings.ORIENT_COMMAND_URL,
                 auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS),
                 headers={"Content-Type": "application/json; charset=utf-8"},
-                json={"command": query},
+                json={
+                    "command": query,
+                    "parameters": params
+                },
             )
 
-            logger.info(f"Response status: {response.status_code}.")
+            logger.info(f"Response status: {response.status_code}, content: {response.text}")
 
             # Проверка успешности запроса
-            if not response.ok:
-                logger.warning(f"Node with ID {node_id} not found.")
-                return JsonResponse({"error": "Node not found"}, status=404)
-            else:
-                return JsonResponse({"message": "Successfully updated node"}, status=200)
+            if response.status_code != 200:
+                logger.warning(f"Database error: {response.text}")
+                return JsonResponse({"error": "Database operation failed"}, status=500)
+
+            try:
+                result = response.json()
+                if result.get('result', []):
+                    return JsonResponse({"message": "Successfully updated node"}, status=200)
+                else:
+                    logger.warning(f"Node with ID {node_id} not found")
+                    return JsonResponse({"error": "Node not found"}, status=404)
+
+            except ValueError:
+                logger.error(f"Invalid JSON response: {response.text}")
+                return JsonResponse({"error": "Invalid database response"}, status=500)
 
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error: {e}")
             return JsonResponse({'error': 'Invalid JSON format'}, status=400)
         except requests.RequestException as e:
             logger.error(f"Request error: {e}")
-            return JsonResponse({'error': 'Error sending request to database'}, status=500)
+            return JsonResponse({'error': 'Database connection error'}, status=500)
         except Exception as e:
             logger.error(f"Unexpected error: {e}")
             return JsonResponse({'error': 'Internal server error'}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@csrf_exempt
+def create_node(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        node_class = data.get('class')
+        node_name = data.get('name')
+        node_content = data.get('content')
+        node_uuid = data.get('uuid')
+
+        # Валидация входных данных
+        if not node_class or node_content is None:
+            logger.warning("Missing required fields: class or content")
+            return JsonResponse({'error': 'Missing required fields: class or content'}, status=400)
+
+        # Проверка существующих узлов (только для класса 'link')
+        if node_class == 'link':
+            # Проверка по имени (если указано)
+            if node_name:
+                check_response = requests.post(
+                    config_settings.ORIENT_COMMAND_URL,
+                    headers={'Content-Type': 'application/json'},
+                    json={
+                        "command": "SELECT FROM link WHERE name = :name",
+                        "parameters": {"name": node_name}
+                    },
+                    auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
+                )
+
+                if check_response.status_code == 200:
+                    existing_nodes = check_response.json().get('result', [])
+                    if existing_nodes:
+                        logger.warning(f"Link with name '{node_name}' already exists")
+                        return JsonResponse({'error': 'Node with this name already exists'}, status=409)
+
+            # Проверка по содержанию
+            check_response = requests.post(
+                config_settings.ORIENT_COMMAND_URL,
+                headers={'Content-Type': 'application/json'},
+                json={
+                    "command": "SELECT FROM link WHERE content = :content",
+                    "parameters": {"content": node_content}
+                },
+                auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
+            )
+
+            if check_response.status_code == 200:
+                existing_nodes = check_response.json().get('result', [])
+                if existing_nodes:
+                    logger.warning(f"Link with this content already exists")
+                    return JsonResponse({'error': 'Node with this content already exists'}, status=409)
+
+        # Создание параметризованного запроса
+        create_command = {
+            "command": f"CREATE VERTEX {node_class} SET content = :content",
+            "parameters": {"content": node_content}
+        }
+
+        # Добавляем дополнительные параметры, если они есть
+        if node_name:
+            create_command["command"] += ", name = :name"
+            create_command["parameters"]["name"] = node_name
+        if node_uuid:
+            create_command["command"] += ", uuid = :uuid"
+            create_command["parameters"]["uuid"] = node_uuid
+
+        # Создание узла
+        response = requests.post(
+            config_settings.ORIENT_COMMAND_URL,
+            headers={'Content-Type': 'application/json'},
+            json=create_command,
+            auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS)
+        )
+
+        # Обработка ответа
+        if response.status_code == 200:
+            try:
+                response_data = response.json()
+                result = response_data.get('result', [])
+
+                if result:
+                    logger.info(f"Node created successfully: {node_class}")
+                    log_action(f"Создание новой вершины {node_class} | {node_content}")
+                    return JsonResponse({
+                        'status': 'success',
+                        'data': result[0] if isinstance(result, list) else result
+                    }, status=201)
+                else:
+                    logger.error("Empty result in response")
+                    return JsonResponse({'error': 'Node creation failed'}, status=500)
+
+            except ValueError as e:
+                logger.error(f"Error parsing JSON response: {e}")
+                return JsonResponse({'error': 'Failed to parse response'}, status=500)
+        else:
+            logger.error(f"Database error: {response.status_code} - {response.text}")
+            return JsonResponse({
+                'error': f"Database operation failed",
+                'details': response.text
+            }, status=500)
+
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON format in request")
+        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+    except requests.RequestException as e:
+        logger.error(f"Database connection error: {str(e)}")
+        return JsonResponse({'error': 'Database connection error'}, status=500)
+    except Exception as e:
+        logger.exception(f"Unexpected error in create_node: {str(e)}")
+        return JsonResponse({'error': 'Internal server error'}, status=500)
