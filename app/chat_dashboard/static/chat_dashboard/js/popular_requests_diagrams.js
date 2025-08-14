@@ -5,6 +5,7 @@ async function fetchPopularRequestsData() {
             throw new Error(`Ошибка HTTP: ${response.status}`);
         }
         data = await response.json();
+        сonsole.log(data);
         currentChartData = data;
         return data;
     } catch (error) {

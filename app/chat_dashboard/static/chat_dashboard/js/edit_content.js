@@ -30,6 +30,33 @@ function getCookie(name) {
     return cookieValue;
 }
 
+async function loadArchivedSections() {
+    try {
+        const response = await fetch('/api/get-archived-sections/');
+        const data = await response.json();
+
+        const select = document.getElementById('archive-sections-list');
+        select.innerHTML = '';
+
+        if (data.length === 0) {
+            select.innerHTML = '<option value="" disabled>Нет архивных разделов</option>';
+            document.getElementById('archive-sections-count').textContent = '0';
+            return;
+        }
+
+        data.forEach(section => {
+            const option = document.createElement('option');
+            option.value = section.id;
+            option.textContent = `${section.name} (Тем: ${section.topics_count})`;
+            select.appendChild(option);
+        });
+
+        document.getElementById('archive-sections-count').textContent = data.length;
+    } catch (error) {
+        console.error('Ошибка загрузки архивных разделов:', error);
+    }
+}
+
 const fetchNodes = async (type) => {
     const encodedType = encodeURIComponent(type);
     try {

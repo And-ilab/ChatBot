@@ -53,63 +53,7 @@
             <h3 class="mb-0">Сообщения</h3>
         </div>
         <div class="all-messages-container" id="all-messages" style="display:none;" data-messages='{{ all_messages|safe }}'></div>
-        <div id="unread-messages" class="chat-messages flex-grow-1 p-3 border-start border-end">
-            {% for message in unread_messages %}
-                <div class="message-item d-flex align-items-center border p-2 mb-2 rounded">
-                    <div class="flex-grow-1">
-                        <p class="mb-0">{{ message.content }}</p>
-                    </div>
-                    <div class="text-center me-5">
-                        <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
-                    </div>
-                    <div class="message-actions d-flex gap-2">
-                        <button class="btn btn-outline-success btn-sm position-relative" title="Обучить">
-                            <i class="bi bi-check"></i>
-                            <a href="{% url 'chat_dashboard:train' message.id %}" class="stretched-link text-decoration-none"></a>
-                        </button>
-                        <button
-                            class="btn btn-outline-warning btn-sm"
-                            title="Игнорировать"
-                            data-message-id="{{ message.id }}">
-                            <i class="bi bi-slash-circle"></i>
-                        </button>
-                        <button class="btn btn-outline-danger btn-sm" data-message-id="{{ message.id }}" title="Удалить">
-                            <i class="bi bi-x"></i>
-                        </button>
-                    </div>
-                </div>
-            {% empty %}
-                <div class="empty-container d-flex justify-content-center">
-                  <p>Извините, в системе отсутствуют <br> <strong> Неотвеченные сообщения </strong></p>
-                </div>
-            {% endfor %}
-        </div>
-        <div id="ignored-messages" class="chat-messages flex-grow-1 p-3 border-start border-end hidden">
-            {% for message in ignored_messages %}
-                <div class="message-item d-flex align-items-center border p-2 mb-2 rounded">
-                    <div class="flex-grow-1">
-                        <p class="mb-0">{{ message.content }}</p>
-                    </div>
-                    <div class="text-center me-5">
-                        <small class="text-muted">{{ message.created_at|date:"Y-m-d H:i:s" }}</small>
-                    </div>
-                    <div class="message-actions d-flex gap-2">
-                        <button class="btn btn-outline-success btn-sm position-relative" title="Обучить">
-                            <i class="bi bi-check"></i>
-                            <a href="{% url 'chat_dashboard:train' message.id %}" class="stretched-link text-decoration-none"></a>
-                        </button>
-                        <button class="btn btn-outline-danger btn-sm" data-message-id="{{ message.id }}" title="Удалить">
-                            <i class="bi bi-x"></i>
-                        </button>
-                    </div>
-                </div>
-            {% empty %}
-                <div class="empty-container d-flex justify-content-center">
-                  <p>Извините, в системе отсутствуют <br> <strong> Игнорируемые сообщения </strong></p>
-                </div>
-            {% endfor %}
-        </div>
-    </div>
+
 </div>
 
 <script>

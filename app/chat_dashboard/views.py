@@ -36,9 +36,28 @@ from django.core.mail import send_mail
 from authentication.decorators import role_required
 import random
 import uuid
+import socket
 
 logger = logging.getLogger('chat_dashboard')
 user_action = logging.getLogger('user_actions')
+
+def get_client_info(request):
+    """Возвращает строку с информацией о клиенте (IP, MAC, hostname)"""
+    # Получаем IP
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR', 'N/A')
+
+    # Получаем MAC
+    try:
+        mac = ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff)
+                      for elements in range(5, -1, -1)])
+    except:
+        mac = 'N/A'
+
+    # Получаем hostname
+    hostname = socket.gethostname()
+
+    return f"[IP: {ip}, MAC: {mac}, Host: {hostname}]"
 
 
 def log_action(action_text):
@@ -122,10 +141,15 @@ def logs_view(request):
 
     return render(request, 'chat_dashboard/logs.html', {'logs_text': logs_text})
 
+
 @csrf_exempt
 def send_message(request, dialog_id):
-    """Sends a message in the specified dialog."""
-    logger.info(f"Sending message to dialog ID: {dialog_id}")
+    """Sends a message in the specified dialog with client info in logs."""
+    client_info = get_client_info(request)
+
+    # Логируем с информацией о клиенте
+    logger.info(f"{client_info} Sending message to dialog ID: {dialog_id}")
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -136,9 +160,15 @@ def send_message(request, dialog_id):
             message_type = data.get('message_type')
 
             logger.debug(
-                f"Message data: content={content}, sender_type={sender_type}, sender_id={sender_id}, timestamp={timestamp}")
+                f"{client_info} Message data: content={content}, sender_type={sender_type}, "
+                f"sender_id={sender_id}, timestamp={timestamp}"
+            )
 
-            if content and sender_type and timestamp and message_type:
+            if not all([content, sender_type, timestamp, message_type]):
+                logger.warning(f"{client_info} Invalid data: required fields are missing")
+                return JsonResponse({'status': 'error', 'message': 'Invalid data'}, status=400)
+
+            try:
                 dialog = Dialog.objects.get(id=dialog_id)
                 Message.objects.create(
                     dialog=dialog,
@@ -148,15 +178,22 @@ def send_message(request, dialog_id):
                     content=content,
                     created_at=timestamp
                 )
-                logger.info("Message sent successfully.")
+                logger.info(f"{client_info} Message sent successfully")
                 return JsonResponse({'status': 'success', 'message': 'Message sent'})
-            logger.warning("Invalid data: content or sender_type is missing.")
-            return JsonResponse({'status': 'error', 'message': 'Invalid data'}, status=400)
+
+            except Dialog.DoesNotExist:
+                logger.error(f"{client_info} Dialog not found: ID {dialog_id}")
+                return JsonResponse({'status': 'error', 'message': 'Dialog not found'}, status=404)
+
+        except json.JSONDecodeError:
+            logger.error(f"{client_info} Invalid JSON data received")
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+
         except Exception as e:
-            logger.exception("An error occurred while sending a message.")
+            logger.exception(f"{client_info} Error sending message: {str(e)}")
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-    logger.warning("Invalid method: only POST is supported.")
+    logger.warning(f"{client_info} Invalid method: only POST is supported")
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
 
@@ -223,6 +260,7 @@ def training_dashboard(request):
         'all_messages': list(unread_messages) + list(ignored_messages),
         'unread_messages': list(unread_messages),
         'ignored_messages': list(ignored_messages),
+        'disliked_messages': list(ignored_messages),
     }
     # user_action.info(
     #     'Accessing training dashboard',
@@ -731,6 +769,33 @@ def create_relation(request):
         logger.exception(f"Unexpected error in relation creation: {str(e)}")
         return JsonResponse({'error': 'Internal server error'}, status=500)
 
+
+@csrf_exempt
+def delete_node(request):
+    """Creates a relation between two nodes."""
+    user = request.user
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            node_id_to_delete = data.get('node_id')
+
+            if not node_id_to_delete:
+                logger.warning("Missing required fields for relation creation.")
+                return JsonResponse({'error': 'Missing required fields'}, status=400)
+
+            command = f"DELETE VERTEX {node_id_to_delete}"
+            headers = {'Content-Type': 'application/json'}
+            json_data = {"command": command}
+
+            response = requests.post(config_settings.ORIENT_COMMAND_URL, headers=headers, json=json_data,
+                                     auth=(config_settings.ORIENT_LOGIN, config_settings.ORIENT_PASS))
+
+            log_action(f"Удаление вершины {node_id_to_delete}.")
+            return JsonResponse({'message': 'Node successfully deleted'}, status=201)
+        except Exception as e:
+
+            logger.exception("An error occurred while creating a relation.")
+            return JsonResponse({'error': str(e)}, status=400)
 
 @csrf_exempt
 def delete_node(request):

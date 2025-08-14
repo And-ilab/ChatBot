@@ -7,293 +7,435 @@
 <div class="container">
     <h2 class="text-center mt-4">Добавление и редактирование контента</h2>
 
-    <form method="POST" class="mt-4 mx-auto" style="max-width: 800px; display: flex; flex-direction: column; align-items: center;">
-        {% csrf_token %}
-
-        <!-- Блок селектов -->
-        <div class="mb-4 border p-3 rounded" style="background-color: #f9f9f9; width: 500px;">
-            <div class="mb-3 d-flex align-items-end">
-                <div style="flex: 1; max-width: 400px;">
-                    <label for="section" class="form-label">Выберите раздел</label>
-                    <select class="form-select" id="section" name="section" style="max-width: 400px;" required>
-                        <option value="" disabled selected>Выберите раздел</option>
-                    </select>
-                </div>
-                <div class="d-flex gap-2 ms-3">
-                    <button type="button" class="btn btn-sm btn-outline-success" id="add-section" style="height: 38px; width: 38px;" title="Добавить раздел">
-                        <i class="bi bi-plus-lg"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-warning" id="edit-section" style="height: 38px; width: 38px;" title="Редактировать раздел">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" id="delete-section" style="height: 38px; width: 38px;" title="Удалить раздел">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="mb-3 d-flex align-items-end">
-                <div style="flex: 1; max-width: 400px;">
-                    <label for="topic" class="form-label">Выберите тему</label>
-                    <select class="form-select" id="topic" name="topic" style="max-width: 400px;" required>
-                        <option value="" disabled selected>Выберите тему</option>
-                    </select>
-                </div>
-                <div class="d-flex gap-2 ms-3">
-                    <button type="button" class="btn btn-sm btn-outline-success" id="add-topic" style="height: 38px; width: 38px;" title="Добавить тему">
-                        <i class="bi bi-plus-lg"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-warning" id="edit-topic" style="height: 38px; width: 38px;" title="Редактировать тему">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" id="delete-topic" style="height: 38px; width: 38px;" title="Удалить тему">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="mb-3 d-flex align-items-end">
-                <div style="flex: 1; max-width: 400px;">
-                    <label for="question" class="form-label">Выберите вопрос</label>
-                    <select class="form-select" id="question" name="question" required>
-                        <option value="" disabled selected>Выберите вопрос</option>
-                    </select>
-                </div>
-                <div class="d-flex gap-2 ms-3">
-                    <button type="button" class="btn btn-sm btn-outline-success" id="add-question" style="height: 38px; width: 38px;" title="Добавить вопрос">
-                        <i class="bi bi-plus-lg"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-warning" id="edit-question" style="height: 38px; width: 38px;" title="Редактировать вопрос">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" id="delete-question" style="height: 38px; width: 38px;" title="Удалить вопрос">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="move-question" style="height: 38px; width: 38px;" title="Перенести в другую тему">
-                        <i class="bi bi-arrow-left-right"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Текстовый ввод -->
-        <div class="mb-4">
-            <label for="answer" class="form-label">Ответ</label>
+    <div class="tab-container"> <!-- Обертка для всей конструкции -->
+        <ul class="nav nav-tabs mt-4" id="contentTabs" role="tablist" style="border-bottom: none;">
             <div class="d-flex">
-                <textarea class="form-control" id="answer" name="answer" rows="6" style="resize: none; height: 300px; width: 700px;" readonly></textarea>
-                <div class="d-flex flex-column gap-2 ms-3">
-                    <button type="button" class="btn btn-sm btn-outline-danger" id="delete-answer">
-                        <i class="bi bi-trash"></i>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active px-4 py-2" id="main-tab" data-bs-toggle="tab" data-bs-target="#main-content" type="button" role="tab"
+                        style="border: 1px solid #dee2e6; border-bottom: none; border-radius: 0.25rem 0.25rem 0 0; background-color: #f8f9fa;">
+                        <i class="bi bi-collection me-2"></i>Основное
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-warning" id="edit-answer">
-                        <i class="bi bi-pencil"></i>
+                </li>
+            </div>
+            <div class="d-flex">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link px-4 py-2 ms-3" id="archive-tab" data-bs-toggle="tab" data-bs-target="#archive-content" type="button" role="tab"
+                        style="border: 1px solid #dee2e6; border-bottom: none; border-radius: 0.25rem 0.25rem 0 0; background-color: #f8f9fa;">
+                        <i class="bi bi-archive me-2"></i>Архив
                     </button>
-                </div>
+                </li>
             </div>
-        </div>
+        </ul>
+        <div style="height: 1px; background-color: #dee2e6; margin-top: -1px;"></div>
+    </div>
 
-        <!-- Модальное окно для редактирования вопроса -->
-        <div class="modal" id="editQuestionModal" tabindex="-1" aria-labelledby="editQuestionModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editQuestionModalLabel">Редактирование вопроса</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <label for="question-input" class="form-label">Измените вопрос</label>
-                        <input type="text" class="form-control" id="question-input">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-                        <button type="button" class="btn btn-primary" id="save-question">Сохранить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="tab-content">
+        <!-- Основной контент -->
+        <div class="tab-pane fade show active" id="main-content" role="tabpanel">
+            <form method="POST" class="mt-4 mx-auto" style="max-width: 800px; display: flex; flex-direction: column; align-items: center;">
+                {% csrf_token %}
 
-        <!-- Модальное окно для редактирования темы -->
-        <div class="modal" id="editTopicModal" tabindex="-1" aria-labelledby="editTopicModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editTopicModalLabel">Редактирование темы</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <label for="topic-input" class="form-label">Измените тему</label>
-                        <input type="text" class="form-control" id="topic-input">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-                        <button type="button" class="btn btn-primary" id="save-topic">Сохранить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Модальное окно для редактирования раздела -->
-        <div class="modal" id="editSectionModal" tabindex="-1" aria-labelledby="editSectionModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editSectionModalLabel">Редактирование раздела</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <label for="section-input" class="form-label">Измените раздел</label>
-                        <input type="text" class="form-control" id="section-input">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-                        <button type="button" class="btn btn-primary" id="save-section">Сохранить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Модальное окно подтверждения удаления раздела -->
-        <div class="modal fade" id="confirmDeleteSectionModal" tabindex="-1" aria-labelledby="confirmDeleteSectionModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="confirmDeleteSectionModalLabel">Подтверждение удаления</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        Вы точно хотите удалить раздел "<span id="section-to-delete-name"></span>"?
-                        <div class="alert alert-warning mt-2">
-                            Внимание! Будут также удалены все связанные темы, вопросы и ответы!
+                <!-- Блок селектов -->
+                <div class="mb-4 border p-3 rounded" style="background-color: #f9f9f9; width: 500px;">
+                    <div class="mb-3 d-flex align-items-end">
+                        <div style="flex: 1; max-width: 400px;">
+                            <label for="section" class="form-label">Выберите раздел</label>
+                            <select class="form-select" id="section" name="section" style="max-width: 400px;" required>
+                                <option value="" disabled selected>Выберите раздел</option>
+                            </select>
+                        </div>
+                        <div class="d-flex gap-2 ms-3">
+                            <button type="button" class="btn btn-sm btn-outline-success" id="add-section" style="height: 38px; width: 38px;" title="Добавить раздел">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-warning" id="edit-section" style="height: 38px; width: 38px;" title="Редактировать раздел">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-section" style="height: 38px; width: 38px;" title="Архивировать раздел">
+                                <i class="bi bi-archive-fill"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button type="button" class="btn btn-danger" id="confirm-delete-section">Удалить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Модальное окно для добавления раздела -->
-        <div class="modal fade" id="addSectionModal" tabindex="-1" aria-labelledby="addSectionModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addSectionModalLabel">Добавить новый раздел</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <label for="new-section-name" class="form-label">Название раздела</label>
-                        <input type="text" class="form-control" id="new-section-name" placeholder="Введите название раздела">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button type="button" class="btn btn-primary" id="save-new-section">Добавить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Модальные окна для тем -->
-        <div class="modal fade" id="confirmDeleteTopicModal" tabindex="-1" aria-labelledby="confirmDeleteTopicModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="confirmDeleteTopicModalLabel">Подтверждение удаления</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        Вы точно хотите удалить тему "<span id="topic-to-delete-name"></span>"?
-                        <div class="alert alert-warning mt-2">
-                            Внимание! Будут также удалены все связанные вопросы и ответы!
+                    <div class="mb-3 d-flex align-items-end">
+                        <div style="flex: 1; max-width: 400px;">
+                            <label for="topic" class="form-label">Выберите тему</label>
+                            <select class="form-select" id="topic" name="topic" style="max-width: 400px;" required>
+                                <option value="" disabled selected>Выберите тему</option>
+                            </select>
+                        </div>
+                        <div class="d-flex gap-2 ms-3">
+                            <button type="button" class="btn btn-sm btn-outline-success" id="add-topic" style="height: 38px; width: 38px;" title="Добавить тему">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-warning" id="edit-topic" style="height: 38px; width: 38px;" title="Редактировать тему">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-topic" style="height: 38px; width: 38px;" title="Архивировать тему">
+                                <i class="bi bi-archive-fill"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button type="button" class="btn btn-danger" id="confirm-delete-topic">Удалить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="modal fade" id="addTopicModal" tabindex="-1" aria-labelledby="addTopicModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addTopicModalLabel">Добавить новую тему</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <label for="new-topic-name" class="form-label">Название темы</label>
-                        <input type="text" class="form-control" id="new-topic-name" placeholder="Введите название темы">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button type="button" class="btn btn-primary" id="save-new-topic">Добавить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Модальные окна для вопросов -->
-        <div class="modal fade" id="confirmDeleteQuestionModal" tabindex="-1" aria-labelledby="confirmDeleteQuestionModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="confirmDeleteQuestionModalLabel">Подтверждение удаления</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        Вы точно хотите удалить вопрос "<span id="question-to-delete-name"></span>"?
-                        <div class="alert alert-warning mt-2">
-                            Внимание! Будет также удален связанный ответ!
+                    <div class="mb-3 d-flex align-items-end">
+                        <div style="flex: 1; max-width: 400px;">
+                            <label for="question" class="form-label">Выберите вопрос</label>
+                            <select class="form-select" id="question" name="question" required>
+                                <option value="" disabled selected>Выберите вопрос</option>
+                            </select>
+                        </div>
+                        <div class="d-flex gap-2 ms-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="move-question" style="height: 38px; width: 38px;" title="Перенести в другую тему">
+                                <i class="bi bi-arrow-left-right"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-success" id="add-question" style="height: 38px; width: 38px;" title="Добавить вопрос">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-warning" id="edit-question" style="height: 38px; width: 38px;" title="Редактировать вопрос">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-question" style="height: 38px; width: 38px;" title="Архивировать вопрос">
+                                <i class="bi bi-archive-fill"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button type="button" class="btn btn-danger" id="confirm-delete-question">Удалить</button>
+                </div>
+
+                <!-- Текстовый ввод -->
+                <div class="mb-4">
+                    <label for="answer" class="form-label">Ответ</label>
+                    <div class="d-flex">
+                        <textarea class="form-control" id="answer" name="answer" rows="6" style="resize: none; height: 300px; width: 700px;" readonly></textarea>
+                        <div class="d-flex flex-column gap-2 ms-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="delete-answer" style="height: 38px; width: 38px;" title="Архивировать ответ">
+                                <i class="bi bi-archive-fill"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-warning" id="edit-answer" title="Редактировать ответ">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальное окно для редактирования вопроса -->
+                <div class="modal" id="editQuestionModal" tabindex="-1" aria-labelledby="editQuestionModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editQuestionModalLabel">Редактирование вопроса</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label for="question-input" class="form-label">Измените вопрос</label>
+                                <input type="text" class="form-control" id="question-input">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                <button type="button" class="btn btn-primary" id="save-question">Сохранить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальное окно для редактирования темы -->
+                <div class="modal" id="editTopicModal" tabindex="-1" aria-labelledby="editTopicModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editTopicModalLabel">Редактирование темы</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label for="topic-input" class="form-label">Измените тему</label>
+                                <input type="text" class="form-control" id="topic-input">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                <button type="button" class="btn btn-primary" id="save-topic">Сохранить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальное окно для редактирования раздела -->
+                <div class="modal" id="editSectionModal" tabindex="-1" aria-labelledby="editSectionModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editSectionModalLabel">Редактирование раздела</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label for="section-input" class="form-label">Измените раздел</label>
+                                <input type="text" class="form-control" id="section-input">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                <button type="button" class="btn btn-primary" id="save-section">Сохранить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальное окно подтверждения удаления раздела -->
+                <div class="modal fade" id="confirmDeleteSectionModal" tabindex="-1" aria-labelledby="confirmDeleteSectionModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="confirmDeleteSectionModalLabel">Подтверждение удаления</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                Вы точно хотите удалить раздел "<span id="section-to-delete-name"></span>"?
+                                <div class="alert alert-warning mt-2">
+                                    Внимание! Будут также удалены все связанные темы, вопросы и ответы!
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                <button type="button" class="btn btn-danger" id="confirm-delete-section">Удалить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальное окно для добавления раздела -->
+                <div class="modal fade" id="addSectionModal" tabindex="-1" aria-labelledby="addSectionModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addSectionModalLabel">Добавить новый раздел</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label for="new-section-name" class="form-label">Название раздела</label>
+                                <input type="text" class="form-control" id="new-section-name" placeholder="Введите название раздела">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                <button type="button" class="btn btn-primary" id="save-new-section">Добавить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальные окна для тем -->
+                <div class="modal fade" id="confirmDeleteTopicModal" tabindex="-1" aria-labelledby="confirmDeleteTopicModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="confirmDeleteTopicModalLabel">Подтверждение удаления</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                Вы точно хотите удалить тему "<span id="topic-to-delete-name"></span>"?
+                                <div class="alert alert-warning mt-2">
+                                    Внимание! Будут также удалены все связанные вопросы и ответы!
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                <button type="button" class="btn btn-danger" id="confirm-delete-topic">Удалить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="addTopicModal" tabindex="-1" aria-labelledby="addTopicModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addTopicModalLabel">Добавить новую тему</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label for="new-topic-name" class="form-label">Название темы</label>
+                                <input type="text" class="form-control" id="new-topic-name" placeholder="Введите название темы">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                <button type="button" class="btn btn-primary" id="save-new-topic">Добавить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальные окна для вопросов -->
+                <div class="modal fade" id="confirmDeleteQuestionModal" tabindex="-1" aria-labelledby="confirmDeleteQuestionModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="confirmDeleteQuestionModalLabel">Подтверждение удаления</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                Вы точно хотите удалить вопрос "<span id="question-to-delete-name"></span>"?
+                                <div class="alert alert-warning mt-2">
+                                    Внимание! Будет также удален связанный ответ!
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                <button type="button" class="btn btn-danger" id="confirm-delete-question">Удалить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="addQuestionModal" tabindex="-1" aria-labelledby="addQuestionModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addQuestionModalLabel">Добавить новый вопрос</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label for="new-question-name" class="form-label">Текст вопроса</label>
+                                <input type="text" class="form-control" id="new-question-name" placeholder="Введите текст вопроса">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                <button type="button" class="btn btn-primary" id="save-new-question">Добавить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Список документов -->
+                <div class="mb-4 border p-3 rounded" style="background-color: #f9f9f9; width: 700px; overflow-y: auto;">
+                    <h5>Документы</h5>
+                    <ul class="list-group" id="document-list">
+                        <!-- Сюда будут добавляться документы -->
+                    </ul>
+                </div>
+                <div class="mb-4 border p-3 rounded" style="background-color: #f9f9f9; width: 700px; overflow-y: auto;">
+                    <h5>Ссылки</h5>
+                    <ul class="list-group" id="link-list">
+                        <!-- Сюда будут добавляться ссылки -->
+                    </ul>
+                </div>
+                <div class="mb-4">
+                    <button type="button" class="btn btn-outline-primary" id="add-link">Добавить ссылку</button>
+                    <button type="button" class="btn btn-outline-secondary" id="add-document">Добавить документ</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Контент архива -->
+        <div class="tab-pane fade" id="archive-content" role="tabpanel">
+            <div class="d-flex flex-column align-items-center p-4">
+                <!-- Элемент архива 1 -->
+                <div class="mb-4 w-100" style="max-width: 800px;">
+                    <div class="accordion" id="archiveAccordion">
+                        <!-- Архивный ответ 1 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#archiveItem1">
+                                    Ответ: Как настроить подключение к базе данных OrientDB...
+                                </button>
+                            </h2>
+                            <div id="archiveItem1" class="accordion-collapse collapse" data-bs-parent="#archiveAccordion">
+                                <div class="accordion-body">
+                                    <div class="archive-hierarchy">
+                                        <div class="text-muted mb-1">
+                                            <i class="bi bi-folder me-1"></i> Раздел: Настройка сервера
+                                        </div>
+                                        <div class="text-muted mb-1 ms-3">
+                                            <i class="bi bi-collection me-1"></i> Тема: Работа с базами данных
+                                        </div>
+                                        <div class="text-muted mb-3 ms-5">
+                                            <i class="bi bi-question-circle me-1"></i> Вопрос: Как подключиться к OrientDB?
+                                        </div>
+                                        <div class="archive-content-item">
+                                            <i class="bi bi-card-text me-1"></i> Ответ: Для подключения к OrientDB необходимо использовать...
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-3 gap-2">
+                                            <button class="btn btn-sm btn-success">
+                                                <i class="bi bi-arrow-counterclockwise me-1"></i> Восстановить
+                                            </button>
+                                            <button class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash me-1"></i> Удалить
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Архивный документ 1 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#archiveItem2">
+                                    Документ: Руководство по установке OrientDB.pdf
+                                </button>
+                            </h2>
+                            <div id="archiveItem2" class="accordion-collapse collapse" data-bs-parent="#archiveAccordion">
+                                <div class="accordion-body">
+                                    <div class="archive-hierarchy">
+                                        <div class="text-muted mb-1">
+                                            <i class="bi bi-folder me-1"></i> Раздел: Документация
+                                        </div>
+                                        <div class="text-muted mb-1 ms-3">
+                                            <i class="bi bi-collection me-1"></i> Тема: Установка и настройка
+                                        </div>
+                                        <div class="text-muted mb-3 ms-5">
+                                            <i class="bi bi-question-circle me-1"></i> Вопрос: Где найти руководство по установке?
+                                        </div>
+                                        <div class="archive-content-item">
+                                            <i class="bi bi-file-earmark-pdf me-1"></i> Документ: Руководство по установке OrientDB.pdf
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-3 gap-2">
+                                            <button class="btn btn-sm btn-success">
+                                                <i class="bi bi-arrow-counterclockwise me-1"></i> Восстановить
+                                            </button>
+                                            <button class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash me-1"></i> Удалить
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Архивная ссылка 1 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#archiveItem3">
+                                    Ссылка: Официальная документация OrientDB
+                                </button>
+                            </h2>
+                            <div id="archiveItem3" class="accordion-collapse collapse" data-bs-parent="#archiveAccordion">
+                                <div class="accordion-body">
+                                    <div class="archive-hierarchy">
+                                        <div class="text-muted mb-1">
+                                            <i class="bi bi-folder me-1"></i> Раздел: Полезные ресурсы
+                                        </div>
+                                        <div class="text-muted mb-1 ms-3">
+                                            <i class="bi bi-collection me-1"></i> Тема: Официальная документация
+                                        </div>
+                                        <div class="text-muted mb-3 ms-5">
+                                            <i class="bi bi-question-circle me-1"></i> Вопрос: Где найти официальную документацию?
+                                        </div>
+                                        <div class="archive-content-item">
+                                            <i class="bi bi-link-45deg me-1"></i> Ссылка: <a href="https://orientdb.org/docs" target="_blank">https://orientdb.org/docs</a>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-3 gap-2">
+                                            <button class="btn btn-sm btn-success">
+                                                <i class="bi bi-arrow-counterclockwise me-1"></i> Восстановить
+                                            </button>
+                                            <button class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash me-1"></i> Удалить
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="modal fade" id="addQuestionModal" tabindex="-1" aria-labelledby="addQuestionModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addQuestionModalLabel">Добавить новый вопрос</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <label for="new-question-name" class="form-label">Текст вопроса</label>
-                        <input type="text" class="form-control" id="new-question-name" placeholder="Введите текст вопроса">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button type="button" class="btn btn-primary" id="save-new-question">Добавить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Список документов -->
-        <div class="mb-4 border p-3 rounded" style="background-color: #f9f9f9; width: 700px; overflow-y: auto;">
-            <h5>Документы</h5>
-            <ul class="list-group" id="document-list">
-                <!-- Сюда будут добавляться документы -->
-            </ul>
-        </div>
-        <div class="mb-4 border p-3 rounded" style="background-color: #f9f9f9; width: 700px; overflow-y: auto;">
-            <h5>Ссылки</h5>
-            <ul class="list-group" id="link-list">
-                <!-- Сюда будут добавляться ссылки -->
-            </ul>
-        </div>
-        <div class="mb-4">
-            <button type="button" class="btn btn-outline-primary" id="add-link">Добавить ссылку</button>
-            <button type="button" class="btn btn-outline-secondary" id="add-document">Добавить документ</button>
-        </div>
-    </form>
+    </div>
 </div>
 
 <div class="modal" id="addLinkModal" tabindex="-1" aria-labelledby="addLinkModalLabel" aria-hidden="true">
@@ -448,6 +590,50 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                 <button type="button" class="btn btn-primary" id="save-link-changes">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения восстановления -->
+<div class="modal fade" id="restoreFromArchiveModal" tabindex="-1" aria-labelledby="restoreFromArchiveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="restoreFromArchiveModalLabel">Восстановление из архива</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите восстановить этот элемент из архива?</p>
+                <div class="alert alert-warning mt-2">
+                    Элемент будет возвращен в основное дерево контента.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-success" id="confirm-restore">Восстановить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления из архива -->
+<div class="modal fade" id="deleteFromArchiveModal" tabindex="-1" aria-labelledby="deleteFromArchiveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteFromArchiveModalLabel">Удаление из архива</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите окончательно удалить этот элемент из архива?</p>
+                <div class="alert alert-danger mt-2">
+                    Это действие нельзя отменить! Элемент будет удален безвозвратно.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-from-archive">Удалить</button>
             </div>
         </div>
     </div>
